@@ -4,18 +4,24 @@
  *
  **/
 
-#ifndef _CONSOLE_H
-#define _CONSOLE_H
+#ifndef _MXLIBHLP_CONSOLE_H
+#define _MXLIBHLP_CONSOLE_H
 
 #include <Defines.h>
 
 //-----------------------------------------------------------
 
+namespace MXHelpers {
+
 typedef enum {
   ccNormal, ccError, ccSuccess, ccYellow, ccBlue
 } eConsoleColor;
 
+}; //namespace MXHelpers
+
 //-----------------------------------------------------------
+
+namespace MXHelpers {
 
 namespace Console {
 
@@ -26,6 +32,8 @@ VOID PrintError(_In_ HRESULT hRes);
 
 }; //namespace Console
 
+}; //namespace MXHelpers
+
 //-----------------------------------------------------------
 
-#endif //_CONSOLE_H
+#endif //_MXLIBHLP_CONSOLE_H

@@ -4,8 +4,8 @@
 *
 **/
 
-#ifndef _EVENT_LOGGER_H
-#define _EVENT_LOGGER_H
+#ifndef _MXLIBHLP_EVENT_LOGGER_H
+#define _MXLIBHLP_EVENT_LOGGER_H
 
 #include <Defines.h>
 #include <Windows.h>
@@ -13,6 +13,8 @@
 #include <Strings\Strings.h>
 
 //-----------------------------------------------------------
+
+namespace MXHelpers {
 
 namespace EventLogger {
 
@@ -25,8 +27,10 @@ HRESULT LogAlways(_In_ HRESULT hResError, _Printf_format_string_ LPCWSTR szForma
 
 HRESULT GetLogFolder(_Out_ MX::CStringW &cStrLogFolderW);
 
-} //namespace EventLogger
+}; //namespace EventLogger
+
+}; //namespace MXHelpers
 
 //-----------------------------------------------------------
 
-#endif //_EVENT_LOGGER_H
+#endif //_MXLIBHLP_EVENT_LOGGER_H

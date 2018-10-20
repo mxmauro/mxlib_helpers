@@ -4,12 +4,14 @@
  *
  **/
 
-#ifndef _CRASH_REPORT_H
-#define _CRASH_REPORT_H
+#ifndef _MXLIBHLP_CRASH_REPORT_H
+#define _MXLIBHLP_CRASH_REPORT_H
 
 #include <Defines.h>
 
 //-----------------------------------------------------------
+
+namespace MXHelpers {
 
 namespace CrashReport {
 
@@ -18,6 +20,8 @@ BOOL HandleCrashDump(_In_z_ LPCWSTR szModuleNameW);
 
 }; //namespace CrashReport
 
+}; //namespace MXHelpers
+
 //-----------------------------------------------------------
 
-#endif //_CRASH_REPORT_H
+#endif //_MXLIBHLP_CRASH_REPORT_H

@@ -4,19 +4,19 @@
  *
  **/
 
-#ifndef _SINGLEINSTANCE_H
-#define _SINGLEINSTANCE_H
+#ifndef _MXLIBHLP_SINGLEINSTANCE_H
+#define _MXLIBHLP_SINGLEINSTANCE_H
 
 #include <Defines.h>
 
 //-----------------------------------------------------------
 
-namespace SingleInstance {
+namespace MXHelpers {
 
-HRESULT Check(_In_z_ LPCWSTR szNameW);
+HRESULT SingleInstanceCheck(_In_z_ LPCWSTR szNameW);
 
-}; //namespace SingleInstance
+}; //namespace MXHelpers
 
 //-----------------------------------------------------------
 
-#endif //_SINGLEINSTANCE_H
+#endif //_MXLIBHLP_SINGLEINSTANCE_H

@@ -4,8 +4,8 @@
  *
  **/
 
-#ifndef _RESOURCE_EXTRACT_H
-#define _RESOURCE_EXTRACT_H
+#ifndef _MXLIBHLP_RESOURCE_EXTRACT_H
+#define _MXLIBHLP_RESOURCE_EXTRACT_H
 
 #include <Defines.h>
 #include <Windows.h>
@@ -14,6 +14,8 @@
 
 //-----------------------------------------------------------
 
+namespace MXHelpers {
+
 HRESULT ExtractResourceToFile(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _In_ LPCWSTR szResTypeW,
                               _In_ HANDLE hFile);
 HRESULT ExtractResourceToMemory(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _In_ LPCWSTR szResTypeW,
@@ -21,6 +23,8 @@ HRESULT ExtractResourceToMemory(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _
 HRESULT ExtractResourceToStream(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _In_ LPCWSTR szResTypeW,
                                 _COM_Outptr_opt_result_maybenull_ MX::CMemoryStream **lplpStream);
 
+}; //namespace MXHelpers
+
 //-----------------------------------------------------------
 
-#endif //_RESOURCE_EXTRACT_H
+#endif //_MXLIBHLP_RESOURCE_EXTRACT_H

@@ -9,6 +9,8 @@ static VS_FIXEDFILEINFO sNoFixedInfo = { 0 };
 
 //-----------------------------------------------------------
 
+namespace MXHelpers {
+
 CFileVersionInfo::CFileVersionInfo() : MX::CBaseMemObj()
 {
   lpFfi = &sNoFixedInfo;
@@ -22,7 +24,7 @@ HRESULT CFileVersionInfo::InitializeFromFileName(_In_z_ LPCWSTR szFileNameW)
   CPeParser cPeParser;
   HRESULT hRes;
 
-  hRes = cPeParser.InitializeFromFileName(szFileNameW, PEPARSER_FLAG_ParseResources);
+  hRes = cPeParser.InitializeFromFileName(szFileNameW, MXLIBHLP_PEPARSER_FLAG_ParseResources);
   if (SUCCEEDED(hRes))
     hRes = AnalyzeVersionInfo(&cPeParser);
   return hRes;
@@ -33,7 +35,7 @@ HRESULT CFileVersionInfo::InitializeFromFileHandle(_In_ HANDLE hFile)
   CPeParser cPeParser;
   HRESULT hRes;
 
-  hRes = cPeParser.InitializeFromFileHandle(hFile, PEPARSER_FLAG_ParseResources);
+  hRes = cPeParser.InitializeFromFileHandle(hFile, MXLIBHLP_PEPARSER_FLAG_ParseResources);
   if (SUCCEEDED(hRes))
     hRes = AnalyzeVersionInfo(&cPeParser);
   return hRes;
@@ -44,7 +46,7 @@ HRESULT CFileVersionInfo::InitializeFromProcessHandle(_In_opt_ HANDLE hProc)
   CPeParser cPeParser;
   HRESULT hRes;
 
-  hRes = cPeParser.InitializeFromProcessHandle(hProc, PEPARSER_FLAG_ParseResources);
+  hRes = cPeParser.InitializeFromProcessHandle(hProc, MXLIBHLP_PEPARSER_FLAG_ParseResources);
   if (SUCCEEDED(hRes))
     hRes = AnalyzeVersionInfo(&cPeParser);
   return hRes;
@@ -178,3 +180,5 @@ set_default:
   //done
   return S_OK;
 }
+
+}; //namespace MXHelpers

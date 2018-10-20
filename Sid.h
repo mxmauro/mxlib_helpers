@@ -1,11 +1,11 @@
 /*
-* Copyright (C) 2014-2015 Mauro H. Leggieri, Buenos Aires, Argentina.
-* All rights reserved.
-*
-**/
+ * Copyright (C) 2014-2015 Mauro H. Leggieri, Buenos Aires, Argentina.
+ * All rights reserved.
+ *
+ **/
 
-#ifndef _SID_H
-#define _SID_H
+#ifndef _MXLIBHLP_SID_H
+#define _MXLIBHLP_SID_H
 
 #include <Defines.h>
 #include <Windows.h>
@@ -14,6 +14,8 @@
 #include <Strings\Strings.h>
 
 //-----------------------------------------------------------
+
+namespace MXHelpers {
 
 class CSid : public virtual MX::CBaseMemObj
 {
@@ -28,6 +30,12 @@ public:
   HRESULT Set(_In_z_ LPCWSTR szAccountNameOrSidStringW);
 
   BOOL operator==(_In_ PSID lpSid) const;
+
+  HRESULT FromToken(_In_ HANDLE hToken);
+  HRESULT FromProcess(_In_ HANDLE hProc);
+  HRESULT FromThread(_In_ HANDLE hThread);
+  HRESULT FromProcessId(_In_ DWORD dwPid);
+  HRESULT FromThreadId(_In_ DWORD dwTid);
 
   HRESULT SetCurrentUserSid();
   HRESULT SetWellKnownAccount(_In_ WELL_KNOWN_SID_TYPE nSidType);
@@ -55,6 +63,8 @@ private:
   MX::TAutoFreePtr<BYTE> cSid;
 };
 
+}; //MXHelpers
+
 //-----------------------------------------------------------
 
-#endif //_SID_H
+#endif //_MXLIBHLP_SID_H

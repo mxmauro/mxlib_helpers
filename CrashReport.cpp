@@ -5,10 +5,12 @@
  **/
 
 #include "CrashReport.h"
-#include "FileRoutinesLite.h"
+#include "FileRoutines.h"
 #include <WaitableObjects.h>
 #include <Strings\Strings.h>
+#pragma warning(disable : 4091)
 #include <ImageHlp.h>
+#pragma warning(default : 4091)
 #include <stdio.h>
 
 #define MAX_DUMPS_COUNT                                   20
@@ -41,6 +43,8 @@ static VOID CleanupDumpFolder(_In_z_ LPCWSTR szBaseFileNameW);
 static HANDLE CreateDumpFile(_In_z_ LPCWSTR szBaseFileNameW);
 
 //-----------------------------------------------------------
+
+namespace MXHelpers {
 
 namespace CrashReport {
 
@@ -105,11 +109,11 @@ BOOL HandleCrashDump(_In_z_ LPCWSTR szModuleNameW)
   if (cStrBaseFileNameW.Copy(szModuleNameW) == FALSE)
     return TRUE; //error (handled)
   //setup log folder
-  if (FAILED(FileRoutinesLite::GetAppDataFolderPath(cStrBaseFileNameW)))
+  if (FAILED(MXHelpers::GetAppDataFolderPath(cStrBaseFileNameW)))
     return TRUE; //error (handled)
   if (cStrBaseFileNameW.AppendFormat(L"Dumps\\%s\\", szModuleNameW) == FALSE)
     return TRUE; //error (handled)
-  FileRoutinesLite::NormalizePath(cStrBaseFileNameW);
+  MXHelpers::NormalizePath(cStrBaseFileNameW);
 
   //read crash info data
   if (::ReadProcessMemory(hProc, lpCrashInfo, &sLocalCrashInfo, sizeof(sLocalCrashInfo), NULL) == FALSE)
@@ -126,7 +130,7 @@ BOOL HandleCrashDump(_In_z_ LPCWSTR szModuleNameW)
     {
       HANDLE hFile;
 
-      FileRoutinesLite::CreateDirectoryRecursive((LPCWSTR)cStrBaseFileNameW);
+      MXHelpers::CreateDirectoryRecursive((LPCWSTR)cStrBaseFileNameW);
 
       CleanupDumpFolder((LPCWSTR)cStrBaseFileNameW);
 
@@ -154,6 +158,8 @@ BOOL HandleCrashDump(_In_z_ LPCWSTR szModuleNameW)
 }
 
 }; //namespace CrashReport
+
+}; //namespace MXHelpers
 
 //-----------------------------------------------------------
 
@@ -210,7 +216,7 @@ static LONG WINAPI OnUnhandledExceptionFilter(_In_ PEXCEPTION_POINTERS Exception
     sCrashInfo.dwTid = ::GetCurrentThreadId();
     sCrashInfo.ExceptionInfo = ExceptionInfo;
 
-    if (SUCCEEDED(FileRoutinesLite::GetAppFileName(cStrNameW)) &&
+    if (SUCCEEDED(MXHelpers::GetAppFileName(cStrNameW)) &&
         cStrNameW.InsertN(L"\"", 0, 1) != FALSE &&
         cStrNameW.AppendFormat(L"\" /crash:0x%p,0x%p", hProcDup, &sCrashInfo) != FALSE)
     {
@@ -270,7 +276,7 @@ loop:
   {
     if (cStrFileNameW.Copy(szBaseFileNameW) == FALSE || cStrFileNameW.Concat(szLowerFileNameW) == FALSE)
       return;
-    if (FAILED(FileRoutinesLite::_DeleteFile((LPCWSTR)cStrFileNameW)))
+    if (FAILED(MXHelpers::_DeleteFile((LPCWSTR)cStrFileNameW)))
       return;
     dwCount--;
   }

@@ -16,6 +16,8 @@ static LONG volatile nEnabled = 0;
 
 //-----------------------------------------------------------
 
+namespace MXHelpers {
+
 namespace Console {
 
 VOID Initialize(_In_ BOOL bAppIsInteractive)
@@ -80,3 +82,5 @@ VOID PrintError(_In_ HRESULT hRes)
 }
 
 }; //namespace Console
+
+}; //namespace MXHelpers

@@ -4,8 +4,8 @@
  *
  **/
 
-#ifndef _MEMORY_PACKAGE_H
-#define _MEMORY_PACKAGE_H
+#ifndef _MXLIBHLP_MEMORY_PACKAGE_H
+#define _MXLIBHLP_MEMORY_PACKAGE_H
 
 #include <Defines.h>
 #include <Streams.h>
@@ -13,6 +13,8 @@
 #include <ArrayList.h>
 
 //-----------------------------------------------------------
+
+namespace MXHelpers {
 
 class CMemoryPackage : public virtual MX::CBaseMemObj
 {
@@ -44,6 +46,8 @@ private:
   MX::TArrayListWithFree<LPFILEITEM, 256> aFileItemsList;
 };
 
+}; //namespace MXHelpers
+
 //-----------------------------------------------------------
 
-#endif //_MEMORY_PACKAGE_H
+#endif //_MXLIBHLP_MEMORY_PACKAGE_H

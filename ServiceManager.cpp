@@ -5,11 +5,13 @@
  **/
 
 #include "ServiceManager.h"
-#include "HelperRoutines.h"
 #include <Debug.h>
 #include <Strings\Strings.h>
+#include <VersionHelpers.h>
 
 //-----------------------------------------------------------
+
+namespace MXHelpers {
 
 CServiceManager::CServiceManager() : MX::CBaseMemObj()
 {
@@ -110,7 +112,7 @@ HRESULT CServiceManager::Create(_In_ eServiceType nServiceType, _In_z_ LPCWSTR s
     return MX_E_NotReady;
   if (szDependenciesW != NULL && *szDependenciesW == 0)
     szDependenciesW = NULL;
-  bIsWindowsVistaOrLater = HelperRoutines::IsWindowsVistaOrLater();
+  bIsWindowsVistaOrLater = ::IsWindowsVistaOrGreater();
   //create service
   Close();
   hServ = ::CreateServiceW(hServMgr, szServiceNameW, szServiceDisplayNameW, SERVICE_ALL_ACCESS,
@@ -356,3 +358,5 @@ HRESULT CServiceManager::QueryStatus(_Out_ SERVICE_STATUS &sSvcStatus)
     return MX_E_NotReady;
   return (::QueryServiceStatus(hServ, &sSvcStatus) != FALSE) ? S_OK : MX_HRESULT_FROM_LASTERROR();
 }
+
+}; //namespace MXHelpers

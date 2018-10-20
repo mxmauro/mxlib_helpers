@@ -1,15 +1,17 @@
 /*
-* Copyright (C) 2014-2015 Mauro H. Leggieri, Buenos Aires, Argentina.
-* All rights reserved.
-*
-**/
+ * Copyright (C) 2014-2015 Mauro H. Leggieri, Buenos Aires, Argentina.
+ * All rights reserved.
+ *
+ **/
 
 #include "XmlHelpers.h"
 #include <Strings\Utf8.h>
 
 //-----------------------------------------------------------
 
-namespace XmlHelpers {
+namespace MXHelpers {
+
+namespace Xml {
 
 HRESULT Parse(_In_ tinyxml2::XMLDocument &cDoc, _In_ LPCVOID lpData, _In_ SIZE_T nDataLen)
 {
@@ -130,4 +132,6 @@ int ParseBoolean(_In_ LPCSTR szValueA)
   return -1;
 }
 
-}; //namespace XmlHelpers
+}; //namespace Xml
+
+}; //namespace MXHelpers

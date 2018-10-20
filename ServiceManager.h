@@ -4,13 +4,15 @@
  *
  **/
 
-#ifndef _SERVICE_MANAGER_H
-#define _SERVICE_MANAGER_H
+#ifndef _MXLIBHLP_SERVICE_MANAGER_H
+#define _MXLIBHLP_SERVICE_MANAGER_H
 
 #include <Defines.h>
 #include <Windows.h>
 
 //-----------------------------------------------------------
+
+namespace MXHelpers {
 
 class CServiceManager : public virtual MX::CBaseMemObj
 {
@@ -50,6 +52,8 @@ private:
   SC_HANDLE hServMgr, hServ;
 };
 
+}; //namespace MXHelpers
+
 //-----------------------------------------------------------
 
-#endif //_SERVICE_MANAGER_H
+#endif //_MXLIBHLP_SERVICE_MANAGER_H

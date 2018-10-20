@@ -4,8 +4,8 @@
 *
 **/
 
-#ifndef _ADS_HELPER_H
-#define _ADS_HELPER_H
+#ifndef _MXLIBHLP_ADS_HELPER_H
+#define _MXLIBHLP_ADS_HELPER_H
 
 #include <Defines.h>
 #include <Windows.h>
@@ -17,15 +17,14 @@
 
 //-----------------------------------------------------------
 
+namespace MXHelpers {
+
 class CAdsHelper : public MX::CBaseMemObj
 {
 public:
   CAdsHelper();
   ~CAdsHelper();
 
-#if defined(TRAPMINEENTERPRISESERVICE) || defined(TRAPMINESERVICE)
-  HRESULT InitializeFromRegistry();
-#endif //TRAPMINEENTERPRISESERVICE || TRAPMINESERVICE
   HRESULT Initialize(_In_opt_z_ LPCWSTR szServerAddressW=NULL, _In_opt_z_ LPCWSTR szUsernameW=NULL,
                      _In_opt_z_ LPCWSTR szPasswordW=NULL);
 
@@ -63,6 +62,8 @@ private:
   DWORD dwQueryTimeoutMs;
 };
 
+}; //namespace MXHelpers
+
 //-----------------------------------------------------------
 
-#endif //_ADS_HELPER_H
+#endif //_MXLIBHLP_ADS_HELPER_H

@@ -11,11 +11,7 @@
 
 //-----------------------------------------------------------
 
-static BOOL EscapeSlashes(_Inout_ MX::CStringW &cStrW);
-static HRESULT AdsOpen(_In_z_ LPCWSTR szPathNameW, _In_opt_z_ LPCWSTR szUserNameW, _In_opt_z_ LPCWSTR szPasswordW,
-                       _In_ REFIID riid, __deref_out LPVOID *ppObject);
-
-//-----------------------------------------------------------
+namespace MXHelpers {
 
 CAdsHelper::CAdsHelper() : MX::CBaseMemObj()
 {
@@ -38,80 +34,6 @@ CAdsHelper::~CAdsHelper()
     ::CoUninitialize();
   return;
 }
-
-#if defined(TRAPMINEENTERPRISESERVICE) || defined(TRAPMINESERVICE)
-HRESULT CAdsHelper::InitializeFromRegistry()
-{
-  CWinRegistry cWinReg;
-  DWORD dw;
-  HRESULT hRes;
-
-  if (hResComInit != S_FALSE)
-    return MX_E_AlreadyInitialized;
-
-  //read settings from registry
-#if defined(TRAPMINEENTERPRISESERVICE)
-  hRes = cWinReg.Open(HKEY_LOCAL_MACHINE, REG_CONFIG_KEY_ENTERPRISESERVER);
-#elif defined(TRAPMINESERVICE)
-  hRes = cWinReg.Open(HKEY_LOCAL_MACHINE, REG_CONFIG_KEY_SERVICE);
-#else
-  #error Unsupported project
-#endif
-  if (SUCCEEDED(hRes))
-  {
-    //read server settings
-#if defined(TRAPMINEENTERPRISESERVICE)
-    hRes = cWinReg.ReadString(REG_ENTERPRISESERVER_ADS_SERVER_OVERRIDE, cStrServerAddressW);
-#elif defined(TRAPMINESERVICE)
-    hRes = cWinReg.ReadString(REG_SERVICE_ADS_SERVER_OVERRIDE, cStrServerAddressW);
-#endif
-    if (SUCCEEDED(hRes))
-    {
-      if (MX::CUrl::IsValidHostAddress((LPCWSTR)cStrServerAddressW) == FALSE)
-        return E_INVALIDARG;
-    }
-    else
-    {
-      cStrServerAddressW.Empty();
-    }
-
-#if defined(TRAPMINEENTERPRISESERVICE)
-    hRes = cWinReg.ReadString(REG_ENTERPRISESERVER_ADS_USERNAME_OVERRIDE, cStrUserNameW);
-#elif defined(TRAPMINESERVICE)
-    hRes = cWinReg.ReadString(REG_SERVICE_ADS_USERNAME_OVERRIDE, cStrUserNameW);
-#endif
-    if (FAILED(hRes))
-      cStrUserNameW.Empty();
-
-#if defined(TRAPMINEENTERPRISESERVICE)
-    hRes = cWinReg.ReadPassword(REG_ENTERPRISESERVER_ADS_PASSWORD_OVERRIDE, cStrPasswordW);
-#elif defined(TRAPMINESERVICE)
-    hRes = cWinReg.ReadPassword(REG_SERVICE_ADS_PASSWORD_OVERRIDE, cStrPasswordW);
-#endif
-
-    if (FAILED(hRes))
-      cStrPasswordW.Empty();
-
-#if defined(TRAPMINEENTERPRISESERVICE)
-    hRes = cWinReg.ReadDWord(REG_ENTERPRISESERVER_ADS_QUERY_TIMEOUT, dw);
-#elif defined(TRAPMINESERVICE)
-    hRes = cWinReg.ReadDWord(REG_SERVICE_ADS_QUERY_TIMEOUT, dw);
-#endif
-    if (SUCCEEDED(hRes))
-      dwQueryTimeoutMs = dw;
-  }
-
-  hResComInit = ::CoInitializeEx(NULL, COINIT_MULTITHREADED);
-  if (FAILED(hResComInit) && hResComInit != RPC_E_CHANGED_MODE)
-  {
-    hRes = hResComInit;
-    hResComInit = S_FALSE;
-    return hRes;
-  }
-  //done
-  return S_OK;
-}
-#endif //TRAPMINEENTERPRISESERVICE || TRAPMINESERVICE
 
 HRESULT CAdsHelper::Initialize(_In_opt_z_ LPCWSTR szServerAddressW, _In_opt_z_ LPCWSTR szUsernameW,
                                _In_opt_z_ LPCWSTR szPasswordW)
@@ -1491,3 +1413,5 @@ BOOL CAdsHelper::IsCancelled()
   }
   return FALSE;
 }
+
+}; //namespace MXHelpers

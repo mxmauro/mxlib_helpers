@@ -5,12 +5,10 @@
 **/
 
 #include "WinRegistry.h"
-#include "HelperRoutines.h"
-#include <AutoPtr.h>
+#include "Process.h"
 #include <dpapi.h>
 
 #pragma comment(lib, "crypt32.lib")
-
 
 #define STATUS_PREDEFINED_HANDLE   0x40000016
 
@@ -24,6 +22,8 @@ static NTSTATUS OpenBaseKey(_In_ HKEY hKey, _In_ DWORD dwAccess, _Out_ PHANDLE l
 static HRESULT RecursiveDeleteKey(_In_ HKEY hKey, _In_opt_ PMX_UNICODE_STRING SubKey);
 
 //-----------------------------------------------------------
+
+namespace MXHelpers {
 
 CWinRegistry::CWinRegistry() : MX::CBaseMemObj()
 {
@@ -272,7 +272,7 @@ HRESULT CWinRegistry::ReadString(_In_z_ LPCWSTR szNameW, _Out_ MX::CStringW &cSt
   {
     HRESULT hRes;
 
-    hRes = HelperRoutines::ExpandEnvStrings(cStrValueW);
+    hRes = _ExpandEnvironmentStrings(cStrValueW);
     if (FAILED(hRes) && hRes != MX_E_BufferOverflow)
     {
       cStrValueW.Empty();
@@ -360,7 +360,7 @@ HRESULT CWinRegistry::ReadString(_In_ PUNICODE_STRING Name, _Out_ PUNICODE_STRIN
       {
         if (cStrTempW.CopyN(sW + StartIdx / 2, (SIZE_T)(Idx - StartIdx) / 2) == FALSE)
           return E_OUTOFMEMORY;
-        hRes = HelperRoutines::ExpandEnvStrings(cStrTempW);
+        hRes = _ExpandEnvironmentStrings(cStrTempW);
         if (FAILED(hRes) && hRes != MX_E_BufferOverflow)
           return hRes;
 
@@ -1011,6 +1011,8 @@ HRESULT CWinRegistry::EnumerateValues(_In_ DWORD dwIndex, _Out_ PUNICODE_STRING 
   //done
   return S_OK;
 }
+
+}; //namespace MXHelpers
 
 //-----------------------------------------------------------
 

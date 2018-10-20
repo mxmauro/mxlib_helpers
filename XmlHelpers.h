@@ -1,11 +1,11 @@
 /*
-* Copyright (C) 2014-2015 Mauro H. Leggieri, Buenos Aires, Argentina.
-* All rights reserved.
-*
-**/
+ * Copyright (C) 2014-2015 Mauro H. Leggieri, Buenos Aires, Argentina.
+ * All rights reserved.
+ *
+ **/
 
-#ifndef _XMLHELPERS_H
-#define _XMLHELPERS_H
+#ifndef _MXLIBHLP_XML_H
+#define _MXLIBHLP_XML_H
 
 #include <Defines.h>
 #include <Strings\Strings.h>
@@ -13,7 +13,9 @@
 
 //-----------------------------------------------------------
 
-namespace XmlHelpers {
+namespace MXHelpers {
+
+namespace Xml {
 
 HRESULT Parse(_In_ tinyxml2::XMLDocument &cDoc, _In_ LPCVOID lpData, _In_ SIZE_T nDataLen);
 
@@ -29,8 +31,10 @@ BOOL SetElementAttribute(_In_ tinyxml2::XMLElement &cElem, _In_ LPCSTR szNameA, 
 
 int ParseBoolean(_In_ LPCSTR szValueA);
 
-}; //namespace XmlHelpers
+}; //namespace Xml
+
+}; //namespace MXHelpers
 
 //-----------------------------------------------------------
 
-#endif //_XMLHELPERS_H
+#endif //_MXLIBHLP_XML_H

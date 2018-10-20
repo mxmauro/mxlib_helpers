@@ -1,5 +1,5 @@
 #include "PeParser.h"
-#include "FileRoutinesLite.h"
+#include "FileRoutines.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <winternl.h>
@@ -29,6 +29,8 @@
 
 //-----------------------------------------------------------
 
+namespace MXHelpers {
+
 CPeParser::CPeParser()
 {
   hFile = hFileMap = NULL;
@@ -52,7 +54,7 @@ HRESULT CPeParser::InitializeFromFileName(_In_z_ LPCWSTR szFileNameW, _In_opt_ D
   Finalize();
 
   //open file
-  hRes = FileRoutinesLite::OpenFileWithEscalatingSharing(szFileNameW, &cFileH);
+  hRes = OpenFileWithEscalatingSharing(szFileNameW, &cFileH);
   if (SUCCEEDED(hRes))
     hRes = InitializeFromFileHandle(cFileH.Get(), dwParseFlags);
   //done
@@ -394,7 +396,7 @@ HRESULT CPeParser::DoParse(_In_ DWORD dwParseFlags)
       }
 
       //parse import table
-      if ((dwParseFlags & PEPARSER_FLAG_ParseImportTables) != 0)
+      if ((dwParseFlags & MXLIBHLP_PEPARSER_FLAG_ParseImportTables) != 0)
       {
         if (DATADIR32(IMAGE_DIRECTORY_ENTRY_IMPORT).VirtualAddress != 0 &&
             DATADIR32(IMAGE_DIRECTORY_ENTRY_IMPORT).Size != 0)
@@ -409,7 +411,7 @@ HRESULT CPeParser::DoParse(_In_ DWORD dwParseFlags)
           if (FAILED(hRes))
           {
             if ((hRes != MX_E_InvalidData && hRes != MX_E_ReadFault) ||
-                (dwParseFlags & PEPARSER_FLAG_IgnoreMalformed) == 0)
+                (dwParseFlags & MXLIBHLP_PEPARSER_FLAG_IgnoreMalformed) == 0)
             {
               return hRes;
             }
@@ -419,7 +421,7 @@ HRESULT CPeParser::DoParse(_In_ DWORD dwParseFlags)
       }
 
       //parse export table
-      if ((dwParseFlags & PEPARSER_FLAG_ParseExportTable) != 0)
+      if ((dwParseFlags & MXLIBHLP_PEPARSER_FLAG_ParseExportTable) != 0)
       {
         if (DATADIR32(IMAGE_DIRECTORY_ENTRY_EXPORT).VirtualAddress != 0 &&
             DATADIR32(IMAGE_DIRECTORY_ENTRY_EXPORT).Size != 0)
@@ -440,7 +442,7 @@ HRESULT CPeParser::DoParse(_In_ DWORD dwParseFlags)
           if (FAILED(hRes))
           {
             if ((hRes != MX_E_InvalidData && hRes != MX_E_ReadFault) ||
-                (dwParseFlags & PEPARSER_FLAG_IgnoreMalformed) == 0)
+                (dwParseFlags & MXLIBHLP_PEPARSER_FLAG_IgnoreMalformed) == 0)
             {
               return hRes;
             }
@@ -453,7 +455,7 @@ HRESULT CPeParser::DoParse(_In_ DWORD dwParseFlags)
       }
 
       //parse resources
-      if ((dwParseFlags & PEPARSER_FLAG_ParseResources) != 0)
+      if ((dwParseFlags & MXLIBHLP_PEPARSER_FLAG_ParseResources) != 0)
       {
         if (DATADIR32(IMAGE_DIRECTORY_ENTRY_RESOURCE).VirtualAddress != 0 &&
             DATADIR32(IMAGE_DIRECTORY_ENTRY_RESOURCE).Size != 0)
@@ -466,7 +468,7 @@ HRESULT CPeParser::DoParse(_In_ DWORD dwParseFlags)
           if (FAILED(hRes))
           {
             if ((hRes != MX_E_InvalidData && hRes != MX_E_ReadFault) ||
-                (dwParseFlags & PEPARSER_FLAG_IgnoreMalformed) == 0)
+                (dwParseFlags & MXLIBHLP_PEPARSER_FLAG_IgnoreMalformed) == 0)
             {
               return hRes;
             }
@@ -501,7 +503,7 @@ HRESULT CPeParser::DoParse(_In_ DWORD dwParseFlags)
       }
 
       //parse import table
-      if ((dwParseFlags & PEPARSER_FLAG_ParseImportTables) != 0)
+      if ((dwParseFlags & MXLIBHLP_PEPARSER_FLAG_ParseImportTables) != 0)
       {
         if (DATADIR64(IMAGE_DIRECTORY_ENTRY_IMPORT).VirtualAddress != 0 &&
             DATADIR64(IMAGE_DIRECTORY_ENTRY_IMPORT).Size != 0)
@@ -516,7 +518,7 @@ HRESULT CPeParser::DoParse(_In_ DWORD dwParseFlags)
           if (FAILED(hRes))
           {
             if ((hRes != MX_E_InvalidData && hRes != MX_E_ReadFault) ||
-               (dwParseFlags & PEPARSER_FLAG_IgnoreMalformed) == 0)
+               (dwParseFlags & MXLIBHLP_PEPARSER_FLAG_IgnoreMalformed) == 0)
             {
               return hRes;
             }
@@ -526,7 +528,7 @@ HRESULT CPeParser::DoParse(_In_ DWORD dwParseFlags)
       }
 
       //parse export table
-      if ((dwParseFlags & PEPARSER_FLAG_ParseExportTable) != 0)
+      if ((dwParseFlags & MXLIBHLP_PEPARSER_FLAG_ParseExportTable) != 0)
       {
         if (DATADIR64(IMAGE_DIRECTORY_ENTRY_EXPORT).VirtualAddress != 0 &&
             DATADIR64(IMAGE_DIRECTORY_ENTRY_EXPORT).Size != 0)
@@ -547,7 +549,7 @@ HRESULT CPeParser::DoParse(_In_ DWORD dwParseFlags)
           if (FAILED(hRes))
           {
             if ((hRes != MX_E_InvalidData && hRes != MX_E_ReadFault) ||
-                (dwParseFlags & PEPARSER_FLAG_IgnoreMalformed) == 0)
+                (dwParseFlags & MXLIBHLP_PEPARSER_FLAG_IgnoreMalformed) == 0)
             {
               return hRes;
             }
@@ -560,7 +562,7 @@ HRESULT CPeParser::DoParse(_In_ DWORD dwParseFlags)
       }
 
       //parse resources
-      if ((dwParseFlags & PEPARSER_FLAG_ParseResources) != 0)
+      if ((dwParseFlags & MXLIBHLP_PEPARSER_FLAG_ParseResources) != 0)
       {
         if (DATADIR64(IMAGE_DIRECTORY_ENTRY_RESOURCE).VirtualAddress != 0 &&
             DATADIR64(IMAGE_DIRECTORY_ENTRY_RESOURCE).Size != 0)
@@ -573,7 +575,7 @@ HRESULT CPeParser::DoParse(_In_ DWORD dwParseFlags)
           if (FAILED(hRes))
           {
             if ((hRes != MX_E_InvalidData && hRes != MX_E_ReadFault) ||
-                (dwParseFlags & PEPARSER_FLAG_IgnoreMalformed) == 0)
+                (dwParseFlags & MXLIBHLP_PEPARSER_FLAG_IgnoreMalformed) == 0)
             {
               return hRes;
             }
@@ -1135,3 +1137,5 @@ HRESULT CPeParser::LookupResourceEntry(_In_ PIMAGE_RESOURCE_DIRECTORY lpRootDir,
   //done
   return MX_E_NotFound;
 }
+
+}; //namespace MXHelpers

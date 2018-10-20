@@ -2,6 +2,8 @@
 
 //-----------------------------------------------------------
 
+namespace MXHelpers {
+
 CSid::CSid()
 {
   return;
@@ -109,6 +111,136 @@ BOOL CSid::operator==(_In_ PSID lpSid) const
   return ((!lpSid) && (!cSid)) ? TRUE : FALSE;
 }
 
+HRESULT CSid::FromToken(_In_ HANDLE hToken)
+{
+  MX::TAutoFreePtr<TOKEN_USER> cTokenInfo;
+  DWORD dwLength;
+  HRESULT hRes;
+
+  if (hToken == NULL)
+    return E_POINTER;
+  dwLength = 0;
+  if (::GetTokenInformation(hToken, TokenUser, NULL, 0, &dwLength) == FALSE)
+  {
+    hRes = MX_HRESULT_FROM_LASTERROR();
+    if (hRes != HRESULT_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER))
+      return hRes;
+  }
+  //----
+  cTokenInfo.Attach((PTOKEN_USER)MX::MemAlloc((DWORD)dwLength));
+  if (!cTokenInfo)
+    return E_OUTOFMEMORY;
+  if (::GetTokenInformation(hToken, TokenUser, cTokenInfo.Get(), dwLength, &dwLength) == FALSE)
+    return MX_HRESULT_FROM_LASTERROR();
+  //set
+  return Set(cTokenInfo->User.Sid);
+}
+
+HRESULT CSid::FromProcess(_In_ HANDLE hProc)
+{
+  HANDLE hToken;
+  HRESULT hRes;
+
+  if (::OpenProcessToken((hProc != NULL) ? hProc : (::GetCurrentProcess()), TOKEN_QUERY, &hToken) != FALSE)
+  {
+    hRes = FromToken(hToken);
+    ::CloseHandle(hToken);
+  }
+  else
+  {
+    hRes = MX_HRESULT_FROM_LASTERROR();
+  }
+  //done
+  return hRes;
+}
+
+HRESULT CSid::FromThread(_In_ HANDLE hThread)
+{
+  HANDLE hToken;
+  HRESULT hRes;
+
+  if (hThread == NULL)
+    hThread = ::GetCurrentThread();
+  if (::OpenThreadToken(hThread, TOKEN_QUERY, TRUE, &hToken) != FALSE)
+  {
+    hRes = FromToken(hToken);
+    ::CloseHandle(hToken);
+  }
+  else
+  {
+    MX_THREAD_BASIC_INFORMATION sBi;
+    NTSTATUS nNtStatus;
+
+    nNtStatus = ::MxNtQueryInformationThread(hThread, MxThreadBasicInformation, &sBi, (ULONG)sizeof(sBi), NULL);
+    if (nNtStatus >= 0)
+    {
+      hRes = FromProcessId((DWORD)(sBi.ClientId.UniqueProcess));
+    }
+    else
+    {
+      hRes = MX_HRESULT_FROM_WIN32(::MxRtlNtStatusToDosError(nNtStatus));
+    }
+  }
+  //done
+  return hRes;
+}
+
+HRESULT CSid::FromProcessId(_In_ DWORD dwPid)
+{
+  HANDLE hProc;
+  HRESULT hRes;
+
+  if (dwPid == 0)
+    return E_INVALIDARG;
+  if (dwPid == ::GetCurrentProcessId())
+  {
+    hRes = FromProcess(NULL);
+  }
+  else
+  {
+    hProc = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, dwPid);
+    if (hProc != NULL)
+    {
+      hRes = FromProcess(hProc);
+      ::CloseHandle(hProc);
+    }
+    else
+    {
+      hRes = MX_HRESULT_FROM_LASTERROR();
+    }
+  }
+  //done
+  return hRes;
+}
+
+HRESULT CSid::FromThreadId(_In_ DWORD dwTid)
+{
+  HANDLE hProc;
+  HRESULT hRes;
+
+  if (dwTid == 0)
+    return E_INVALIDARG;
+  if (dwTid == ::GetCurrentThreadId())
+  {
+    hRes = FromThread(NULL);
+  }
+  else
+  {
+    hProc = OpenThread(THREAD_QUERY_INFORMATION, FALSE, dwTid);
+    if (hProc != NULL)
+    {
+      hRes = FromThread(hProc);
+      ::CloseHandle(hProc);
+    }
+    else
+    {
+      hRes = MX_HRESULT_FROM_LASTERROR();
+    }
+  }
+  //done
+  return hRes;
+}
+
 HRESULT CSid::SetCurrentUserSid()
 {
   HANDLE hToken;
@@ -148,6 +280,41 @@ HRESULT CSid::SetCurrentUserSid()
   ::CloseHandle(hToken);
   return hRes;
 }
+
+
+
+HRESULT GetCurrentProcessUserSid(_Inout_ MX::CStringW &cStrUserSidW)
+{
+  MX::CWindowsHandle cToken;
+  MX::TAutoFreePtr<TOKEN_USER> cTokUser;
+  LPWSTR szSidW;
+  DWORD dwSize;
+  HRESULT hRes;
+
+  cStrUserSidW.Empty();
+  if (::OpenProcessToken(::GetCurrentProcess(), TOKEN_QUERY, &cToken) == FALSE)
+    return MX_HRESULT_FROM_LASTERROR();
+  dwSize = 0;
+  if (::GetTokenInformation(cToken, TokenUser, NULL, 0, &dwSize) == FALSE)
+  {
+    hRes = MX_HRESULT_FROM_LASTERROR();
+    if (hRes != MX_HRESULT_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER))
+      return hRes;
+  }
+  cTokUser.Attach((PTOKEN_USER)MX::MemAlloc((SIZE_T)dwSize));
+  if (!cTokUser)
+    return E_OUTOFMEMORY;
+  if (::GetTokenInformation(cToken, TokenUser, cTokUser.Get(), dwSize, &dwSize) == FALSE)
+    return MX_HRESULT_FROM_LASTERROR();
+  szSidW = NULL;
+  if (::ConvertSidToStringSidW(cTokUser->User.Sid, &szSidW) == FALSE)
+    return MX_HRESULT_FROM_LASTERROR();
+  hRes = (cStrUserSidW.Copy(szSidW) != FALSE) ? S_OK : E_OUTOFMEMORY;
+  ::LocalFree((HLOCAL)szSidW);
+  return hRes;
+}
+
+
 
 HRESULT CSid::SetWellKnownAccount(_In_ WELL_KNOWN_SID_TYPE nSidType)
 {
@@ -251,3 +418,5 @@ BOOL CSid::IsWellKnownSid(_In_ WELL_KNOWN_SID_TYPE nSidType) const
     return FALSE;
   return ::IsWellKnownSid((PSID)(const_cast<MX::TAutoFreePtr<BYTE>&>(cSid).Get()), nSidType) ? TRUE : FALSE;
 }
+
+}; //MXHelpers

@@ -12,6 +12,8 @@
 
 //-----------------------------------------------------------
 
+namespace MXHelpers {
+
 CLightJSonBuilder::CLightJSonBuilder() : MX::CBaseMemObj()
 {
   bIsFirstItem = TRUE;
@@ -556,3 +558,5 @@ BOOL CLightJSonBuilder::AddEscapedString(_In_ LPCWSTR szValueW, _In_ SIZE_T nVal
 {
   return EscapeString(cStrJsonA, szValueW, nValueLen, TRUE);
 }
+
+}; //namespace MXHelpers

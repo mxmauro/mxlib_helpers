@@ -1,16 +1,16 @@
-#include "SignatureAndInfo.h"
-#include "FileRoutinesLite.h"
-#include "HelperRoutines.h"
+#include "Signatures.h"
+#include "FileRoutines.h"
 #include <AutoPtr.h>
 #include <LinkedList.h>
 #include <FnvHash.h>
 #include <Strings\Strings.h>
-#include "Hash\hash_md5.h"
-#include "Hash\hash_sha1.h"
-#include "Hash\hash_sha256.h"
+#include <Crypto\DigestAlgorithmSHAx.h>
+#include <Crypto\DigestAlgorithmMDx.h>
 #include <appmodel.h>
 #include <WinTrust.h>
 #include <mscat.h>
+#include <VersionHelpers.h>
+#include <Finalizer.h>
 
 //-----------------------------------------------------------
 
@@ -29,20 +29,6 @@
     i = 0; do                                \
     { szTempW[i] = X_WCHAR_ENC(str[i], i); } \
     while (szTempW[i++] != 0)
-
-
-#ifndef FILE_OPEN
-  #define FILE_OPEN                               0x00000001
-#endif //FILE_OPEN
-#ifndef FILE_SYNCHRONOUS_IO_NONALERT
-  #define FILE_SYNCHRONOUS_IO_NONALERT            0x00000020
-#endif //FILE_SYNCHRONOUS_IO_NONALERT
-#ifndef FILE_NON_DIRECTORY_FILE
-  #define FILE_NON_DIRECTORY_FILE                 0x00000040
-#endif //FILE_NON_DIRECTORY_FILE
-#ifndef OBJ_CASE_INSENSITIVE
-  #define OBJ_CASE_INSENSITIVE                    0x00000040
-#endif //OBJ_CASE_INSENSITIVE
 
 //-----------------------------------------------------------
 
@@ -107,7 +93,6 @@ typedef BOOL (WINAPI *lpfnCryptCATAdminReleaseCatalogContext)(_In_ HCATADMIN hCa
 static GUID sWVTPolicyGuid = WINTRUST_ACTION_GENERIC_VERIFY_V2;
 static GUID sDriverActionVerify = DRIVER_ACTION_VERIFY;
 
-static LONG volatile nRundownProt = 0;
 static HINSTANCE hCrypt32Dll = NULL;
 static HINSTANCE hWinTrustDll = NULL;
 static lpfnWinVerifyTrustEx fnWinVerifyTrustEx = NULL;
@@ -130,7 +115,11 @@ static lpfnCryptCATAdminReleaseCatalogContext fnCryptCATAdminReleaseCatalogConte
 
 //-----------------------------------------------------------
 
-namespace SignatureAndInfo {
+namespace MXHelpers {
+
+namespace Signatures {
+
+namespace Internals {
 
 class CCachedItem : public MX::CBaseMemObj, public MX::TLnkLstNode<CCachedItem>
 {
@@ -192,31 +181,49 @@ static struct {
   } sInUseSortedByName = { NULL, 0 };
 } sCachedItems;
 
-} //namespace SignatureAndInfo
+}; //namespace Internals
+
+}; //namespace Signatures
+
+}; //namespace MXHelpers
 
 //-----------------------------------------------------------
+
+static BOOL IsWinVistaPlus();
+
+static VOID EndSignaturesAndInfo();
 
 static HRESULT DoTrustVerification(_In_opt_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_ LPGUID lpActionId,
                                    _In_opt_ PWINTRUST_CATALOG_INFO lpCatalogInfo, _Out_ PCERT_CONTEXT *lplpCertCtx,
                                    _Out_ PFILETIME lpTimeStamp);
 
-namespace SignatureAndInfo {
+namespace MXHelpers {
+
+namespace Signatures {
+
+namespace Internals {
 
 static CCachedItem* AddCachedItem(_In_z_ LPCWSTR szPeFileNameW, _In_ HANDLE hFile);
 
 static VOID RemoveCachedItem(_In_z_ LPCWSTR szPeFileNameW);
-static VOID RemoveCachedItem(_In_ Fnv64_t nFileNameHash);
+static VOID RemoveCachedItemByHash(_In_ Fnv64_t nFileNameHash);
 static VOID RemoveCachedItemByIndex(_In_ SIZE_T nIndex);
 
 static CCachedItem* FindCachedItem(_In_z_ LPCWSTR szPeFileNameW, _In_ HANDLE hFile);
 
 static SIZE_T GetCachedItemIndex(_In_ Fnv64_t nFileNameHash);
 
-} //namespace SignatureAndInfo
+}; //namespace Internals
+
+}; //namespace Signatures
+
+}; //namespace MXHelpers
 
 //-----------------------------------------------------------
 
-namespace SignatureAndInfo {
+namespace MXHelpers {
+
+namespace Signatures {
 
 HRESULT Initialize()
 {
@@ -405,9 +412,7 @@ HRESULT Initialize()
   SIZE_T i;
   HRESULT hRes = S_OK;
 
-  MX::RundownProt_Initialize(&nRundownProt);
-
-  _InterlockedExchange(&(sCachedItems.nMutex), 0);
+  _InterlockedExchange(&(Internals::sCachedItems.nMutex), 0);
 
   _EXPAND_W(strW_WinTrustDll);
   hWinTrustDll = ::LoadLibraryW(szTempW);
@@ -510,81 +515,22 @@ HRESULT Initialize()
   //----
   if (SUCCEEDED(hRes))
   {
-    /*
-    SIZE_T i;
-
-    for (i=0; i<MAX_CACHED_ITEMS; i++)
-    {
-      CCachedItem *lpNewItem = MX_DEBUG_NEW CCachedItem();
-      if (lpNewItem == NULL)
-      {
-        hRes = E_OUTOFMEMORY;
-        break;
-      }
-      sCachedItems.aFreeList.PushHead(lpNewItem);
-    }
-    */
-      sCachedItems.sInUseSortedByName.lpList = (CCachedItem**)MX_MALLOC(MAX_CACHED_ITEMS * sizeof(CCachedItem*));
-      if (sCachedItems.sInUseSortedByName.lpList == NULL)
-        hRes = E_OUTOFMEMORY;
+    Internals::sCachedItems.sInUseSortedByName.lpList = (Internals::CCachedItem**)MX_MALLOC(MAX_CACHED_ITEMS *
+                                                                                  sizeof(Internals::CCachedItem*));
+    if (Internals::sCachedItems.sInUseSortedByName.lpList == NULL)
+      hRes = E_OUTOFMEMORY;
+  }
+  //register finalizer
+  if (SUCCEEDED(hRes))
+  {
+    hRes = MX::RegisterFinalizer(&EndSignaturesAndInfo, 3);
   }
   //done
   if (FAILED(hRes))
-    Finalize();
+    EndSignaturesAndInfo();
   MX::MemSet(szTempA, 0, sizeof(szTempA));
   MX::MemSet(szTempW, 0, sizeof(szTempW));
   return hRes;
-}
-
-VOID Finalize()
-{
-  MX::RundownProt_WaitForRelease(&nRundownProt);
-
-  {
-    MX::CFastLock cLock(&(sCachedItems.nMutex));
-    CCachedItem *lpItem;
-
-    MX_FREE(sCachedItems.sInUseSortedByName.lpList);
-    while ((lpItem = sCachedItems.aFreeList.PopHead()) != NULL)
-    {
-      delete lpItem;
-    }
-    while ((lpItem = sCachedItems.aInUseList.PopHead()) != NULL)
-    {
-      delete lpItem;
-    }
-    sCachedItems.nCreatedItemsCount = 0;
-  }
-  //----
-  if (hWinTrustDll != NULL)
-  {
-    ::FreeLibrary(hWinTrustDll);
-    hWinTrustDll = NULL;
-  }
-  if (hCrypt32Dll != NULL)
-  {
-    ::FreeLibrary(hCrypt32Dll);
-    hCrypt32Dll = NULL;
-  }
-  fnWinVerifyTrustEx = NULL;
-  fnWTHelperProvDataFromStateData = NULL;
-  fnWTHelperGetProvSignerFromChain = NULL;
-  fnCertGetNameStringW = NULL;
-  fnCertDuplicateCertificateContext = NULL;
-  fnCertFreeCertificateContext = NULL;
-  fnGetPackageFullName = NULL;
-  fnGetPackagePath = NULL;
-  fnPackageIdFromFullName = NULL;
-  fnCryptCATAdminAcquireContext = NULL;
-  fnCryptCATAdminAcquireContext2 = NULL;
-  fnCryptCATAdminCalcHashFromFileHandle = NULL;
-  fnCryptCATAdminCalcHashFromFileHandle2 = NULL;
-  fnCryptCATAdminEnumCatalogFromHash = NULL;
-  fnCryptCATAdminReleaseContext = NULL;
-  fnCryptCATCatalogInfoFromContext = NULL;
-  fnCryptCATAdminReleaseCatalogContext = NULL;
-  //done
-  return;
 }
 
 HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hProcess, _Out_ PCERT_CONTEXT *lplpCertCtx,
@@ -600,7 +546,6 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hProcess, _
     X_WCHAR_ENC(L't', 24), X_WCHAR_ENC(L'y', 25), X_WCHAR_ENC(L'.', 26), X_WCHAR_ENC(L'c', 27),
     X_WCHAR_ENC(L'a', 28), X_WCHAR_ENC(L't', 29)
   };
-  MX::CAutoRundownProtection cRundownLock(&nRundownProt);
   MX::CStringW cStrPackageFullPathW;
   MX::CWindowsHandle cFileH;
   HRESULT hRes;
@@ -616,20 +561,20 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hProcess, _
   if (*szPeFileNameW == 0)
     return E_INVALIDARG;
 
-  if (cRundownLock.IsAcquired() == FALSE || fnWinVerifyTrustEx == NULL)
+  if (fnWinVerifyTrustEx == NULL)
     return MX_E_Cancelled;
 
   //open file
-  hRes = FileRoutinesLite::OpenFileWithEscalatingSharing(szPeFileNameW, &cFileH);
+  hRes = OpenFileWithEscalatingSharing(szPeFileNameW, &cFileH);
   if (FAILED(hRes))
     return hRes;
 
   if (bIgnoreCache == FALSE)
   {
-    MX::CFastLock cLock(&(sCachedItems.nMutex));
-    CCachedItem *lpCachedItem;
+    MX::CFastLock cLock(&(Internals::sCachedItems.nMutex));
+    Internals::CCachedItem *lpCachedItem;
 
-    lpCachedItem = FindCachedItem(szPeFileNameW, cFileH);
+    lpCachedItem = Internals::FindCachedItem(szPeFileNameW, cFileH);
     if (lpCachedItem != NULL)
     {
       if (lpCachedItem->sCertificate.bHasValues != FALSE)
@@ -898,10 +843,10 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hProcess, _
 
     if (bIgnoreCache == FALSE)
     {
-      MX::CFastLock cLock(&(sCachedItems.nMutex));
-      CCachedItem *lpCachedItem;
+      MX::CFastLock cLock(&(Internals::sCachedItems.nMutex));
+      Internals::CCachedItem *lpCachedItem;
 
-      lpCachedItem = FindCachedItem(szPeFileNameW, cFileH.Get());
+      lpCachedItem = Internals::FindCachedItem(szPeFileNameW, cFileH.Get());
       if (lpCachedItem != NULL)
       {
         //another thread (re)created a cached item in parallel
@@ -927,7 +872,7 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hProcess, _
       }
       else
       {
-        lpCachedItem = AddCachedItem(szPeFileNameW, cFileH.Get());
+        lpCachedItem = Internals::AddCachedItem(szPeFileNameW, cFileH.Get());
         if (lpCachedItem == NULL)
         {
           //couldn't create a new item??? Give up with an error
@@ -943,7 +888,7 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hProcess, _
           lpCachedItem->sCertificate.lpCertCtx = (PCERT_CONTEXT)fnCertDuplicateCertificateContext(*lplpCertCtx);
           if (lpCachedItem->sCertificate.lpCertCtx == NULL)
           {
-            RemoveCachedItem(lpCachedItem->nFileNameHash);
+            Internals::RemoveCachedItemByHash(lpCachedItem->nFileNameHash);
 
             fnCertFreeCertificateContext(*lplpCertCtx);
             *lplpCertCtx = NULL;
@@ -967,155 +912,11 @@ after_cache_set:;
 
 VOID FreeCertificate(_In_opt_ PCERT_CONTEXT lpCertCtx)
 {
-  MX::CAutoRundownProtection cRundownLock(&nRundownProt);
-
   if (lpCertCtx != NULL && fnCertFreeCertificateContext != NULL)
+  {
     fnCertFreeCertificateContext(lpCertCtx);
+  }
   return;
-}
-
-BOOL IsTrapmineSignature(_In_ PCERT_CONTEXT lpCertCtx)
-{
-  static const WCHAR strW_DIGICERT_HIGH_ASSURANCE_CODE_SIGNING[] = {
-    X_WCHAR_ENC(L'D',  0), X_WCHAR_ENC(L'I',  1), X_WCHAR_ENC(L'G',  2), X_WCHAR_ENC(L'I',  3),
-    X_WCHAR_ENC(L'C',  4), X_WCHAR_ENC(L'E',  5), X_WCHAR_ENC(L'R',  6), X_WCHAR_ENC(L'T',  7),
-    X_WCHAR_ENC(L' ',  8), X_WCHAR_ENC(L'H',  9), X_WCHAR_ENC(L'I', 10), X_WCHAR_ENC(L'G', 11),
-    X_WCHAR_ENC(L'H', 12), X_WCHAR_ENC(L' ', 13), X_WCHAR_ENC(L'A', 14), X_WCHAR_ENC(L'S', 15),
-    X_WCHAR_ENC(L'S', 16), X_WCHAR_ENC(L'U', 17), X_WCHAR_ENC(L'R', 18), X_WCHAR_ENC(L'A', 19),
-    X_WCHAR_ENC(L'N', 20), X_WCHAR_ENC(L'C', 21), X_WCHAR_ENC(L'E', 22), X_WCHAR_ENC(L' ', 23),
-    X_WCHAR_ENC(L'C', 24), X_WCHAR_ENC(L'O', 25), X_WCHAR_ENC(L'D', 26), X_WCHAR_ENC(L'E', 27),
-    X_WCHAR_ENC(L' ', 28), X_WCHAR_ENC(L'S', 29), X_WCHAR_ENC(L'I', 30), X_WCHAR_ENC(L'G', 31),
-    X_WCHAR_ENC(L'N', 32), X_WCHAR_ENC(L'I', 33), X_WCHAR_ENC(L'N', 34), X_WCHAR_ENC(L'G', 35)
-  };
-  static const WCHAR strW_TRAPMINE_SIBER_GUVENLIK_TEKNOLOJILERI_ANONIM_SIRKETI[] = {
-    X_WCHAR_ENC(L'T',  0), X_WCHAR_ENC(L'R',  1), X_WCHAR_ENC(L'A',  2), X_WCHAR_ENC(L'P',  3),
-    X_WCHAR_ENC(L'M',  4), X_WCHAR_ENC(L'I',  5), X_WCHAR_ENC(L'N',  6), X_WCHAR_ENC(L'E',  7),
-    X_WCHAR_ENC(L' ',  8), X_WCHAR_ENC(L'S',  9), X_WCHAR_ENC(L'I', 10), X_WCHAR_ENC(L'B', 11),
-    X_WCHAR_ENC(L'E', 12), X_WCHAR_ENC(L'R', 13), X_WCHAR_ENC(L' ', 14), X_WCHAR_ENC(L'G', 15),
-    X_WCHAR_ENC(L'U', 16), X_WCHAR_ENC(L'V', 17), X_WCHAR_ENC(L'E', 18), X_WCHAR_ENC(L'N', 19),
-    X_WCHAR_ENC(L'L', 20), X_WCHAR_ENC(L'I', 21), X_WCHAR_ENC(L'K', 22), X_WCHAR_ENC(L' ', 23),
-    X_WCHAR_ENC(L'T', 24), X_WCHAR_ENC(L'E', 25), X_WCHAR_ENC(L'K', 26), X_WCHAR_ENC(L'N', 27),
-    X_WCHAR_ENC(L'O', 28), X_WCHAR_ENC(L'L', 29), X_WCHAR_ENC(L'O', 30), X_WCHAR_ENC(L'J', 31),
-    X_WCHAR_ENC(L'I', 32), X_WCHAR_ENC(L'L', 33), X_WCHAR_ENC(L'E', 34), X_WCHAR_ENC(L'R', 35),
-    X_WCHAR_ENC(L'I', 36), X_WCHAR_ENC(L' ', 37), X_WCHAR_ENC(L'A', 38), X_WCHAR_ENC(L'N', 39),
-    X_WCHAR_ENC(L'O', 40), X_WCHAR_ENC(L'N', 41), X_WCHAR_ENC(L'I', 42), X_WCHAR_ENC(L'M', 43),
-    X_WCHAR_ENC(L' ', 44), X_WCHAR_ENC(L'S', 45), X_WCHAR_ENC(L'I', 46), X_WCHAR_ENC(L'R', 47),
-    X_WCHAR_ENC(L'K', 48), X_WCHAR_ENC(L'E', 49), X_WCHAR_ENC(L'T', 50), X_WCHAR_ENC(L'I', 51)
-  };
-  WCHAR szNameW[512];
-  SIZE_T i, j, nLen, nThisLen;
-
-  if (lpCertCtx == NULL)
-    return FALSE;
-
-  //verify subject
-  nLen = (SIZE_T)fnCertGetNameStringW(lpCertCtx, CERT_NAME_FRIENDLY_DISPLAY_TYPE, 0, NULL, szNameW,
-                                      MX_ARRAYLEN(szNameW));
-  szNameW[nLen] = 0;
-  MX::StrToUpperW(szNameW);
-
-  nThisLen = (nLen >= MX_ARRAYLEN(strW_TRAPMINE_SIBER_GUVENLIK_TEKNOLOJILERI_ANONIM_SIRKETI))
-              ? (nLen - MX_ARRAYLEN(strW_TRAPMINE_SIBER_GUVENLIK_TEKNOLOJILERI_ANONIM_SIRKETI)) : 0;
-  for (i=0; i<nThisLen; i++)
-  {
-    for (j=0; j<MX_ARRAYLEN(strW_TRAPMINE_SIBER_GUVENLIK_TEKNOLOJILERI_ANONIM_SIRKETI); j++)
-    {
-      if (X_WCHAR_ENC(szNameW[i+j], j) != strW_TRAPMINE_SIBER_GUVENLIK_TEKNOLOJILERI_ANONIM_SIRKETI[j])
-        break;
-    }
-    if (j >= MX_ARRAYLEN(strW_TRAPMINE_SIBER_GUVENLIK_TEKNOLOJILERI_ANONIM_SIRKETI))
-      break;
-  }
-  if (i >= nThisLen)
-    return FALSE;
-
-  //verify issuer
-  nLen = (SIZE_T)fnCertGetNameStringW(lpCertCtx, CERT_NAME_FRIENDLY_DISPLAY_TYPE, CERT_NAME_ISSUER_FLAG, NULL,
-                                      szNameW, MX_ARRAYLEN(szNameW));
-  szNameW[nLen] = 0;
-  MX::StrToUpperW(szNameW);
-
-  nThisLen = (nLen >= MX_ARRAYLEN(strW_DIGICERT_HIGH_ASSURANCE_CODE_SIGNING))
-              ? (nLen - MX_ARRAYLEN(strW_DIGICERT_HIGH_ASSURANCE_CODE_SIGNING)) : 0;
-  for (i=0; i<nThisLen; i++)
-  {
-    for (j=0; j<MX_ARRAYLEN(strW_DIGICERT_HIGH_ASSURANCE_CODE_SIGNING); j++)
-    {
-      if (X_WCHAR_ENC(szNameW[i+j], j) != strW_DIGICERT_HIGH_ASSURANCE_CODE_SIGNING[j])
-        break;
-    }
-    if (j >= MX_ARRAYLEN(strW_DIGICERT_HIGH_ASSURANCE_CODE_SIGNING))
-      break;
-  }
-  if (i >= nThisLen)
-    return FALSE;
-
-  //done
-  return TRUE;
-}
-
-BOOL IsMicrosoftSignature(_In_ PCERT_CONTEXT lpCertCtx)
-{
-  static const WCHAR strW_MICROSOFT[] = {
-    X_WCHAR_ENC(L'M', 0), X_WCHAR_ENC(L'I', 1), X_WCHAR_ENC(L'C', 2), X_WCHAR_ENC(L'R', 3),
-    X_WCHAR_ENC(L'O', 4), X_WCHAR_ENC(L'S', 5), X_WCHAR_ENC(L'O', 6), X_WCHAR_ENC(L'F', 7),
-    X_WCHAR_ENC(L'T', 8)
-  };
-  static const WCHAR strW_MICROSOFT_WINDOWS[] = {
-    X_WCHAR_ENC(L'M',  0), X_WCHAR_ENC(L'I',  1), X_WCHAR_ENC(L'C',  2), X_WCHAR_ENC(L'R',  3),
-    X_WCHAR_ENC(L'O',  4), X_WCHAR_ENC(L'S',  5), X_WCHAR_ENC(L'O',  6), X_WCHAR_ENC(L'F',  7),
-    X_WCHAR_ENC(L'T',  8), X_WCHAR_ENC(L' ',  9), X_WCHAR_ENC(L'W', 10), X_WCHAR_ENC(L'I', 11),
-    X_WCHAR_ENC(L'N', 12), X_WCHAR_ENC(L'D', 13), X_WCHAR_ENC(L'O', 14), X_WCHAR_ENC(L'W', 15),
-    X_WCHAR_ENC(L'S', 16)
-  };
-  WCHAR szNameW[512];
-  SIZE_T i, j, nLen, nThisLen;
-
-  if (lpCertCtx == NULL)
-    return FALSE;
-
-  //verify subject
-  nLen = (SIZE_T)fnCertGetNameStringW(lpCertCtx, CERT_NAME_FRIENDLY_DISPLAY_TYPE, 0, NULL, szNameW,
-                                      (DWORD)MX_ARRAYLEN(szNameW));
-  szNameW[nLen] = 0;
-  MX::StrToUpperW(szNameW);
-
-  nThisLen = (nLen >= MX_ARRAYLEN(strW_MICROSOFT_WINDOWS)) ? (nLen - MX_ARRAYLEN(strW_MICROSOFT_WINDOWS)) : 0;
-  for (i=0; i<nThisLen; i++)
-  {
-    for (j=0; j<MX_ARRAYLEN(strW_MICROSOFT_WINDOWS); j++)
-    {
-      if (X_WCHAR_ENC(szNameW[i+j], j) != strW_MICROSOFT_WINDOWS[j])
-        break;
-    }
-    if (j >= MX_ARRAYLEN(strW_MICROSOFT_WINDOWS))
-      break;
-  }
-  if (i >= nThisLen)
-    return FALSE;
-
-  //verify issuer
-  nLen = (SIZE_T)fnCertGetNameStringW(lpCertCtx, CERT_NAME_FRIENDLY_DISPLAY_TYPE, CERT_NAME_ISSUER_FLAG, NULL,
-                                      szNameW, (DWORD)MX_ARRAYLEN(szNameW));
-  szNameW[nLen] = 0;
-  MX::StrToUpperW(szNameW);
-
-  nThisLen = (nLen >= MX_ARRAYLEN(strW_MICROSOFT)) ? (nLen - MX_ARRAYLEN(strW_MICROSOFT)) : 0;
-  for (i=0; i<nThisLen; i++)
-  {
-    for (j=0; j<MX_ARRAYLEN(strW_MICROSOFT); j++)
-    {
-      if (X_WCHAR_ENC(szNameW[i+j], j) != strW_MICROSOFT[j])
-        break;
-    }
-    if (j >= MX_ARRAYLEN(strW_MICROSOFT))
-      break;
-  }
-  if (i >= nThisLen)
-    return FALSE;
-
-  //done
-  return TRUE;
 }
 
 HRESULT GetCertificateName(_In_ PCERT_CONTEXT lpCertCtx, DWORD dwType, _Inout_ MX::CStringW &cStrNameW,
@@ -1180,9 +981,8 @@ HRESULT GetCertificateSerialNumber(_In_ PCERT_CONTEXT lpCertCtx, _Out_ LPBYTE *l
 HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _Out_ LPHASHES lpHashes, _In_opt_ BOOL bIgnoreCache)
 {
   MX::CWindowsHandle cFileH;
-  CHashSHA256 cHashSha256;
-  CHashSHA1 cHashSha1;
-  CHashMD5 cHashMd5;
+  MX::CDigestAlgorithmSecureHash cHashSha256, cHashSha1;
+  MX::CDigestAlgorithmMessageDigest cHashMd5;
   BYTE aBlock[8192];
   DWORD dwReaded;
   HRESULT hRes;
@@ -1194,16 +994,16 @@ HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _Out_ LPHASHES lpHashes, _In
   if (*szFileNameW == 0)
     return E_INVALIDARG;
 
-  hRes = FileRoutinesLite::OpenFileWithEscalatingSharing(szFileNameW, &cFileH);
+  hRes = OpenFileWithEscalatingSharing(szFileNameW, &cFileH);
   if (FAILED(hRes))
     return hRes;
 
   if (bIgnoreCache == FALSE)
   {
-    MX::CFastLock cLock(&(sCachedItems.nMutex));
-    CCachedItem *lpCachedItem;
+    MX::CFastLock cLock(&(Internals::sCachedItems.nMutex));
+    Internals::CCachedItem *lpCachedItem;
 
-    lpCachedItem = FindCachedItem(szFileNameW, cFileH);
+    lpCachedItem = Internals::FindCachedItem(szFileNameW, cFileH);
     if (lpCachedItem != NULL)
     {
       if (lpCachedItem->sHashes.bHasValues != FALSE)
@@ -1214,43 +1014,52 @@ HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _Out_ LPHASHES lpHashes, _In
     }
   }
 
-  dwReaded = 0;
-  hRes = S_OK;
-  do
-  {
-    dwReaded = 0;
-    if (::ReadFile(cFileH.Get(), aBlock, (DWORD)sizeof(aBlock), &dwReaded, NULL) == FALSE)
-    {
-      hRes = MX_HRESULT_FROM_LASTERROR();
-      break;
-    }
-    if (dwReaded > 0)
-    {
-      cHashSha256.Update(aBlock, dwReaded);
-      cHashSha1.Update(aBlock, dwReaded);
-      cHashMd5.Update(aBlock, dwReaded);
-    }
-  }
-  while (dwReaded > 0);
-  if (hRes == HRESULT_FROM_WIN32(ERROR_HANDLE_EOF))
-    hRes = S_OK;
-
+  hRes = cHashSha256.BeginDigest(MX::CDigestAlgorithmSecureHash::AlgorithmSHA256);
+  if (SUCCEEDED(hRes))
+    hRes = cHashSha1.BeginDigest(MX::CDigestAlgorithmSecureHash::AlgorithmSHA1);
+  if (SUCCEEDED(hRes))
+    hRes = cHashMd5.BeginDigest(MX::CDigestAlgorithmMessageDigest::AlgorithmMD5);
   if (SUCCEEDED(hRes))
   {
-    cHashSha256.Finalize();
-    MX::MemCopy(lpHashes->aSha256, cHashSha256.GetHash(), 32);
-    cHashSha1.Finalize();
-    MX::MemCopy(lpHashes->aSha1, cHashSha1.GetHash(), 20);
-    cHashMd5.Finalize();
-    MX::MemCopy(lpHashes->aMd5, cHashMd5.GetHash(), 16);
+    do
+    {
+      dwReaded = 0;
+      if (::ReadFile(cFileH.Get(), aBlock, (DWORD)sizeof(aBlock), &dwReaded, NULL) == FALSE)
+      {
+        hRes = MX_HRESULT_FROM_LASTERROR();
+        break;
+      }
+      if (dwReaded > 0)
+      {
+        cHashSha256.DigestStream(aBlock, dwReaded);
+        cHashSha1.DigestStream(aBlock, dwReaded);
+        cHashMd5.DigestStream(aBlock, dwReaded);
+      }
+    }
+    while (dwReaded > 0);
+    if (hRes == HRESULT_FROM_WIN32(ERROR_HANDLE_EOF))
+      hRes = S_OK;
+
+    if (SUCCEEDED(hRes))
+      cHashSha256.EndDigest();
+    if (SUCCEEDED(hRes))
+      cHashSha1.EndDigest();
+    if (SUCCEEDED(hRes))
+      cHashMd5.EndDigest();
+  }
+  if (SUCCEEDED(hRes))
+  {
+    MX::MemCopy(lpHashes->aSha256, cHashSha256.GetResult(), 32);
+    MX::MemCopy(lpHashes->aSha1, cHashSha1.GetResult(), 20);
+    MX::MemCopy(lpHashes->aMd5, cHashMd5.GetResult(), 16);
 
     if (bIgnoreCache == FALSE)
     {
-      MX::CFastLock cLock(&(sCachedItems.nMutex));
-      CCachedItem *lpCachedItem;
+      MX::CFastLock cLock(&(Internals::sCachedItems.nMutex));
+      Internals::CCachedItem *lpCachedItem;
 
       //when we get here, we have to add the certificate to the cache store
-      lpCachedItem = FindCachedItem(szFileNameW, cFileH.Get());
+      lpCachedItem = Internals::FindCachedItem(szFileNameW, cFileH.Get());
       if (lpCachedItem != NULL)
       {
         //another thread (re)created a cached item in parallel
@@ -1263,7 +1072,7 @@ HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _Out_ LPHASHES lpHashes, _In
       }
       else
       {
-        lpCachedItem = AddCachedItem(szFileNameW, cFileH.Get());
+        lpCachedItem = Internals::AddCachedItem(szFileNameW, cFileH.Get());
         if (lpCachedItem != NULL)
         {
           MX::MemCopy(&(lpCachedItem->sHashes.sValues), lpHashes, sizeof(lpCachedItem->sHashes.sValues));
@@ -1283,9 +1092,72 @@ HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _Out_ LPHASHES lpHashes, _In
   return hRes;
 }
 
-} //namespace SignatureAndInfo
+}; //namespace Signatures
+
+}; //namespace MXHelpers
 
 //-----------------------------------------------------------
+
+static BOOL IsWinVistaPlus()
+{
+  static LONG volatile nIsWinVistaPlus = -1;
+  LONG nIsWinVistaPlusLocal;
+
+  nIsWinVistaPlusLocal = __InterlockedRead(&nIsWinVistaPlus);
+  if (nIsWinVistaPlusLocal < 0)
+  {
+    nIsWinVistaPlusLocal = ::IsWindowsVistaOrGreater() ? 1 : 0;
+    _InterlockedCompareExchange(&nIsWinVistaPlusLocal, nIsWinVistaPlusLocal, -1);
+  }
+  return (nIsWinVistaPlusLocal == 1) ? TRUE : FALSE;
+}
+
+static VOID EndSignaturesAndInfo()
+{
+  MX::CFastLock cLock(&(MXHelpers::Signatures::Internals::sCachedItems.nMutex));
+  MXHelpers::Signatures::Internals::CCachedItem *lpItem;
+
+  MX_FREE(MXHelpers::Signatures::Internals::sCachedItems.sInUseSortedByName.lpList);
+  while ((lpItem = MXHelpers::Signatures::Internals::sCachedItems.aFreeList.PopHead()) != NULL)
+  {
+    delete lpItem;
+  }
+  while ((lpItem = MXHelpers::Signatures::Internals::sCachedItems.aInUseList.PopHead()) != NULL)
+  {
+    delete lpItem;
+  }
+  MXHelpers::Signatures::Internals::sCachedItems.nCreatedItemsCount = 0;
+  //----
+  if (hWinTrustDll != NULL)
+  {
+    ::FreeLibrary(hWinTrustDll);
+    hWinTrustDll = NULL;
+  }
+  if (hCrypt32Dll != NULL)
+  {
+    ::FreeLibrary(hCrypt32Dll);
+    hCrypt32Dll = NULL;
+  }
+  fnWinVerifyTrustEx = NULL;
+  fnWTHelperProvDataFromStateData = NULL;
+  fnWTHelperGetProvSignerFromChain = NULL;
+  fnCertGetNameStringW = NULL;
+  fnCertDuplicateCertificateContext = NULL;
+  fnCertFreeCertificateContext = NULL;
+  fnGetPackageFullName = NULL;
+  fnGetPackagePath = NULL;
+  fnPackageIdFromFullName = NULL;
+  fnCryptCATAdminAcquireContext = NULL;
+  fnCryptCATAdminAcquireContext2 = NULL;
+  fnCryptCATAdminCalcHashFromFileHandle = NULL;
+  fnCryptCATAdminCalcHashFromFileHandle2 = NULL;
+  fnCryptCATAdminEnumCatalogFromHash = NULL;
+  fnCryptCATAdminReleaseContext = NULL;
+  fnCryptCATCatalogInfoFromContext = NULL;
+  fnCryptCATAdminReleaseCatalogContext = NULL;
+  //done
+  return;
+}
 
 static HRESULT DoTrustVerification(_In_opt_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_ LPGUID lpActionId,
                                    _In_opt_ PWINTRUST_CATALOG_INFO lpCatalogInfo, _Out_ PCERT_CONTEXT *lplpCertCtx,
@@ -1306,8 +1178,7 @@ static HRESULT DoTrustVerification(_In_opt_z_ LPCWSTR szPeFileNameW, _In_opt_ HA
   sWtData.fdwRevocationChecks = WTD_REVOKE_NONE; //no revocation checking.
   sWtData.dwStateAction = WTD_STATEACTION_VERIFY; //verify action
   sWtData.hWVTStateData = NULL; //verification sets this value
-  sWtData.dwProvFlags = (HelperRoutines::IsWindowsVistaOrLater() != FALSE) ? WTD_CACHE_ONLY_URL_RETRIEVAL :
-                                                                             WTD_REVOCATION_CHECK_NONE;
+  sWtData.dwProvFlags = (IsWinVistaPlus() != FALSE) ? WTD_CACHE_ONLY_URL_RETRIEVAL : WTD_REVOCATION_CHECK_NONE;
   if (lpCatalogInfo != NULL)
   {
     sWtData.dwUnionChoice = WTD_CHOICE_CATALOG;
@@ -1371,7 +1242,11 @@ done:
   return hRes;
 }
 
-namespace SignatureAndInfo {
+namespace MXHelpers {
+
+namespace Signatures {
+
+namespace Internals {
 
 static CCachedItem* AddCachedItem(_In_z_ LPCWSTR szPeFileNameW, _In_ HANDLE hFile)
 {
@@ -1392,7 +1267,7 @@ static CCachedItem* AddCachedItem(_In_z_ LPCWSTR szPeFileNameW, _In_ HANDLE hFil
     lpNewItem = sCachedItems.aInUseList.GetTail();
     if (lpNewItem == NULL)
       return NULL;
-    RemoveCachedItem(lpNewItem->nFileNameHash);
+    RemoveCachedItemByHash(lpNewItem->nFileNameHash);
 
     lpNewItem = sCachedItems.aFreeList.PopHead();
     MX_ASSERT(lpNewItem != NULL);
@@ -1447,11 +1322,11 @@ static CCachedItem* AddCachedItem(_In_z_ LPCWSTR szPeFileNameW, _In_ HANDLE hFil
 
 static VOID RemoveCachedItem(_In_z_ LPCWSTR szPeFileNameW)
 {
-  RemoveCachedItem(fnv_64a_buf(szPeFileNameW, MX::StrLenW(szPeFileNameW) * 2, FNV1A_64_INIT));
+  RemoveCachedItemByHash(fnv_64a_buf(szPeFileNameW, MX::StrLenW(szPeFileNameW) * 2, FNV1A_64_INIT));
   return;
 }
 
-static VOID RemoveCachedItem(_In_ Fnv64_t nFileNameHash)
+static VOID RemoveCachedItemByHash(_In_ Fnv64_t nFileNameHash)
 {
   SIZE_T nIndex;
 
@@ -1539,4 +1414,8 @@ static SIZE_T GetCachedItemIndex(_In_ Fnv64_t nFileNameHash)
   return (SIZE_T)-1;
 }
 
-} //namespace SignatureAndInfo
+}; //namespace Internals
+
+}; //namespace Signatures
+
+}; //namespace MXHelpers

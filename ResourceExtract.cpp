@@ -8,6 +8,8 @@
 
 //-----------------------------------------------------------
 
+namespace MXHelpers {
+
 HRESULT ExtractResourceToFile(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _In_ LPCWSTR szResTypeW,
                               _In_ HANDLE hFile)
 {
@@ -128,3 +130,5 @@ HRESULT ExtractResourceToStream(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _
   *lplpStream = cStream.Detach();
   return S_OK;
 }
+
+}; //namespace MXHelpers

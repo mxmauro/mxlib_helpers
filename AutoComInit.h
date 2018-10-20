@@ -4,26 +4,43 @@
 *
 **/
 
-#ifndef _AUTO_COM_INITIALIZE_H
-#define _AUTO_COM_INITIALIZE_H
+#ifndef _MXLIBHLP_AUTO_COM_INITIALIZE_H
+#define _MXLIBHLP_AUTO_COM_INITIALIZE_H
 
 #include <Windows.h>
 #include <Ole2.h>
 
 //-----------------------------------------------------------
 
+namespace MXHelpers {
+
 class CAutoComInit
 {
 public:
-  CAutoComInit();
-  ~CAutoComInit();
+  CAutoComInit()
+    {
+    hRes = ::CoInitializeEx(NULL, COINIT_MULTITHREADED);
+    return;
+    };
 
-  HRESULT InitResult() const;
+  ~CAutoComInit()
+    {
+    if (SUCCEEDED(hRes))
+      ::CoUninitialize();
+    return;
+    };
+
+  HRESULT InitResult() const
+    {
+    return (SUCCEEDED(hRes) || hRes == RPC_E_CHANGED_MODE) ? S_OK : hRes;
+    };
 
 private:
   HRESULT hRes;
 };
 
+}; //namespace MXHelpers
+
 //-----------------------------------------------------------
 
-#endif //_AUTO_COM_INITIALIZE_H
+#endif //_MXLIBHLP_AUTO_COM_INITIALIZE_H

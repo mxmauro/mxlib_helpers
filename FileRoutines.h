@@ -4,8 +4,8 @@
  *
  **/
 
-#ifndef _FILE_ROUTINES_LITE_H
-#define _FILE_ROUTINES_LITE_H
+#ifndef _MXLIBHLP_FILE_ROUTINES_H
+#define _MXLIBHLP_FILE_ROUTINES_H
 
 #include <Defines.h>
 #include <Strings\Strings.h>
@@ -13,7 +13,7 @@
 
 //-----------------------------------------------------------
 
-namespace FileRoutinesLite {
+namespace MXHelpers {
 
 typedef enum {
   DontTryDeleteOnReboot,
@@ -45,21 +45,17 @@ HRESULT ConvertToLongPath(_Inout_ MX::CStringW &cStrPathW);
 
 HRESULT ConvertToNative(_Inout_ MX::CStringW &cStrPathW);
 HRESULT ConvertToWin32(_Inout_ MX::CStringW &cStrPathW);
+HRESULT DeviceName2DosName(_Inout_ MX::CStringW &cStrPathW);
 
 HRESULT ResolveSymbolicLink(_Inout_ MX::CStringW &cStrPathW);
-
-HRESULT ResolveChildProcessFileName(_Inout_ MX::CStringW &cStrFullNameW, _In_ LPCWSTR szApplicationNameW,
-                                    _In_ LPCWSTR szCommandLineW);
-
-HRESULT QueryEnvVariable(_In_z_ LPCWSTR szVarNameW, _Inout_ MX::CStringW &cStrDestW);
 
 //Returned filename is in NT format
 HRESULT GetFileNameFromHandle(_In_ HANDLE hFile, _Inout_ MX::CStringW &cStrFileNameW);
 
 HRESULT OpenFileWithEscalatingSharing(_In_z_ LPCWSTR szFileNameW, _Out_ HANDLE *lphFile);
 
-}; //FileRoutinesLite
+}; //MXHelpers
 
 //-----------------------------------------------------------
 
-#endif //_FILE_ROUTINES_LITE_H
+#endif //_MXLIBHLP_FILE_ROUTINES_H

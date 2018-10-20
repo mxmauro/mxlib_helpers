@@ -4,14 +4,16 @@
  *
  **/
 
-#ifndef _FILE_VERSION_INFO_H
-#define _FILE_VERSION_INFO_H
+#ifndef _MXLIBHLP_FILE_VERSION_INFO_H
+#define _MXLIBHLP_FILE_VERSION_INFO_H
 
 #include <Defines.h>
 #include <AutoPtr.h>
 #include <Strings\Strings.h>
 
 //-----------------------------------------------------------
+
+namespace MXHelpers {
 
 class CFileVersionInfo : public MX::CBaseMemObj
 {
@@ -55,6 +57,8 @@ private:
   SIZE_T nTranslationBlocksCount;
 };
 
+}; //namespace MXHelpers
+
 //-----------------------------------------------------------
 
-#endif //_FILE_VERSION_INFO_H
+#endif //_MXLIBHLP_FILE_VERSION_INFO_H

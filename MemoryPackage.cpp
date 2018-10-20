@@ -12,6 +12,8 @@
 
 //-----------------------------------------------------------
 
+namespace MXHelpers {
+
 namespace Internals {
 
 class CFileStream : public MX::CStream
@@ -43,9 +45,13 @@ private:
   MX::TAutoDeletePtr<MX::CZipLib> cDecompressor;
 };
 
-} //namespace Internals
+}; //namespace Internals
+
+}; //namespace MXHelpers
 
 //-----------------------------------------------------------
+
+namespace MXHelpers {
 
 CMemoryPackage::CMemoryPackage() : MX::CBaseMemObj()
 {
@@ -301,7 +307,11 @@ int CMemoryPackage::FileItemSearch(void *lpContext, const FILEITEM **lplpItem1, 
   return MX::StrCompareW((*lplpItem1)->szSearchNameW, (*lplpItem2)->szNameW, TRUE);
 }
 
+}; //namespace MXHelpers
+
 //-----------------------------------------------------------
+
+namespace MXHelpers {
 
 namespace Internals {
 
@@ -511,4 +521,6 @@ ULONGLONG CFileStream::GetLength() const
   return nUncompressedSize;
 }
 
-} //namespace Internals
+}; //namespace Internals
+
+}; //namespace MXHelpers

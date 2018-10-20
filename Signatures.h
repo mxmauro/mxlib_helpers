@@ -4,8 +4,8 @@
  *
  **/
 
-#ifndef _EXE_SIGNATURE_AND_INFO_H
-#define _EXE_SIGNATURE_AND_INFO_H
+#ifndef _MXLIBHLP_PE_SIGNATURE_AND_INFO_H
+#define _MXLIBHLP_PE_SIGNATURE_AND_INFO_H
 
 #include <Defines.h>
 #include <Strings\Strings.h>
@@ -13,7 +13,9 @@
 
 //-----------------------------------------------------------
 
-namespace SignatureAndInfo {
+namespace MXHelpers {
+
+namespace Signatures {
 
 typedef struct tagHASHES {
   BYTE aSha256[32];
@@ -21,10 +23,17 @@ typedef struct tagHASHES {
   BYTE aMd5[16];
 } HASHES, *LPHASHES;
 
+} //namespace Signatures
+
+} //namespace MXHelpers
+
 //-----------------------------------------------------------
 
+namespace MXHelpers {
+
+namespace Signatures {
+
 HRESULT Initialize();
-VOID Finalize();
 
 //NOTE: Returns TRUST_E_NOSIGNATURE if no certificates are found.
 //      If an error is returned, check 'lplpCertCtx' and 'lpTimeStamp' might contain valid data. In this
@@ -33,9 +42,6 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hProcess, _
                        _Out_ PFILETIME lpTimeStamp, _In_opt_ BOOL bIgnoreCache = FALSE);
 VOID FreeCertificate(_In_opt_ PCERT_CONTEXT lpCertCtx);
 
-BOOL IsTrapmineSignature(_In_ PCERT_CONTEXT lpCertCtx);
-BOOL IsMicrosoftSignature(_In_ PCERT_CONTEXT lpCertCtx);
-
 HRESULT GetCertificateName(_In_ PCERT_CONTEXT lpCertCtx, DWORD dwType, _Inout_ MX::CStringW &cStrNameW,
                            _In_opt_ BOOL bFromIssuer=FALSE);
 HRESULT GetCertificateSerialNumber(_In_ PCERT_CONTEXT lpCertCtx, _Out_ LPBYTE *lplpSerialNumber,
@@ -43,8 +49,10 @@ HRESULT GetCertificateSerialNumber(_In_ PCERT_CONTEXT lpCertCtx, _Out_ LPBYTE *l
 
 HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _Out_ LPHASHES lpHashes, _In_opt_ BOOL bIgnoreCache = FALSE);
 
-} //namespace SignatureAndInfo
+} //namespace Signatures
+
+} //namespace MXHelpers
 
 //-----------------------------------------------------------
 
-#endif //_EXE_SIGNATURE_AND_INFO_H
+#endif //_MXLIBHLP_PE_SIGNATURE_AND_INFO_H

@@ -4,7 +4,7 @@
  *
  **/
 
-#include "FileRoutinesLite.h"
+#include "FileRoutines.h"
 #include <WaitableObjects.h>
 #include <ShlObj.h>
 #include <fileapi.h>
@@ -60,11 +60,7 @@ static LPCWSTR szAppDataSubFolderW = NULL;
 
 //-----------------------------------------------------------
 
-static HRESULT QueryEnvVariableInternal(_In_z_ LPCWSTR szVarNameW, _In_opt_ MX::CStringW *lpStrDestW);
-
-//-----------------------------------------------------------
-
-namespace FileRoutinesLite {
+namespace MXHelpers {
 
 HRESULT GetAppFileName(_Inout_ MX::CStringW &cStrDestW)
 {
@@ -685,6 +681,33 @@ VOID NormalizePath(_Inout_ MX::CStringW &cStrPathW)
     }
     sW++;
   }
+
+
+  //convert short path to long if not a network folder
+  if (((LPCWSTR)cStrPathW)[0] != L'\\')
+  {
+    MX::CStringW cStrTempW;
+    SIZE_T nLen, nSize;
+
+    for (nSize = 256; nSize <= 32768 && nSize < cStrTempW.GetLength(); nSize <<= 1);
+    while (nSize <= 32768)
+    {
+      if (cStrPathW.EnsureBuffer(nSize + 4) == FALSE)
+        break;
+      nLen = (SIZE_T)::GetLongPathNameW((LPCWSTR)cStrPathW, (LPWSTR)cStrTempW, (DWORD)nSize);
+      if (nLen == 0)
+        break; //couldn't convert (i.e. access denied to a parent folder), use original temp path
+      if (nLen < nSize)
+      {
+        ((LPWSTR)cStrTempW)[nLen] = 0;
+        cStrTempW.Refresh();
+        //----
+        cStrPathW.Attach(cStrTempW.Detach());
+        break;
+      }
+      nSize <<= 1;
+    }
+  }
   //done
   return;
 }
@@ -899,6 +922,62 @@ HRESULT ConvertToWin32(_Inout_ MX::CStringW &cStrPathW)
   return S_OK;
 }
 
+HRESULT DeviceName2DosName(_Inout_ MX::CStringW &cStrPathW)
+{
+  WCHAR szNameW[1024], szDriveW[3], *sW;
+  DWORD dwDrivesMask;
+  SIZE_T nNameLen;
+  HRESULT hRes;
+
+  sW = (LPWSTR)cStrPathW;
+  //try network shares first
+  if (sW[0] == L'\\')
+  {
+    if (MX::StrNCompareW(sW, L"\\Device\\MUP\\", 12, TRUE) == 0)
+    {
+      cStrPathW.Delete(1, 10);
+      return S_OK;
+    }
+    if (MX::StrNCompareW(sW, L"\\Device\\LanmanRedirector\\", 25, TRUE) == 0)
+    {
+      cStrPathW.Delete(1, 23);
+      return S_OK;
+    }
+    if (MX::StrNCompareW(sW, L"\\\\?\\", 4) == 0 || MX::StrNCompareW(sW, L"\\??\\", 4) == 0)
+    {
+      cStrPathW.Delete(0, 4);
+    }
+  }
+  //translate path in device form to drive letters
+  dwDrivesMask = ::GetLogicalDrives();
+  szDriveW[1] = L':';
+  szDriveW[2] = 0;
+  sW = (LPWSTR)cStrPathW;
+  hRes = S_OK;
+  for (szDriveW[0] = L'A'; szDriveW[0] <= L'Z'; szDriveW[0]++, dwDrivesMask >>= 1)
+  {
+    if ((dwDrivesMask & 1) != 0)
+    {
+      if (::QueryDosDeviceW(szDriveW, szNameW, _countof(szNameW)) != FALSE)
+      {
+        szNameW[_countof(szNameW) - 1] = 0;
+        nNameLen = wcslen(szNameW);
+        if (MX::StrNCompareW(sW, szNameW, nNameLen, TRUE) == 0 && (sW[nNameLen] == 0 || sW[nNameLen] == L'\\'))
+        {
+          //first insert and then delete to avoid modifying the string if an error is raised
+          if (cStrPathW.InsertN(szDriveW, 0, 2) != FALSE)
+            cStrPathW.Delete(2, nNameLen);
+          else
+            hRes = E_OUTOFMEMORY;
+          break;
+        }
+      }
+    }
+  }
+  //done
+  return hRes;
+}
+
 HRESULT ResolveSymbolicLink(_Inout_ MX::CStringW &cStrPathW)
 {
   MX::CStringW cStrTempPathW, cStrTempW;
@@ -1020,205 +1099,6 @@ restart:
   return S_OK;
 }
 
-HRESULT ResolveChildProcessFileName(_Inout_ MX::CStringW &cStrFullNameW, _In_ LPCWSTR szApplicationNameW,
-                                    _In_ LPCWSTR szCommandLineW)
-{
-  HRESULT hRes;
-
-  cStrFullNameW.Empty();
-  if (szApplicationNameW == NULL && szCommandLineW == NULL)
-    return E_INVALIDARG;
-  if (szApplicationNameW == NULL)
-  {
-    MX::CStringW cStrSearchPathW, cStrExeNameW, cStrTempW;
-    LPCWSTR szNameStartW, szNameEndW;
-    SIZE_T nTempBufLen = 1024;
-
-    szNameStartW = szCommandLineW;
-    if (*szCommandLineW == L'"')
-    {
-      szNameEndW = ++szNameStartW;
-      while (*szNameEndW != 0 && *szNameEndW != L'"')
-        szNameEndW++;
-    }
-    else
-    {
-      szNameEndW = szNameStartW;
-      while (*szNameEndW != 0 && *szNameEndW != L' ' && *szNameEndW != L'\t')
-        szNameEndW++;
-    }
-    //get the path list to check (based on https://msdn.microsoft.com/en-us/library/ms682425.aspx)
-    //1. The directory from which the application loaded.
-    hRes = GetAppFolderPath(cStrSearchPathW);
-    ////MX::DebugPrint("Trapmine Guard: ResolveChildProcessFileName/GetAppFolderPath [Err:0x%08X]\n", hRes);
-    //2. The current directory for the parent process.
-    if (SUCCEEDED(hRes))
-    {
-      RTL_OSVERSIONINFOW sOviW;
-
-      MX::MemSet(&sOviW, 0, sizeof(sOviW));
-      sOviW.dwOSVersionInfoSize = (DWORD)sizeof(sOviW);
-      ::MxRtlGetVersion(&sOviW);
-      if (sOviW.dwMajorVersion >= 6)
-      {
-        if (FAILED(QueryEnvVariableInternal(L"NoDefaultCurrentDirectoryInExePath", NULL)))
-        {
-          if (cStrSearchPathW.ConcatN(L";.", 2) == FALSE)
-            hRes = E_OUTOFMEMORY;
-        }
-      }
-    }
-    ////MX::DebugPrint("Trapmine Guard: ResolveChildProcessFileName/CurrDir [Err:0x%08X]\n", hRes);
-    //3. The 32-bit Windows system directory.Use the GetSystemDirectory function to get the path of this directory.
-    if (SUCCEEDED(hRes))
-    {
-      hRes = GetWindowsSystemPath(cStrTempW);
-      if (SUCCEEDED(hRes))
-      {
-        if (cStrSearchPathW.ConcatN(L";", 1) == FALSE ||
-            cStrSearchPathW.Concat((LPCWSTR)cStrTempW) == FALSE)
-        {
-          hRes = E_OUTOFMEMORY;
-        }
-      }
-    }
-    ////MX::DebugPrint("Trapmine Guard: ResolveChildProcessFileName/GetWindowsSystemPath [Err:0x%08X]\n", hRes);
-    //4. The 16-bit Windows system directory.There is no function that obtains the path of this directory, but it is
-    //   searched.The name of this directory is System.
-    //5. The Windows directory.Use the GetWindowsDirectory function to get the path of this directory.
-    if (SUCCEEDED(hRes))
-    {
-      hRes = GetWindowsPath(cStrTempW);
-      if (SUCCEEDED(hRes))
-      {
-        if (cStrSearchPathW.ConcatN(L";", 1) == FALSE ||
-            cStrSearchPathW.Concat((LPCWSTR)cStrTempW) == FALSE ||
-            cStrSearchPathW.ConcatN(L"\\System;", 8) == FALSE ||
-            cStrSearchPathW.Concat((LPCWSTR)cStrTempW) == FALSE)
-        {
-          hRes = E_OUTOFMEMORY;
-        }
-      }
-    }
-    ////MX::DebugPrint("Trapmine Guard: ResolveChildProcessFileName/GetWindowsPath [Err:0x%08X]\n", hRes);
-    //6. The directories that are listed in the PATH environment variable.Note that this function does not search the
-    //   per-application path specified by the App Paths registry key.To include this per-application path in the
-    //   search sequence, use the ShellExecute function.
-    if (SUCCEEDED(hRes))
-    {
-      hRes = QueryEnvVariable(L"PATH", cStrTempW);
-      ////MX::DebugPrint("Trapmine Guard: ResolveChildProcessFileName/QueryEnvVariable [Err:0x%08X]\n", hRes);
-      if (SUCCEEDED(hRes))
-      {
-        if (cStrSearchPathW.ConcatN(L";", 1) == FALSE ||
-            cStrSearchPathW.Concat((LPCWSTR)cStrTempW) == FALSE)
-        {
-          hRes = E_OUTOFMEMORY;
-        }
-      }
-      else if (hRes == MX_HRESULT_FROM_WIN32(ERROR_NOT_FOUND))
-      {
-        hRes = S_OK;
-      }
-    }
-    ////MX::DebugPrint("Trapmine Guard: ResolveChildProcessFileName/QueryEnvVariable2 [Err:0x%08X]\n", hRes);
-    //alloc dest buffer
-    if (SUCCEEDED(hRes))
-    {
-      if (cStrTempW.EnsureBuffer(nTempBufLen + 1) == FALSE)
-        hRes = E_OUTOFMEMORY;
-    }
-    //process entries (based on https://msdn.microsoft.com/en-us/library/ms682425.aspx)
-    while (SUCCEEDED(hRes))
-    {
-      if (cStrExeNameW.CopyN(szNameStartW, (SIZE_T)(szNameEndW-szNameStartW)) != FALSE)
-      {
-        SIZE_T nRetLen;
-        DWORD dwAttr;
-
-        //check this entry
-        while (SUCCEEDED(hRes))
-        {
-          nRetLen = ::SearchPathW((LPCWSTR)cStrSearchPathW, (LPCWSTR)cStrExeNameW, L".exe", (DWORD)nTempBufLen,
-                                  (LPWSTR)cStrTempW, NULL);
-          if (nRetLen == 0 || nRetLen < nTempBufLen-2)
-          {
-            ((LPWSTR)cStrTempW)[nRetLen] = 0;
-            break;
-          }
-          nTempBufLen = nRetLen + 256;
-          if (cStrTempW.EnsureBuffer(nTempBufLen + 1) == FALSE)
-            hRes = E_OUTOFMEMORY;
-        }
-        ////MX::DebugPrint("Trapmine Guard: ResolveChildProcessFileName/SearchPathW [Err:0x%08X]\n", hRes);
-        if (SUCCEEDED(hRes) && nRetLen > 0)
-        {
-          dwAttr = ::GetFileAttributesW((LPCWSTR)cStrTempW);
-          if (dwAttr != INVALID_FILE_ATTRIBUTES && (dwAttr & FILE_ATTRIBUTE_DIRECTORY) == 0)
-          {
-            cStrFullNameW.Attach(cStrTempW.Detach()); //GOT!
-            break;
-          }
-        }
-      }
-      else
-      {
-        hRes = E_OUTOFMEMORY;
-      }
-      ////MX::DebugPrint("Trapmine Guard: ResolveChildProcessFileName/MainLoop [Err:0x%08X]\n", hRes);
-      //if we reach here, then no valid name was found and we must advance to next portion
-      if (SUCCEEDED(hRes))
-      {
-        if (*szNameEndW == 0 || (szApplicationNameW != NULL && *szApplicationNameW == L'"'))
-        {
-          hRes = MX_E_FileNotFound;
-        }
-        else
-        {
-          szNameEndW++;
-          while (*szNameEndW != 0 && *szNameEndW != L' ' && *szNameEndW != L'\t')
-            szNameEndW++;
-        }
-      }
-    }
-    //at this point we have a name or an error
-  }
-  else
-  {
-    HANDLE hFile;
-
-    //don't bother in checking if the passed name is a directory instead of a file, we don't care because the latter
-    //CreateProcess will fail
-    hFile = ::CreateFileW(szApplicationNameW, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING,
-                          FILE_ATTRIBUTE_NORMAL, NULL);
-    if (hFile != NULL && hFile != INVALID_HANDLE_VALUE)
-    {
-      hRes = GetFileNameFromHandle(hFile, cStrFullNameW);
-      ::MxNtClose(hFile);
-    }
-    else
-    {
-      hRes = MX_HRESULT_FROM_LASTERROR();
-    }
-  }
-  //convert NT paths to DOS
-  ////MX::DebugPrint("Trapmine Guard: ResolveChildProcessFileName/Result [Err:0x%08X]\n", hRes);
-  if (SUCCEEDED(hRes))
-    hRes = ConvertToWin32(cStrFullNameW);
-  ////MX::DebugPrint("Trapmine Guard: ResolveChildProcessFileName/ConvertToWin32 [Err:0x%08X]\n", hRes);
-  //convert to long path
-  if (SUCCEEDED(hRes))
-    hRes = ConvertToLongPath(cStrFullNameW);
-  ////MX::DebugPrint("Trapmine Guard: ResolveChildProcessFileName/ConvertToLongPath [Err:0x%08X]\n", hRes);
-  //done
-  return hRes;
-}
-
-HRESULT QueryEnvVariable(_In_z_ LPCWSTR szVarNameW, _Inout_ MX::CStringW &cStrDestW)
-{
-  return QueryEnvVariableInternal(szVarNameW, &cStrDestW);
-}
-
 HRESULT GetFileNameFromHandle(_In_ HANDLE hFile, _Inout_ MX::CStringW &cStrFileNameW)
 {
   PMX_OBJECT_NAME_INFORMATION lpNameInfo = NULL;
@@ -1309,86 +1189,4 @@ HRESULT OpenFileWithEscalatingSharing(_In_z_ LPCWSTR szFileNameW, _Out_ HANDLE *
   return hRes;
 }
 
-}; //FileRoutinesLite
-
-//-----------------------------------------------------------
-
-static HRESULT QueryEnvVariableInternal(_In_z_ LPCWSTR szVarNameW, _In_opt_ MX::CStringW *lpStrDestW)
-{
-  LPBYTE lpPeb, lpUserProcParams;
-  PRTL_CRITICAL_SECTION lpCS;
-  LPCWSTR szEnvW, szNameStartW;
-  SIZE_T nVarNameLen;
-  HRESULT hRes;
-
-  if (lpStrDestW != NULL)
-    lpStrDestW->Empty();
-  if (szVarNameW == NULL)
-    return E_POINTER;
-  if (*szVarNameW == L'%')
-    szVarNameW++;
-  nVarNameLen = MX::StrLenW(szVarNameW);
-  if (nVarNameLen > 0 && szVarNameW[nVarNameLen-1] == L'%')
-    nVarNameLen--;
-  if (nVarNameLen == 0)
-    return E_INVALIDARG;
-
-#if defined(_M_IX86)
-  lpPeb = (LPBYTE)__readfsdword(0x30); //get PEB from the TIB
-  lpUserProcParams = *((LPBYTE*)(lpPeb+0x10)); //PRTL_USER_PROCESS_PARAMETERS
-  lpCS = *((PRTL_CRITICAL_SECTION*)(lpPeb+0x1C)); //PEB's critical section
-#elif defined(_M_X64)
-  LPBYTE lpPtr = (LPBYTE)__readgsqword(0x30); //get TEB
-  lpPeb = *((LPBYTE*)(lpPtr+0x60));
-  lpUserProcParams = *((LPBYTE*)(lpPeb+0x20)); //PRTL_USER_PROCESS_PARAMETERS
-  lpCS = *((PRTL_CRITICAL_SECTION*)(lpPeb+0x38)); //PEB's critical section
-#endif
-  //lock PEB
-  if (lpCS != NULL)
-    ::MxRtlEnterCriticalSection(lpCS);
-
-  //get environment variables string
-  hRes = MX_HRESULT_FROM_WIN32(ERROR_NOT_FOUND);
-  if (lpUserProcParams != NULL)
-  {
-#if defined(_M_IX86)
-    szEnvW = *((LPCWSTR*)(lpUserProcParams+0x48));
-#elif defined(_M_X64)
-    szEnvW = *((LPCWSTR*)(lpUserProcParams+0x80));
-#endif
-    if (szEnvW != NULL)
-    {
-      //parse environment variables string
-      while (*szEnvW != 0)
-      {
-        szNameStartW = szEnvW;
-        while (*szEnvW != 0 && *szEnvW != L'=')
-          szEnvW++;
-        //check this name
-        if ((SIZE_T)(szEnvW-szNameStartW) == nVarNameLen &&
-            MX::StrNCompareW(szVarNameW, szNameStartW, nVarNameLen, TRUE) == 0)
-        {
-          hRes = S_OK;
-          if (*szEnvW == L'=' && lpStrDestW != NULL)
-          {
-            if (lpStrDestW->Copy(szEnvW+1) == FALSE)
-              hRes = E_OUTOFMEMORY;
-          }
-          break;
-        }
-        //skip until next
-        if (*szEnvW == L'=')
-          szEnvW++;
-        while (*szEnvW != 0)
-          szEnvW++;
-        szEnvW++; //skip end-of-var
-      }
-    }
-  }
-
-  //unlock PEB
-  if (lpCS != NULL)
-    ::MxRtlLeaveCriticalSection(lpCS);
-  //done
-  return hRes;
-}
+}; //MXHelpers

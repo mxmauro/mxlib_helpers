@@ -4,20 +4,22 @@
  *
  **/
 
-#ifndef _PE_PARSER_H
-#define _PE_PARSER_H
+#ifndef _MXLIBHLP_PE_PARSER_H
+#define _MXLIBHLP_PE_PARSER_H
 
 #include <Defines.h>
 #include <AutoPtr.h>
 #include <ArrayList.h>
 #include <Strings\Strings.h>
 
-#define PEPARSER_FLAG_ParseResources                  0x0001
-#define PEPARSER_FLAG_ParseExportTable                0x0002
-#define PEPARSER_FLAG_ParseImportTables               0x0004
-#define PEPARSER_FLAG_IgnoreMalformed                 0x1000
+#define MXLIBHLP_PEPARSER_FLAG_ParseResources         0x0001
+#define MXLIBHLP_PEPARSER_FLAG_ParseExportTable       0x0002
+#define MXLIBHLP_PEPARSER_FLAG_ParseImportTables      0x0004
+#define MXLIBHLP_PEPARSER_FLAG_IgnoreMalformed        0x1000
 
 //-----------------------------------------------------------
+
+namespace MXHelpers {
 
 class CPeParser : public MX::CBaseMemObj
 {
@@ -188,6 +190,8 @@ private:
   SIZE_T nVersionInfoSize;
 };
 
+}; //namespace MXHelpers
+
 //-----------------------------------------------------------
 
-#endif //_FILE_VERSION_INFO_H
+#endif //_MXLIBHLP_FILE_VERSION_INFO_H

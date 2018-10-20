@@ -6,10 +6,10 @@
 
 #include "Logger.h"
 #include "WinRegistry.h"
-#include "FileRoutinesLite.h"
+#include "FileRoutines.h"
+#include "System.h"
 #include <Shlobj.h>
 #include <stdio.h>
-#include "HelperRoutines.h"
 #include "FileVersionInfo.h"
 #include <WaitableObjects.h>
 #include <Finalizer.h>
@@ -21,7 +21,7 @@
 #ifdef _DEBUG
   #define DEBUGOUTPUT_LOG
 #else //_DEBUG
-  #define DEBUGOUTPUT_LOG
+  //#define DEBUGOUTPUT_LOG
 #endif //_DEBUG
 
 #define LOGFLAG_Initialized                           0x0001
@@ -47,6 +47,8 @@ static HRESULT InitLogCommon();
 static VOID WriteLogCommon(_In_ BOOL bAddError, _In_ HRESULT hResError, _In_z_ LPCWSTR szFormatW, _In_ va_list argptr);
 
 //-----------------------------------------------------------
+
+namespace MXHelpers {
 
 namespace EventLogger {
 
@@ -87,7 +89,7 @@ HRESULT Initialize(_In_z_ LPCWSTR szModuleNameW, _In_z_ LPCWSTR szRegistryKeyW, 
   if (cStrLogFileNameBaseW.Copy(szModuleNameW) == FALSE)
     return E_OUTOFMEMORY;
   //setup log folder
-  hRes = FileRoutinesLite::GetAppDataFolderPath(cStrLogFolderW);
+  hRes = GetAppDataFolderPath(cStrLogFolderW);
   if (SUCCEEDED(hRes))
   {
     if (cStrLogFolderW.ConcatN(L"Logs\\", 5) == FALSE)
@@ -210,7 +212,9 @@ HRESULT GetLogFolder(_Out_ MX::CStringW &_cStrLogFolderW)
   return (_cStrLogFolderW.CopyN((LPCWSTR)cStrLogFolderW, cStrLogFolderW.GetLength()) != FALSE) ? S_OK : E_OUTOFMEMORY;
 }
 
-} //namespace EventLogger
+}; //namespace EventLogger
+
+}; //namespace MXHelpers
 
 //-----------------------------------------------------------
 
@@ -286,7 +290,7 @@ static VOID RemoveOldFiles()
                   if (cStrTempW.Copy((LPCWSTR)cStrLogFolderW) != FALSE &&
                       cStrTempW.Concat(sFindDataW.cFileName) != FALSE)
                   {
-                    FileRoutinesLite::_DeleteFile((LPCWSTR)cStrTempW);
+                    MXHelpers::_DeleteFile((LPCWSTR)cStrTempW);
                   }
                 }
               }
@@ -304,13 +308,13 @@ static VOID RemoveOldFiles()
 static HRESULT OpenLog()
 {
   MX::CStringW cStrTempW, cStrOpSystemW;
-  CFileVersionInfo cVersionInfo;
+  MXHelpers::CFileVersionInfo cVersionInfo;
   WCHAR szBufW[256];
   DWORD dw, dwWritten;
   SYSTEMTIME sSt;
   MEMORYSTATUSEX sMemStatusEx;
 
-  FileRoutinesLite::CreateDirectoryRecursive((LPCWSTR)cStrLogFolderW);
+  MXHelpers::CreateDirectoryRecursive((LPCWSTR)cStrLogFolderW);
   //open/create log file
   ::GetSystemTime(&sSt);
   if (cStrTempW.Format(L"%s%s-%04u%02u%02u.log", (LPCWSTR)cStrLogFolderW, (LPCWSTR)cStrLogFileNameBaseW,
@@ -357,7 +361,7 @@ static HRESULT OpenLog()
   ::WriteFile(cLogH, (LPCWSTR)cStrTempW, (DWORD)(cStrTempW.GetLength() * sizeof(WCHAR)), &dwWritten, NULL);
 
   //write OS version
-  if (SUCCEEDED(HelperRoutines::GetOpSystemInfo(cStrTempW)))
+  if (SUCCEEDED(MXHelpers::GetOpSystemInfo(cStrTempW)))
   {
 #if defined(_M_IX86)
     SYSTEM_INFO sSi;

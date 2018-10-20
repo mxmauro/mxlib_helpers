@@ -4,8 +4,8 @@
  *
  **/
 
-#ifndef _LIGHT_JSON_BUILDER_H
-#define _LIGHT_JSON_BUILDER_H
+#ifndef _MXLIBHLP_LIGHTJSON_BUILDER_H
+#define _MXLIBHLP_LIGHTJSON_BUILDER_H
 
 #include "Defines.h"
 #include <Windows.h>
@@ -14,6 +14,8 @@
 #include <winternl.h>
 
 //-----------------------------------------------------------
+
+namespace MXHelpers {
 
 class CLightJSonBuilder : public MX::CBaseMemObj
 {
@@ -68,6 +70,8 @@ private:
   BOOL bIsFirstItem;
 };
 
+}; //namespace MXHelpers
+
 //-----------------------------------------------------------
 
-#endif //_LIGHT_JSON_BUILDER_H
+#endif //_MXLIBHLP_LIGHTJSON_BUILDER_H

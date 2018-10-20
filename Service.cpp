@@ -20,8 +20,8 @@ static SERVICE_STATUS sServiceStatus = {
   SERVICE_WIN32_OWN_PROCESS, SERVICE_STOPPED, SERVICE_ACCEPT_STOP|SERVICE_ACCEPT_SHUTDOWN, NO_ERROR, 0, 0, 0
 };
 static MX::CStringW cStrServiceNameW;
-static Service::OnStartCallback cStartCallback = MX::NullCallback();
-static Service::OnStopCallback cStopCallback = MX::NullCallback();
+static MXHelpers::Service::OnStartCallback cStartCallback = MX::NullCallback();
+static MXHelpers::Service::OnStopCallback cStopCallback = MX::NullCallback();
 static BOOL bRunningAsConsole = FALSE;
 static int nArgumentsCount = 0;
 static WCHAR** lpArguments = NULL;
@@ -39,6 +39,8 @@ static HRESULT IsInteractiveRunningApp();
 
 //-----------------------------------------------------------
 
+namespace MXHelpers {
+
 namespace Service {
 
 HRESULT Run(_In_opt_z_ LPCWSTR szServiceNameW, _In_ OnStartCallback _cStartCallback, _In_ OnStopCallback _cStopCallback,
@@ -55,7 +57,7 @@ HRESULT Run(_In_opt_z_ LPCWSTR szServiceNameW, _In_ OnStartCallback _cStartCallb
   //check for single instance
   if (*szServiceNameW != NULL)
   {
-    hRes = SingleInstance::Check(szServiceNameW);
+    hRes = MXHelpers::SingleInstanceCheck(szServiceNameW);
     if (FAILED(hRes))
       return hRes;
     if (hRes == S_FALSE)
@@ -144,6 +146,8 @@ VOID DisableStop()
 }
 
 }; //namespace Service
+
+}; //namespace MXHelpers
 
 //-----------------------------------------------------------
 

@@ -15,9 +15,9 @@ static MX::CWindowsMutex cSingleInstanceMutex;
 
 //-----------------------------------------------------------
 
-namespace SingleInstance {
+namespace MXHelpers {
 
-HRESULT Check(_In_z_ LPCWSTR szNameW)
+HRESULT SingleInstanceCheck(_In_z_ LPCWSTR szNameW)
 {
   MX::CStringW cStrTempW;
   Fnv64_t nHash;
@@ -39,4 +39,4 @@ HRESULT Check(_In_z_ LPCWSTR szNameW)
   return (b == FALSE) ? S_OK : S_FALSE;
 }
 
-}; //namespace SingleInstance
+}; //namespace MXHelpers

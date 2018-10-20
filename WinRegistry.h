@@ -17,6 +17,8 @@
 
 //-----------------------------------------------------------
 
+namespace MXHelpers {
+
 class CWinRegistry : public virtual MX::CBaseMemObj
 {
 public:
@@ -75,6 +77,8 @@ public:
 private:
   HKEY hKey;
 };
+
+}; //namespace MXHelpers
 
 //-----------------------------------------------------------
 
