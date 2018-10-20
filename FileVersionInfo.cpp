@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#pragma comment(lib, "version.lib")
+
 //-----------------------------------------------------------
 
 static VS_FIXEDFILEINFO sNoFixedInfo = { 0 };
