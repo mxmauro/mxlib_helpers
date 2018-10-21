@@ -11,28 +11,32 @@
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
+
+namespace Console {
 
 typedef enum {
-  ccNormal, ccError, ccSuccess, ccYellow, ccBlue
-} eConsoleColor;
+  ColorNormal, ColorError, ColorSuccess, ColorYellow, ColorBlue
+} eColor;
 
-}; //namespace MXHelpers
+}; //namespace Console
+
+}; //namespace MX
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
 namespace Console {
 
 VOID Initialize(_In_ BOOL bAppIsInteractive);
 
-VOID Print(_In_ eConsoleColor nColor, _In_ LPCWSTR szFormatW, ...);
+VOID Print(_In_ eColor nColor, _In_ LPCWSTR szFormatW, ...);
 VOID PrintError(_In_ HRESULT hRes);
 
 }; //namespace Console
 
-}; //namespace MXHelpers
+}; //namespace MX
 
 //-----------------------------------------------------------
 

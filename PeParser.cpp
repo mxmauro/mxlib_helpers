@@ -6,19 +6,6 @@
 
 //-----------------------------------------------------------
 
-#ifndef FILE_OPEN
-  #define FILE_OPEN                               0x00000001
-#endif //FILE_OPEN
-#ifndef FILE_SYNCHRONOUS_IO_NONALERT
-  #define FILE_SYNCHRONOUS_IO_NONALERT            0x00000020
-#endif //FILE_SYNCHRONOUS_IO_NONALERT
-#ifndef FILE_NON_DIRECTORY_FILE
-  #define FILE_NON_DIRECTORY_FILE                 0x00000040
-#endif //FILE_NON_DIRECTORY_FILE
-#ifndef OBJ_CASE_INSENSITIVE
-  #define OBJ_CASE_INSENSITIVE                    0x00000040
-#endif //OBJ_CASE_INSENSITIVE
-
 #define MAX_EXPORTS_COUNT                              65536
 #define MAX_EXPORTS_FUNCTION_NAME_LENGTH                 512
 #define MAX_EXPORTS_FORWARDER_NAME_LENGTH                512
@@ -29,9 +16,9 @@
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
-CPeParser::CPeParser()
+CPEParser::CPEParser()
 {
   hFile = hFileMap = NULL;
   hProc = NULL;
@@ -40,28 +27,28 @@ CPeParser::CPeParser()
   return;
 }
 
-CPeParser::~CPeParser()
+CPEParser::~CPEParser()
 {
   Finalize();
   return;
 }
 
-HRESULT CPeParser::InitializeFromFileName(_In_z_ LPCWSTR szFileNameW, _In_opt_ DWORD dwParseFlags)
+HRESULT CPEParser::InitializeFromFileName(_In_z_ LPCWSTR szFileNameW, _In_opt_ DWORD dwParseFlags)
 {
-  MX::CWindowsHandle cFileH;
+  CWindowsHandle cFileH;
   HRESULT hRes;
 
   Finalize();
 
   //open file
-  hRes = OpenFileWithEscalatingSharing(szFileNameW, &cFileH);
+  hRes = FileRoutines::OpenFileWithEscalatingSharing(szFileNameW, &cFileH);
   if (SUCCEEDED(hRes))
     hRes = InitializeFromFileHandle(cFileH.Get(), dwParseFlags);
   //done
   return hRes;
 }
 
-HRESULT CPeParser::InitializeFromFileHandle(_In_ HANDLE _hFile, _In_opt_ DWORD dwParseFlags)
+HRESULT CPEParser::InitializeFromFileHandle(_In_ HANDLE _hFile, _In_opt_ DWORD dwParseFlags)
 {
   HRESULT hRes;
 
@@ -105,7 +92,7 @@ HRESULT CPeParser::InitializeFromFileHandle(_In_ HANDLE _hFile, _In_opt_ DWORD d
   return S_OK;
 }
 
-HRESULT CPeParser::InitializeFromProcessHandle(_In_opt_ HANDLE _hProc, _In_opt_ DWORD dwParseFlags)
+HRESULT CPEParser::InitializeFromProcessHandle(_In_opt_ HANDLE _hProc, _In_opt_ DWORD dwParseFlags)
 {
   LPBYTE lpPeb;
 #if defined(_M_X64)
@@ -210,7 +197,7 @@ HRESULT CPeParser::InitializeFromProcessHandle(_In_opt_ HANDLE _hProc, _In_opt_ 
   return S_OK;
 }
 
-HRESULT CPeParser::InitializeFromMemory(_In_ LPCVOID _lpBaseAddress, _In_ BOOL _bImageIsMapped,
+HRESULT CPEParser::InitializeFromMemory(_In_ LPCVOID _lpBaseAddress, _In_ BOOL _bImageIsMapped,
                                         _In_opt_ DWORD dwParseFlags)
 {
   HRESULT hRes;
@@ -230,7 +217,7 @@ HRESULT CPeParser::InitializeFromMemory(_In_ LPCVOID _lpBaseAddress, _In_ BOOL _
   return S_OK;
 }
 
-VOID CPeParser::Finalize()
+VOID CPEParser::Finalize()
 {
   if (hFileMap != NULL && hFileMap != INVALID_HANDLE_VALUE)
   {
@@ -252,7 +239,7 @@ VOID CPeParser::Finalize()
   return;
 }
 
-LPBYTE CPeParser::RvaToVa(_In_ DWORD dwVirtualAddress)
+LPBYTE CPEParser::RvaToVa(_In_ DWORD dwVirtualAddress)
 {
   PIMAGE_SECTION_HEADER lpFileImgSect;
   SIZE_T i;
@@ -273,7 +260,7 @@ LPBYTE CPeParser::RvaToVa(_In_ DWORD dwVirtualAddress)
   return NULL;
 }
 
-BOOL CPeParser::ReadMem(_Out_writes_(nBytes) LPVOID lpDest, _In_ LPCVOID lpSrc, _In_ SIZE_T nBytes)
+BOOL CPEParser::ReadMem(_Out_writes_(nBytes) LPVOID lpDest, _In_ LPCVOID lpSrc, _In_ SIZE_T nBytes)
 {
   if (hProc != NULL)
   {
@@ -284,13 +271,13 @@ BOOL CPeParser::ReadMem(_Out_writes_(nBytes) LPVOID lpDest, _In_ LPCVOID lpSrc, 
   }
   else
   {
-    if (MX::TryMemCopy(lpDest, lpSrc, nBytes) != nBytes)
+    if (TryMemCopy(lpDest, lpSrc, nBytes) != nBytes)
       return FALSE;
   }
   return TRUE;
 }
 
-HRESULT CPeParser::ReadAnsiString(_Out_ MX::CStringA &cStrA, _In_ LPVOID lpNameAddress, _In_ SIZE_T nMaxLength)
+HRESULT CPEParser::ReadAnsiString(_Out_ CStringA &cStrA, _In_ LPVOID lpNameAddress, _In_ SIZE_T nMaxLength)
 {
   CHAR szTempBufA[8];
   SIZE_T nThisLen;
@@ -317,7 +304,7 @@ HRESULT CPeParser::ReadAnsiString(_Out_ MX::CStringA &cStrA, _In_ LPVOID lpNameA
   return (cStrA.GetLength() < nMaxLength) ? S_OK : MX_E_InvalidData;
 }
 
-VOID CPeParser::Reset()
+VOID CPEParser::Reset()
 {
   wMachine = IMAGE_FILE_MACHINE_UNKNOWN;
   lpOriginalImageBaseAddress = NULL;
@@ -325,8 +312,8 @@ VOID CPeParser::Reset()
   lpBaseAddress = NULL;
   bImageIsMapped = FALSE;
 
-  MX::MemSet(&sDosHdr, 0, sizeof(sDosHdr));
-  MX::MemSet(&uNtHdr, 0, sizeof(uNtHdr));
+  MemSet(&sDosHdr, 0, sizeof(sDosHdr));
+  MemSet(&uNtHdr, 0, sizeof(uNtHdr));
 
   nSectionsCount = 0;
   cFileImgSect.Reset();
@@ -343,7 +330,7 @@ VOID CPeParser::Reset()
   return;
 }
 
-HRESULT CPeParser::DoParse(_In_ DWORD dwParseFlags)
+HRESULT CPEParser::DoParse(_In_ DWORD dwParseFlags)
 {
 #define DATADIR32(entry) uNtHdr.s32.OptionalHeader.DataDirectory[entry]
 #define DATADIR64(entry) uNtHdr.s64.OptionalHeader.DataDirectory[entry]
@@ -396,7 +383,7 @@ HRESULT CPeParser::DoParse(_In_ DWORD dwParseFlags)
       }
 
       //parse import table
-      if ((dwParseFlags & MXLIBHLP_PEPARSER_FLAG_ParseImportTables) != 0)
+      if ((dwParseFlags & MX_PEPARSER_FLAG_ParseImportTables) != 0)
       {
         if (DATADIR32(IMAGE_DIRECTORY_ENTRY_IMPORT).VirtualAddress != 0 &&
             DATADIR32(IMAGE_DIRECTORY_ENTRY_IMPORT).Size != 0)
@@ -411,7 +398,7 @@ HRESULT CPeParser::DoParse(_In_ DWORD dwParseFlags)
           if (FAILED(hRes))
           {
             if ((hRes != MX_E_InvalidData && hRes != MX_E_ReadFault) ||
-                (dwParseFlags & MXLIBHLP_PEPARSER_FLAG_IgnoreMalformed) == 0)
+                (dwParseFlags & MX_PEPARSER_FLAG_IgnoreMalformed) == 0)
             {
               return hRes;
             }
@@ -421,7 +408,7 @@ HRESULT CPeParser::DoParse(_In_ DWORD dwParseFlags)
       }
 
       //parse export table
-      if ((dwParseFlags & MXLIBHLP_PEPARSER_FLAG_ParseExportTable) != 0)
+      if ((dwParseFlags & MX_PEPARSER_FLAG_ParseExportTable) != 0)
       {
         if (DATADIR32(IMAGE_DIRECTORY_ENTRY_EXPORT).VirtualAddress != 0 &&
             DATADIR32(IMAGE_DIRECTORY_ENTRY_EXPORT).Size != 0)
@@ -442,7 +429,7 @@ HRESULT CPeParser::DoParse(_In_ DWORD dwParseFlags)
           if (FAILED(hRes))
           {
             if ((hRes != MX_E_InvalidData && hRes != MX_E_ReadFault) ||
-                (dwParseFlags & MXLIBHLP_PEPARSER_FLAG_IgnoreMalformed) == 0)
+                (dwParseFlags & MX_PEPARSER_FLAG_IgnoreMalformed) == 0)
             {
               return hRes;
             }
@@ -455,7 +442,7 @@ HRESULT CPeParser::DoParse(_In_ DWORD dwParseFlags)
       }
 
       //parse resources
-      if ((dwParseFlags & MXLIBHLP_PEPARSER_FLAG_ParseResources) != 0)
+      if ((dwParseFlags & MX_PEPARSER_FLAG_ParseResources) != 0)
       {
         if (DATADIR32(IMAGE_DIRECTORY_ENTRY_RESOURCE).VirtualAddress != 0 &&
             DATADIR32(IMAGE_DIRECTORY_ENTRY_RESOURCE).Size != 0)
@@ -468,7 +455,7 @@ HRESULT CPeParser::DoParse(_In_ DWORD dwParseFlags)
           if (FAILED(hRes))
           {
             if ((hRes != MX_E_InvalidData && hRes != MX_E_ReadFault) ||
-                (dwParseFlags & MXLIBHLP_PEPARSER_FLAG_IgnoreMalformed) == 0)
+                (dwParseFlags & MX_PEPARSER_FLAG_IgnoreMalformed) == 0)
             {
               return hRes;
             }
@@ -503,7 +490,7 @@ HRESULT CPeParser::DoParse(_In_ DWORD dwParseFlags)
       }
 
       //parse import table
-      if ((dwParseFlags & MXLIBHLP_PEPARSER_FLAG_ParseImportTables) != 0)
+      if ((dwParseFlags & MX_PEPARSER_FLAG_ParseImportTables) != 0)
       {
         if (DATADIR64(IMAGE_DIRECTORY_ENTRY_IMPORT).VirtualAddress != 0 &&
             DATADIR64(IMAGE_DIRECTORY_ENTRY_IMPORT).Size != 0)
@@ -518,7 +505,7 @@ HRESULT CPeParser::DoParse(_In_ DWORD dwParseFlags)
           if (FAILED(hRes))
           {
             if ((hRes != MX_E_InvalidData && hRes != MX_E_ReadFault) ||
-               (dwParseFlags & MXLIBHLP_PEPARSER_FLAG_IgnoreMalformed) == 0)
+               (dwParseFlags & MX_PEPARSER_FLAG_IgnoreMalformed) == 0)
             {
               return hRes;
             }
@@ -528,7 +515,7 @@ HRESULT CPeParser::DoParse(_In_ DWORD dwParseFlags)
       }
 
       //parse export table
-      if ((dwParseFlags & MXLIBHLP_PEPARSER_FLAG_ParseExportTable) != 0)
+      if ((dwParseFlags & MX_PEPARSER_FLAG_ParseExportTable) != 0)
       {
         if (DATADIR64(IMAGE_DIRECTORY_ENTRY_EXPORT).VirtualAddress != 0 &&
             DATADIR64(IMAGE_DIRECTORY_ENTRY_EXPORT).Size != 0)
@@ -549,7 +536,7 @@ HRESULT CPeParser::DoParse(_In_ DWORD dwParseFlags)
           if (FAILED(hRes))
           {
             if ((hRes != MX_E_InvalidData && hRes != MX_E_ReadFault) ||
-                (dwParseFlags & MXLIBHLP_PEPARSER_FLAG_IgnoreMalformed) == 0)
+                (dwParseFlags & MX_PEPARSER_FLAG_IgnoreMalformed) == 0)
             {
               return hRes;
             }
@@ -562,7 +549,7 @@ HRESULT CPeParser::DoParse(_In_ DWORD dwParseFlags)
       }
 
       //parse resources
-      if ((dwParseFlags & MXLIBHLP_PEPARSER_FLAG_ParseResources) != 0)
+      if ((dwParseFlags & MX_PEPARSER_FLAG_ParseResources) != 0)
       {
         if (DATADIR64(IMAGE_DIRECTORY_ENTRY_RESOURCE).VirtualAddress != 0 &&
             DATADIR64(IMAGE_DIRECTORY_ENTRY_RESOURCE).Size != 0)
@@ -575,7 +562,7 @@ HRESULT CPeParser::DoParse(_In_ DWORD dwParseFlags)
           if (FAILED(hRes))
           {
             if ((hRes != MX_E_InvalidData && hRes != MX_E_ReadFault) ||
-                (dwParseFlags & MXLIBHLP_PEPARSER_FLAG_IgnoreMalformed) == 0)
+                (dwParseFlags & MX_PEPARSER_FLAG_IgnoreMalformed) == 0)
             {
               return hRes;
             }
@@ -598,9 +585,9 @@ HRESULT CPeParser::DoParse(_In_ DWORD dwParseFlags)
 #undef DATADIR32
 }
 
-HRESULT CPeParser::DoParseImportTable(_In_ PIMAGE_IMPORT_DESCRIPTOR lpImportDesc)
+HRESULT CPEParser::DoParseImportTable(_In_ PIMAGE_IMPORT_DESCRIPTOR lpImportDesc)
 {
-  MX::TAutoDeletePtr<CImportedDll> cDllEntry;
+  TAutoDeletePtr<CImportedDll> cDllEntry;
   IMAGE_IMPORT_DESCRIPTOR sImportDesc;
   LPBYTE lpNameAddress, lpThunk, lpFunctionThunk;
   union {
@@ -609,7 +596,7 @@ HRESULT CPeParser::DoParseImportTable(_In_ PIMAGE_IMPORT_DESCRIPTOR lpImportDesc
     IMAGE_THUNK_DATA64 s64;
 #endif //_M_X64
   } uThunkData;
-  MX::CStringA cStrFuncNameA;
+  CStringA cStrFuncNameA;
   LPIMPORTED_FUNCTION lpNewEntry;
   DWORD dwOrdinal;
   LPVOID lpFuncAddress;
@@ -699,7 +686,7 @@ restart:
           return E_OUTOFMEMORY;
         lpNewEntry->dwOrdinal = dwOrdinal;
         lpNewEntry->lpAddress = lpFuncAddress;
-        MX::MemCopy(lpNewEntry->szNameA, (LPCSTR)cStrFuncNameA, cStrFuncNameA.GetLength());
+        MemCopy(lpNewEntry->szNameA, (LPCSTR)cStrFuncNameA, cStrFuncNameA.GetLength());
         lpNewEntry->szNameA[cStrFuncNameA.GetLength()] = 0;
 
         //add to list
@@ -760,7 +747,7 @@ restart:
           return E_OUTOFMEMORY;
         lpNewEntry->dwOrdinal = dwOrdinal;
         lpNewEntry->lpAddress = lpFuncAddress;
-        MX::MemCopy(lpNewEntry->szNameA, (LPCSTR)cStrFuncNameA, cStrFuncNameA.GetLength());
+        MemCopy(lpNewEntry->szNameA, (LPCSTR)cStrFuncNameA, cStrFuncNameA.GetLength());
         lpNewEntry->szNameA[cStrFuncNameA.GetLength()] = 0;
 
         //add to list
@@ -788,15 +775,15 @@ restart:
   goto restart;
 }
 
-HRESULT CPeParser::DoParseExportTable(_In_ PIMAGE_EXPORT_DIRECTORY lpExportDir, _In_ DWORD dwStartRVA,
+HRESULT CPEParser::DoParseExportTable(_In_ PIMAGE_EXPORT_DIRECTORY lpExportDir, _In_ DWORD dwStartRVA,
                                       _In_ DWORD dwEndRVA)
 {
   IMAGE_EXPORT_DIRECTORY sExportDir;
   LPEXPORTED_FUNCTION lpNewEntry;
-  MX::CStringA cStrFuncNameA, cStrForwardsToA;
+  CStringA cStrFuncNameA, cStrForwardsToA;
   LPDWORD lpdwAddressOfFunctions, lpdwAddressOfNames;
   LPWORD lpwAddressOfNameOrdinals;
-  MX::TAutoFreePtr<WORD> aNameOrdinalsList;
+  TAutoFreePtr<WORD> aNameOrdinalsList;
   DWORD dw, dw2, dwNumberOfNames, dwFuncAddress, dwNameAddress;
   LPVOID lpFuncAddress;
   HRESULT hRes;
@@ -861,7 +848,7 @@ HRESULT CPeParser::DoParseExportTable(_In_ PIMAGE_EXPORT_DIRECTORY lpExportDir, 
       if (cStrForwardsToA.IsEmpty() != FALSE)
         return MX_E_InvalidData;
 
-      sA = MX::StrChrA((LPCSTR)cStrForwardsToA, '.');
+      sA = StrChrA((LPCSTR)cStrForwardsToA, '.');
       if (sA == NULL || sA == (LPCSTR)cStrForwardsToA || *(sA+1) == 0)
         return MX_E_InvalidData;
     }
@@ -905,7 +892,7 @@ HRESULT CPeParser::DoParseExportTable(_In_ PIMAGE_EXPORT_DIRECTORY lpExportDir, 
     lpNewEntry->dwOrdinal = dw + sExportDir.Base;
     lpNewEntry->dwAddressRVA = dwFuncAddress;
     lpNewEntry->lpAddress = lpFuncAddress;
-    MX::MemCopy(lpNewEntry->szNameA, (LPCSTR)cStrFuncNameA, cStrFuncNameA.GetLength());
+    MemCopy(lpNewEntry->szNameA, (LPCSTR)cStrFuncNameA, cStrFuncNameA.GetLength());
     lpNewEntry->szNameA[cStrFuncNameA.GetLength()] = 0;
     if (cStrForwardsToA.IsEmpty() != FALSE)
     {
@@ -914,7 +901,7 @@ HRESULT CPeParser::DoParseExportTable(_In_ PIMAGE_EXPORT_DIRECTORY lpExportDir, 
     else
     {
       lpNewEntry->szForwardsToA = lpNewEntry->szNameA + cStrFuncNameA.GetLength() + 1;
-      MX::MemCopy(lpNewEntry->szForwardsToA, (LPCSTR)cStrForwardsToA, cStrForwardsToA.GetLength());
+      MemCopy(lpNewEntry->szForwardsToA, (LPCSTR)cStrForwardsToA, cStrForwardsToA.GetLength());
       lpNewEntry->szForwardsToA[cStrForwardsToA.GetLength()] = 0;
     }
     //add to list
@@ -928,7 +915,7 @@ HRESULT CPeParser::DoParseExportTable(_In_ PIMAGE_EXPORT_DIRECTORY lpExportDir, 
   return S_OK;
 }
 
-HRESULT CPeParser::DoParseResources()
+HRESULT CPEParser::DoParseResources()
 {
   LPBYTE lpData;
   SIZE_T nDataSize;
@@ -956,7 +943,7 @@ HRESULT CPeParser::DoParseResources()
   return S_OK;
 }
 
-HRESULT CPeParser::_FindResource(_In_ LPCWSTR szNameW, _In_ LPCWSTR szTypeW, _In_ WORD wLang,
+HRESULT CPEParser::_FindResource(_In_ LPCWSTR szNameW, _In_ LPCWSTR szTypeW, _In_ WORD wLang,
                                  _Out_ LPBYTE *lplpData, _Out_ SIZE_T *lpnDataSize)
 {
   PIMAGE_RESOURCE_DIRECTORY_ENTRY lpDirEntry;
@@ -1017,7 +1004,7 @@ HRESULT CPeParser::_FindResource(_In_ LPCWSTR szNameW, _In_ LPCWSTR szTypeW, _In
   return S_OK;
 }
 
-HRESULT CPeParser::LookupResourceEntry(_In_ PIMAGE_RESOURCE_DIRECTORY lpRootDir, _In_ PIMAGE_RESOURCE_DIRECTORY lpDir,
+HRESULT CPEParser::LookupResourceEntry(_In_ PIMAGE_RESOURCE_DIRECTORY lpRootDir, _In_ PIMAGE_RESOURCE_DIRECTORY lpDir,
                                        _In_ LPCWSTR szKeyW, _Out_ PIMAGE_RESOURCE_DIRECTORY_ENTRY *lplpDirEntry)
 {
   IMAGE_RESOURCE_DIRECTORY sResDir;
@@ -1110,7 +1097,7 @@ HRESULT CPeParser::LookupResourceEntry(_In_ PIMAGE_RESOURCE_DIRECTORY lpRootDir,
 
         if (ReadMem(szTempBufW, lpPtr, (SIZE_T)wThisRound * sizeof(WCHAR)) == FALSE)
           return MX_E_ReadFault;
-        nCmpResult = MX::MemCompare(szCopyOfKeyW, szTempBufW, (SIZE_T)wThisRound);
+        nCmpResult = MemCompare(szCopyOfKeyW, szTempBufW, (SIZE_T)wThisRound);
         if (nCmpResult != 0)
           break;
         lpPtr += (SIZE_T)wThisRound * sizeof(WCHAR);
@@ -1138,4 +1125,4 @@ HRESULT CPeParser::LookupResourceEntry(_In_ PIMAGE_RESOURCE_DIRECTORY lpRootDir,
   return MX_E_NotFound;
 }
 
-}; //namespace MXHelpers
+}; //namespace MX

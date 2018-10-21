@@ -12,9 +12,9 @@
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
-CLightJSonBuilder::CLightJSonBuilder() : MX::CBaseMemObj()
+CLightJSonBuilder::CLightJSonBuilder() : CBaseMemObj()
 {
   bIsFirstItem = TRUE;
   return;
@@ -142,7 +142,7 @@ BOOL CLightJSonBuilder::AddObjectString(_In_z_ LPCSTR szNameA, _In_ LPCWSTR szVa
   MX_ASSERT(aNestedTypes.GetElementAt(aNestedTypes.GetCount() - 1) == _IS_OBJECT);
 
   if (nValueLen == (SIZE_T)-1)
-    nValueLen = MX::StrLenW(szValueW);
+    nValueLen = StrLenW(szValueW);
   MX_ASSERT(szValueW != NULL || nValueLen == 0);
 
   //insert separator
@@ -170,7 +170,7 @@ BOOL CLightJSonBuilder::AddObjectString(_In_z_ LPCSTR szNameA, _In_ LPCWSTR szVa
 
 BOOL CLightJSonBuilder::AddObjectFormattedString(_In_z_ LPCSTR szNameA, _Printf_format_string_ LPCWSTR szFormatW, ...)
 {
-  MX::CStringW cStrTempW;
+  CStringW cStrTempW;
   va_list argptr;
 
   MX_ASSERT(szFormatW != NULL);
@@ -332,7 +332,7 @@ BOOL CLightJSonBuilder::AddArrayString(_In_ LPCWSTR szValueW, _In_opt_ SIZE_T nV
   MX_ASSERT(aNestedTypes.GetElementAt(aNestedTypes.GetCount() - 1) == _IS_OBJECT);
 
   if (nValueLen == (SIZE_T)-1)
-    nValueLen = MX::StrLenW(szValueW);
+    nValueLen = StrLenW(szValueW);
   MX_ASSERT(szValueW != NULL || nValueLen == 0);
 
   //insert separator
@@ -356,7 +356,7 @@ BOOL CLightJSonBuilder::AddArrayString(_In_ LPCWSTR szValueW, _In_opt_ SIZE_T nV
 
 BOOL CLightJSonBuilder::AddArrayFormattedString(_Printf_format_string_ LPCWSTR szFormatW, ...)
 {
-  MX::CStringW cStrTempW;
+  CStringW cStrTempW;
   va_list argptr;
 
   MX_ASSERT(szFormatW != NULL);
@@ -470,7 +470,7 @@ BOOL CLightJSonBuilder::AddArrayObject(_In_ CLightJSonBuilder &cSrc)
   return cStrJsonA.Concat((LPCSTR)cSrc);
 }
 
-BOOL CLightJSonBuilder::EscapeString(_Inout_ MX::CStringA &cStrA, _In_ LPCWSTR szValueW, _In_ SIZE_T nValueLen,
+BOOL CLightJSonBuilder::EscapeString(_Inout_ CStringA &cStrA, _In_ LPCWSTR szValueW, _In_ SIZE_T nValueLen,
                                      _In_opt_ BOOL bAppend)
 {
   LPCWSTR szValueEndW;
@@ -533,13 +533,13 @@ BOOL CLightJSonBuilder::EscapeString(_Inout_ MX::CStringA &cStrA, _In_ LPCWSTR s
           {
             if (szValueW + 1 < szValueEndW)
             {
-              len = MX::Utf8_EncodeChar(szDestA, szValueW[0], szValueW[1]);
+              len = Utf8_EncodeChar(szDestA, szValueW[0], szValueW[1]);
               szValueW++;
             }
           }
           else
           {
-            len = MX::Utf8_EncodeChar(szDestA, *szValueW);
+            len = Utf8_EncodeChar(szDestA, *szValueW);
           }
           if (len > 0)
           {
@@ -559,4 +559,4 @@ BOOL CLightJSonBuilder::AddEscapedString(_In_ LPCWSTR szValueW, _In_ SIZE_T nVal
   return EscapeString(cStrJsonA, szValueW, nValueLen, TRUE);
 }
 
-}; //namespace MXHelpers
+}; //namespace MX

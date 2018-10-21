@@ -11,9 +11,9 @@
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
-CAdsHelper::CAdsHelper() : MX::CBaseMemObj()
+CAdsHelper::CAdsHelper() : CBaseMemObj()
 {
   hResComInit = S_FALSE;
   hCancelEvent = NULL;
@@ -24,11 +24,11 @@ CAdsHelper::CAdsHelper() : MX::CBaseMemObj()
 CAdsHelper::~CAdsHelper()
 {
   if (cStrServerAddressW.IsEmpty() == FALSE)
-    MX::MemSet((LPWSTR)cStrServerAddressW, '*', cStrServerAddressW.GetLength() * 2);
+    MemSet((LPWSTR)cStrServerAddressW, '*', cStrServerAddressW.GetLength() * 2);
   if (cStrUserNameW.IsEmpty() == FALSE)
-    MX::MemSet((LPWSTR)cStrUserNameW, '*', cStrUserNameW.GetLength() * 2);
+    MemSet((LPWSTR)cStrUserNameW, '*', cStrUserNameW.GetLength() * 2);
   if (cStrPasswordW.IsEmpty() == FALSE)
-    MX::MemSet((LPWSTR)cStrPasswordW, '*', cStrPasswordW.GetLength() * 2);
+    MemSet((LPWSTR)cStrPasswordW, '*', cStrPasswordW.GetLength() * 2);
   //----
   if (SUCCEEDED(hResComInit))
     ::CoUninitialize();
@@ -43,7 +43,7 @@ HRESULT CAdsHelper::Initialize(_In_opt_z_ LPCWSTR szServerAddressW, _In_opt_z_ L
 
   if (szServerAddressW != NULL && *szServerAddressW != 0)
   {
-    if (MX::CUrl::IsValidHostAddress(szServerAddressW) == FALSE)
+    if (CUrl::IsValidHostAddress(szServerAddressW) == FALSE)
       return E_INVALIDARG;
     if (cStrServerAddressW.Copy(szServerAddressW) == FALSE)
       return E_OUTOFMEMORY;
@@ -83,9 +83,9 @@ HRESULT CAdsHelper::Initialize(_In_opt_z_ LPCWSTR szServerAddressW, _In_opt_z_ L
 //  _bstr_t            userBstr;
 //  size_t            i;
 //  */
-//  MX::TAutoRefCounted<IADsGroup> cAdsGroup;
-//  MX::CStringW cStrGroupUrlW, cStrUserUrlW;
-//  MX::TArrayListWithFree<LPWSTR> aGroupsList;
+//  TAutoRefCounted<IADsGroup> cAdsGroup;
+//  StringW cStrGroupUrlW, cStrUserUrlW;
+//  TArrayListWithFree<LPWSTR> aGroupsList;
 //  VARIANT_BOOL bIsMember = VARIANT_FALSE;
 //  HRESULT hRes;
 //
@@ -180,13 +180,13 @@ VOID CAdsHelper::SetQueryTimeoutMs(_In_ DWORD dwTimeoutMs)
   return;
 }
 
-HRESULT CAdsHelper::GetAllUsers(_Inout_ MX::TArrayListWithFree<LPWSTR> &aUsersList)
+HRESULT CAdsHelper::GetAllUsers(_Inout_ TArrayListWithFree<LPWSTR> &aUsersList)
 {
   static const LPCWSTR szSearchFilterW = L"(samAccountType=805306368)";
   static const LPCWSTR szAttribW[] = { L"distinguishedName", L"sAMAccountName", L"objectSid" };
-  MX::TAutoRefCounted<IDirectorySearch> cDirSearch;
+  TAutoRefCounted<IDirectorySearch> cDirSearch;
   ADS_SEARCH_HANDLE hSearch = INVALID_HANDLE_VALUE;
-  MX::CStringW cStrTempW, cStrDomainW;
+  CStringW cStrTempW, cStrDomainW;
   ADS_SEARCH_COLUMN sColumns[3];
   CSid cSid;
   DWORD dw, dwCurrTickMs, dwTimeoutMs;
@@ -269,7 +269,7 @@ HRESULT CAdsHelper::GetAllUsers(_Inout_ MX::TArrayListWithFree<LPWSTR> &aUsersLi
               //name
               if (SUCCEEDED(hRes))
               {
-                nLen = MX::StrLenW(sColumns[1].pADsValues[0].DNString);
+                nLen = StrLenW(sColumns[1].pADsValues[0].DNString);
                 if (nLen > 0 && sColumns[1].pADsValues[0].DNString[nLen-1] == L'$')
                   nLen--;
 
@@ -324,13 +324,13 @@ HRESULT CAdsHelper::GetAllUsers(_Inout_ MX::TArrayListWithFree<LPWSTR> &aUsersLi
   return hRes;
 }
 
-HRESULT CAdsHelper::GetAllGroups(_Inout_ MX::TArrayListWithFree<LPWSTR> &aGroupsList)
+HRESULT CAdsHelper::GetAllGroups(_Inout_ TArrayListWithFree<LPWSTR> &aGroupsList)
 {
   static const LPCWSTR szSearchFilterW = L"(objectClass=group)";
   static const LPCWSTR szAttribW[] = { L"distinguishedName", L"sAMAccountName", L"objectSid" };
-  MX::TAutoRefCounted<IDirectorySearch> cDirSearch;
+  TAutoRefCounted<IDirectorySearch> cDirSearch;
   ADS_SEARCH_HANDLE hSearch = INVALID_HANDLE_VALUE;
-  MX::CStringW cStrTempW, cStrDomainW;
+  CStringW cStrTempW, cStrDomainW;
   ADS_SEARCH_COLUMN sColumns[3];
   CSid cSid;
   DWORD dw, dwCurrTickMs, dwTimeoutMs;
@@ -413,7 +413,7 @@ HRESULT CAdsHelper::GetAllGroups(_Inout_ MX::TArrayListWithFree<LPWSTR> &aGroups
               //name
               if (SUCCEEDED(hRes))
               {
-                nLen = MX::StrLenW(sColumns[1].pADsValues[0].DNString);
+                nLen = StrLenW(sColumns[1].pADsValues[0].DNString);
                 if (nLen > 0 && sColumns[1].pADsValues[0].DNString[nLen-1] == L'$')
                   nLen--;
 
@@ -468,13 +468,13 @@ HRESULT CAdsHelper::GetAllGroups(_Inout_ MX::TArrayListWithFree<LPWSTR> &aGroups
   return hRes;
 }
 
-HRESULT CAdsHelper::GetAllComputers(_Inout_ MX::TArrayListWithFree<LPWSTR> &aComputersList)
+HRESULT CAdsHelper::GetAllComputers(_Inout_ TArrayListWithFree<LPWSTR> &aComputersList)
 {
   static const LPCWSTR szSearchFilterW = L"(objectClass=computer)";
   static const LPCWSTR szAttribW[] = { L"distinguishedName", L"sAMAccountName", L"objectSid" };
-  MX::TAutoRefCounted<IDirectorySearch> cDirSearch;
+  TAutoRefCounted<IDirectorySearch> cDirSearch;
   ADS_SEARCH_HANDLE hSearch = INVALID_HANDLE_VALUE;
-  MX::CStringW cStrTempW, cStrDomainW;
+  CStringW cStrTempW, cStrDomainW;
   ADS_SEARCH_COLUMN sColumns[3];
   CSid cSid;
   DWORD dw, dwCurrTickMs, dwTimeoutMs;
@@ -550,7 +550,7 @@ HRESULT CAdsHelper::GetAllComputers(_Inout_ MX::TArrayListWithFree<LPWSTR> &aCom
               //name
               if (SUCCEEDED(hRes))
               {
-                nLen = MX::StrLenW(sColumns[1].pADsValues[0].DNString);
+                nLen = StrLenW(sColumns[1].pADsValues[0].DNString);
                 if (nLen > 0 && sColumns[1].pADsValues[0].DNString[nLen-1] == L'$')
                   nLen--;
 
@@ -605,16 +605,16 @@ HRESULT CAdsHelper::GetAllComputers(_Inout_ MX::TArrayListWithFree<LPWSTR> &aCom
   return hRes;
 }
 
-HRESULT CAdsHelper::GetComputerSids(_Out_ CSid **lplpComputerSid, _Inout_ MX::TArrayListWithDelete<CSid*> &aGroupSids)
+HRESULT CAdsHelper::GetComputerSids(_Out_ CSid **lplpComputerSid, _Inout_ TArrayListWithDelete<CSid*> &aGroupSids)
 {
   static const LPCWSTR szAttributeW[] = { L"tokenGroups", L"objectSid" };
-  CWinRegistry cWinReg;
-  MX::TAutoDeletePtr<CSid> cComputerSid;
-  MX::TAutoRefCounted<IADs> cAdsComputer;
-  MX::CStringW cStrTempW;
+  CWindowsRegistry cWinReg;
+  TAutoDeletePtr<CSid> cComputerSid;
+  TAutoRefCounted<IADs> cAdsComputer;
+  CStringW cStrTempW;
   VARIANT vt;
   PSID lpInnerSid;
-  MX::TAutoDeletePtr<CSid> cSid;
+  TAutoDeletePtr<CSid> cSid;
   //DWORD dw, dwCurrTickMs, dwTimeoutMs;
   HRESULT hRes;
 
@@ -767,14 +767,14 @@ HRESULT CAdsHelper::GetComputerSids(_Out_ CSid **lplpComputerSid, _Inout_ MX::TA
 }
 
 HRESULT CAdsHelper::EnumerateContainerFolders(_In_z_ LPCWSTR szParentW,
-                                              _Inout_ MX::TArrayListWithFree<LPWSTR> &aChildrenList)
+                                              _Inout_ TArrayListWithFree<LPWSTR> &aChildrenList)
 {
   static const LPCWSTR szSearchFilterW = L"(|(objectCategory=organizationalUnit)(objectCategory=container)"
                                          L"(objectCategory=group))";
   static const LPCWSTR szAttribW[] = { L"distinguishedName", L"cn", L"ou" };
-  MX::TAutoRefCounted<IDirectorySearch> cDirSearch;
+  TAutoRefCounted<IDirectorySearch> cDirSearch;
   ADS_SEARCH_HANDLE hSearch = INVALID_HANDLE_VALUE;
-  MX::CStringW cStrTempW;
+  CStringW cStrTempW;
   ADS_SEARCH_COLUMN sColumns[2];
   CSid cSid;
   DWORD dw, dwCurrTickMs, dwTimeoutMs;
@@ -865,7 +865,7 @@ HRESULT CAdsHelper::EnumerateContainerFolders(_In_z_ LPCWSTR szParentW,
             //common name
             if (SUCCEEDED(hRes))
             {
-              nLen = MX::StrLenW(sColumns[1].pADsValues[0].DNString);
+              nLen = StrLenW(sColumns[1].pADsValues[0].DNString);
               if (nLen > 0 && sColumns[1].pADsValues[0].DNString[nLen-1] == L'$')
                 nLen--;
 
@@ -903,14 +903,14 @@ HRESULT CAdsHelper::EnumerateContainerFolders(_In_z_ LPCWSTR szParentW,
   return hRes;
 }
 
-HRESULT CAdsHelper::GetContainerMembers(_In_z_ LPCWSTR szParentW, _Inout_ MX::TArrayListWithFree<LPWSTR> &aMembersList)
+HRESULT CAdsHelper::GetContainerMembers(_In_z_ LPCWSTR szParentW, _Inout_ TArrayListWithFree<LPWSTR> &aMembersList)
 {
   static const LPCWSTR szTypeW[] = { L"user", L"group", L"computer" };
   static const LPCWSTR szAttribW[] = { L"distinguishedName", L"objectSid", L"objectClass" };
-  MX::TArrayListWithFree<LPWSTR> aGroupsList;
-  MX::TAutoRefCounted<IDirectorySearch> cDirSearch;
+  TArrayListWithFree<LPWSTR> aGroupsList;
+  TAutoRefCounted<IDirectorySearch> cDirSearch;
   ADS_SEARCH_HANDLE hSearch = INVALID_HANDLE_VALUE;
-  MX::CStringW cStrTempW, cStrRootRseW, cStrSidW;
+  CStringW cStrTempW, cStrRootRseW, cStrSidW;
   ADS_SEARCHPREF_INFO sSearchPrefs[2];
   ADS_SEARCH_COLUMN sColumns[3];
   CSid cSid;
@@ -937,7 +937,7 @@ HRESULT CAdsHelper::GetContainerMembers(_In_z_ LPCWSTR szParentW, _Inout_ MX::TA
       return E_OUTOFMEMORY;
   }
 
-  if (MX::StrNCompareW((LPCWSTR)cStrTempW, L"CN=", 3) == 0)
+  if (StrNCompareW((LPCWSTR)cStrTempW, L"CN=", 3) == 0)
   {
     if (aGroupsList.AddElement((LPWSTR)cStrTempW) == FALSE)
       return E_OUTOFMEMORY;
@@ -1101,17 +1101,17 @@ HRESULT CAdsHelper::GetContainerMembers(_In_z_ LPCWSTR szParentW, _Inout_ MX::TA
 
                   if (lpValue->DNString != NULL)
                   {
-                    if (MX::StrCompareW(lpValue->DNString, L"computer", FALSE) == 0)
+                    if (StrCompareW(lpValue->DNString, L"computer", FALSE) == 0)
                     {
                       dwType = 3;
                       break;
                     }
-                    if (MX::StrCompareW(lpValue->DNString, L"group", FALSE) == 0)
+                    if (StrCompareW(lpValue->DNString, L"group", FALSE) == 0)
                     {
                       dwType = 2;
                       break;
                     }
-                    if (MX::StrCompareW(lpValue->DNString, L"user", FALSE) == 0)
+                    if (StrCompareW(lpValue->DNString, L"user", FALSE) == 0)
                       dwType = 1;
                   }
                 }
@@ -1172,8 +1172,8 @@ HRESULT CAdsHelper::GetContainerMembers(_In_z_ LPCWSTR szParentW, _Inout_ MX::TA
 
 HRESULT CAdsHelper::GetSidFromADsPath(_In_z_ LPCWSTR szADsPathW, _Inout_ CSid &cSid)
 {
-  MX::TAutoRefCounted<IADs> cAdsUser;
-  MX::CStringW cStrADsPathUrlW;
+  TAutoRefCounted<IADs> cAdsUser;
+  CStringW cStrADsPathUrlW;
   VARIANT vt;
   BSTR bstr;
   HRESULT hRes;
@@ -1208,7 +1208,7 @@ HRESULT CAdsHelper::GetSidFromADsPath(_In_z_ LPCWSTR szADsPathW, _Inout_ CSid &c
   return hRes;
 }
 
-HRESULT CAdsHelper::GetDomainFromUrl(_In_z_ LPCWSTR szUrlW, _Inout_ MX::CStringW &cStrDomainW)
+HRESULT CAdsHelper::GetDomainFromUrl(_In_z_ LPCWSTR szUrlW, _Inout_ CStringW &cStrDomainW)
 {
   LPCWSTR sW;
 
@@ -1217,7 +1217,7 @@ HRESULT CAdsHelper::GetDomainFromUrl(_In_z_ LPCWSTR szUrlW, _Inout_ MX::CStringW
     return E_POINTER;
   if (*szUrlW == 0)
     return E_INVALIDARG;
-  sW = MX::StrFindW(szUrlW, L"://");
+  sW = StrFindW(szUrlW, L"://");
   if (sW == NULL)
   {
     sW = szUrlW;
@@ -1229,9 +1229,9 @@ HRESULT CAdsHelper::GetDomainFromUrl(_In_z_ LPCWSTR szUrlW, _Inout_ MX::CStringW
   return GetDomainFromDn(sW, cStrDomainW);
 }
 
-HRESULT CAdsHelper::GetDomainFromDn(_In_z_ LPCWSTR szDistinguishedNameW, _Inout_ MX::CStringW &cStrDomainW)
+HRESULT CAdsHelper::GetDomainFromDn(_In_z_ LPCWSTR szDistinguishedNameW, _Inout_ CStringW &cStrDomainW)
 {
-  MX::TAutoRefCounted<IADsPathname> cADsPathname;
+  TAutoRefCounted<IADsPathname> cADsPathname;
   BSTR bstrTemp;
   long i, nNumPathElements;
   HRESULT hRes;
@@ -1260,7 +1260,7 @@ HRESULT CAdsHelper::GetDomainFromDn(_In_z_ LPCWSTR szDistinguishedNameW, _Inout_
         hRes = cADsPathname->GetElement(i, &bstrTemp);
         if (SUCCEEDED(hRes))
         {
-          if (MX::StrNCompareW(bstrTemp, L"DC=", 3) == 0)
+          if (StrNCompareW(bstrTemp, L"DC=", 3) == 0)
           {
             if (cStrDomainW.IsEmpty() == FALSE)
             {
@@ -1283,9 +1283,9 @@ HRESULT CAdsHelper::GetDomainFromDn(_In_z_ LPCWSTR szDistinguishedNameW, _Inout_
   return hRes;
 }
 
-HRESULT CAdsHelper::GetRootADSPath(_Inout_ MX::CStringW &cStrRootPathW)
+HRESULT CAdsHelper::GetRootADSPath(_Inout_ CStringW &cStrRootPathW)
 {
-  MX::TAutoRefCounted<IADs> cRootDSE;
+  TAutoRefCounted<IADs> cRootDSE;
   BSTR bstrTemp;
   VARIANT vt;
   HRESULT hRes;
@@ -1323,14 +1323,14 @@ HRESULT CAdsHelper::GetRootADSPath(_Inout_ MX::CStringW &cStrRootPathW)
   return hRes;
 }
 
-HRESULT CAdsHelper::GetUrlFromDn(_In_ LPCWSTR szDnW, _Inout_ MX::CStringW &cStrW)
+HRESULT CAdsHelper::GetUrlFromDn(_In_ LPCWSTR szDnW, _Inout_ CStringW &cStrW)
 {
   cStrW.Empty();
   if (szDnW == NULL)
     return E_POINTER;
   if (*szDnW == 0)
     return E_INVALIDARG;
-  if (MX::StrNCompareW(szDnW, L"LDAP://", 7, TRUE) != 0)
+  if (StrNCompareW(szDnW, L"LDAP://", 7, TRUE) != 0)
   {
     if (cStrW.Copy(L"LDAP://") == FALSE)
       return E_OUTOFMEMORY;
@@ -1340,11 +1340,11 @@ HRESULT CAdsHelper::GetUrlFromDn(_In_ LPCWSTR szDnW, _Inout_ MX::CStringW &cStrW
   return S_OK;
 }
 
-HRESULT CAdsHelper::GetUrlFromDn(_Inout_ MX::CStringW &cStrW)
+HRESULT CAdsHelper::GetUrlFromDn(_Inout_ CStringW &cStrW)
 {
   if (cStrW.IsEmpty() != FALSE)
     return E_INVALIDARG;
-  if (MX::StrNCompareW((LPCWSTR)cStrW, L"LDAP://", 7, TRUE) != 0)
+  if (StrNCompareW((LPCWSTR)cStrW, L"LDAP://", 7, TRUE) != 0)
   {
     if (cStrW.InsertN(L"LDAP://", 0, 7) == FALSE)
       return E_OUTOFMEMORY;
@@ -1358,11 +1358,11 @@ LPCWSTR CAdsHelper::GetDnFromUrl(_In_ LPCWSTR szUrlW)
 
   if (szUrlW == NULL)
     return NULL;
-  sW = MX::StrChrW(szUrlW, L'/', TRUE);
+  sW = StrChrW(szUrlW, L'/', TRUE);
   return (sW == NULL) ? szUrlW : (sW + 1);
 }
 
-BOOL CAdsHelper::EscapeSlashes(_Inout_ MX::CStringW &cStrW)
+BOOL CAdsHelper::EscapeSlashes(_Inout_ CStringW &cStrW)
 {
   LPCWSTR sW;
   SIZE_T nOfs;
@@ -1370,7 +1370,7 @@ BOOL CAdsHelper::EscapeSlashes(_Inout_ MX::CStringW &cStrW)
   nOfs = 0;
   for (;;)
   {
-    sW = MX::StrChrW((LPCWSTR)cStrW + nOfs, L'/');
+    sW = StrChrW((LPCWSTR)cStrW + nOfs, L'/');
     if (sW == NULL)
       break;
 
@@ -1384,10 +1384,10 @@ BOOL CAdsHelper::EscapeSlashes(_Inout_ MX::CStringW &cStrW)
 
 HRESULT CAdsHelper::AdsOpen(_In_z_ LPCWSTR szPathNameW, _In_ REFIID riid, __deref_out LPVOID *ppObject)
 {
-  MX::CStringW cStrTempPathW;
+  CStringW cStrTempPathW;
 
   MX_ASSERT(szPathNameW != NULL);
-  if (MX::StrNCompareW(szPathNameW, L"LDAP://", 7) != 0)
+  if (StrNCompareW(szPathNameW, L"LDAP://", 7) != 0)
     return E_INVALIDARG;
   if (cStrServerAddressW.IsEmpty() == FALSE)
   {
@@ -1414,4 +1414,4 @@ BOOL CAdsHelper::IsCancelled()
   return FALSE;
 }
 
-}; //namespace MXHelpers
+}; //namespace MX

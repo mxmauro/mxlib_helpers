@@ -1,8 +1,8 @@
 /*
-* Copyright (C) 2014-2015 Mauro H. Leggieri, Buenos Aires, Argentina.
-* All rights reserved.
-*
-**/
+ * Copyright (C) 2014-2015 Mauro H. Leggieri, Buenos Aires, Argentina.
+ * All rights reserved.
+ *
+ **/
 
 #include "WinRegistry.h"
 #include "Process.h"
@@ -23,21 +23,21 @@ static HRESULT RecursiveDeleteKey(_In_ HKEY hKey, _In_opt_ PMX_UNICODE_STRING Su
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
-CWinRegistry::CWinRegistry() : MX::CBaseMemObj()
+CWindowsRegistry::CWindowsRegistry() : CBaseMemObj()
 {
   hKey = NULL;
   return;
 }
 
-CWinRegistry::~CWinRegistry()
+CWindowsRegistry::~CWindowsRegistry()
 {
   Close();
   return;
 }
 
-HRESULT CWinRegistry::Create(_In_ HKEY hParentKey, _In_z_ LPCWSTR szSubKeyW)
+HRESULT CWindowsRegistry::Create(_In_ HKEY hParentKey, _In_z_ LPCWSTR szSubKeyW)
 {
   Close();
   if (szSubKeyW == NULL)
@@ -64,7 +64,7 @@ HRESULT CWinRegistry::Create(_In_ HKEY hParentKey, _In_z_ LPCWSTR szSubKeyW)
   return S_OK;
 }
 
-HRESULT CWinRegistry::Create(_In_ HKEY hParentKey, _In_ PUNICODE_STRING SubKey)
+HRESULT CWindowsRegistry::Create(_In_ HKEY hParentKey, _In_ PUNICODE_STRING SubKey)
 {
   MX_OBJECT_ATTRIBUTES sObjAttr;
   NTSTATUS nNtStatus;
@@ -103,7 +103,7 @@ HRESULT CWinRegistry::Create(_In_ HKEY hParentKey, _In_ PUNICODE_STRING SubKey)
   return S_OK;
 }
 
-HRESULT CWinRegistry::Open(_In_ HKEY hParentKey, _In_opt_z_ LPCWSTR szSubKeyW, _In_opt_ BOOL bWriteAccess)
+HRESULT CWindowsRegistry::Open(_In_ HKEY hParentKey, _In_opt_z_ LPCWSTR szSubKeyW, _In_opt_ BOOL bWriteAccess)
 {
   Close();
   if (szSubKeyW == NULL)
@@ -131,7 +131,7 @@ HRESULT CWinRegistry::Open(_In_ HKEY hParentKey, _In_opt_z_ LPCWSTR szSubKeyW, _
   return S_OK;
 }
 
-HRESULT CWinRegistry::Open(_In_ HKEY hParentKey, _In_ PUNICODE_STRING SubKey, _In_opt_ BOOL bWriteAccess)
+HRESULT CWindowsRegistry::Open(_In_ HKEY hParentKey, _In_ PUNICODE_STRING SubKey, _In_opt_ BOOL bWriteAccess)
 {
   MX_OBJECT_ATTRIBUTES sObjAttr;
   NTSTATUS nNtStatus;
@@ -167,7 +167,7 @@ HRESULT CWinRegistry::Open(_In_ HKEY hParentKey, _In_ PUNICODE_STRING SubKey, _I
   return S_OK;
 }
 
-VOID CWinRegistry::Close()
+VOID CWindowsRegistry::Close()
 {
   if (hKey != NULL)
   {
@@ -177,7 +177,7 @@ VOID CWinRegistry::Close()
   return;
 }
 
-HRESULT CWinRegistry::ReadDWord(_In_z_ LPCWSTR szNameW, _Out_ DWORD &dwValue)
+HRESULT CWindowsRegistry::ReadDWord(_In_z_ LPCWSTR szNameW, _Out_ DWORD &dwValue)
 {
   DWORD dwType, dwDataSize, dwOsErr;
 
@@ -202,7 +202,7 @@ HRESULT CWinRegistry::ReadDWord(_In_z_ LPCWSTR szNameW, _Out_ DWORD &dwValue)
   return S_OK;
 }
 
-HRESULT CWinRegistry::ReadDWord(_In_ PUNICODE_STRING Name, _Out_ DWORD &dwValue)
+HRESULT CWindowsRegistry::ReadDWord(_In_ PUNICODE_STRING Name, _Out_ DWORD &dwValue)
 {
   struct {
     MX_KEY_VALUE_PARTIAL_INFORMATION Info;
@@ -237,7 +237,7 @@ HRESULT CWinRegistry::ReadDWord(_In_ PUNICODE_STRING Name, _Out_ DWORD &dwValue)
   return S_OK;
 }
 
-HRESULT CWinRegistry::ReadString(_In_z_ LPCWSTR szNameW, _Out_ MX::CStringW &cStrValueW, _In_opt_ BOOL bAutoExpandRegSz)
+HRESULT CWindowsRegistry::ReadString(_In_z_ LPCWSTR szNameW, _Out_ MX::CStringW &cStrValueW, _In_opt_ BOOL bAutoExpandRegSz)
 {
   DWORD dwType, dwDataSize, dwOsErr;
 
@@ -272,7 +272,7 @@ HRESULT CWinRegistry::ReadString(_In_z_ LPCWSTR szNameW, _Out_ MX::CStringW &cSt
   {
     HRESULT hRes;
 
-    hRes = _ExpandEnvironmentStrings(cStrValueW);
+    hRes = Process::_ExpandEnvironmentStrings(cStrValueW);
     if (FAILED(hRes) && hRes != MX_E_BufferOverflow)
     {
       cStrValueW.Empty();
@@ -283,7 +283,7 @@ HRESULT CWinRegistry::ReadString(_In_z_ LPCWSTR szNameW, _Out_ MX::CStringW &cSt
   return S_OK;
 }
 
-HRESULT CWinRegistry::ReadString(_In_ PUNICODE_STRING Name, _Out_ PUNICODE_STRING *pValue,
+HRESULT CWindowsRegistry::ReadString(_In_ PUNICODE_STRING Name, _Out_ PUNICODE_STRING *pValue,
                                  _In_opt_ BOOL bAutoExpandRegSz)
 {
   MX::TAutoFreePtr<MX_KEY_VALUE_PARTIAL_INFORMATION> aBuffer;
@@ -360,7 +360,7 @@ HRESULT CWinRegistry::ReadString(_In_ PUNICODE_STRING Name, _Out_ PUNICODE_STRIN
       {
         if (cStrTempW.CopyN(sW + StartIdx / 2, (SIZE_T)(Idx - StartIdx) / 2) == FALSE)
           return E_OUTOFMEMORY;
-        hRes = _ExpandEnvironmentStrings(cStrTempW);
+        hRes = Process::_ExpandEnvironmentStrings(cStrTempW);
         if (FAILED(hRes) && hRes != MX_E_BufferOverflow)
           return hRes;
 
@@ -411,7 +411,7 @@ HRESULT CWinRegistry::ReadString(_In_ PUNICODE_STRING Name, _Out_ PUNICODE_STRIN
   return S_OK;
 }
 
-HRESULT CWinRegistry::ReadPassword(_In_z_ LPCWSTR szNameW, _Out_ MX::CStringW &cStrPasswordW)
+HRESULT CWindowsRegistry::ReadPassword(_In_z_ LPCWSTR szNameW, _Out_ MX::CStringW &cStrPasswordW)
 {
   MX::TAutoFreePtr<BYTE> cBlob;
   SIZE_T nBlobSize;
@@ -457,7 +457,7 @@ HRESULT CWinRegistry::ReadPassword(_In_z_ LPCWSTR szNameW, _Out_ MX::CStringW &c
   return hRes;
 }
 
-HRESULT CWinRegistry::ReadMultiString(_In_z_ LPCWSTR szNameW, _Out_ MX::TArrayListWithFree<LPWSTR> &aStrValuesList)
+HRESULT CWindowsRegistry::ReadMultiString(_In_z_ LPCWSTR szNameW, _Out_ MX::TArrayListWithFree<LPWSTR> &aStrValuesList)
 {
   MX::TAutoFreePtr<WCHAR> cBuf;
   LPWSTR sW, szStartW;
@@ -513,7 +513,7 @@ HRESULT CWinRegistry::ReadMultiString(_In_z_ LPCWSTR szNameW, _Out_ MX::TArrayLi
   return S_OK;
 }
 
-HRESULT CWinRegistry::ReadMultiString(_In_ PUNICODE_STRING Name,
+HRESULT CWindowsRegistry::ReadMultiString(_In_ PUNICODE_STRING Name,
                                       _Out_ MX::TArrayListWithFree<PUNICODE_STRING> &aStrValuesList)
 {
   MX::TAutoFreePtr<MX_KEY_VALUE_PARTIAL_INFORMATION> aBuffer;
@@ -601,7 +601,7 @@ HRESULT CWinRegistry::ReadMultiString(_In_ PUNICODE_STRING Name,
   return S_OK;
 }
 
-HRESULT CWinRegistry::ReadBlob(_In_z_ LPCWSTR szNameW, _Out_ MX::TAutoFreePtr<BYTE> &cBlob, _Out_ SIZE_T &nBlobSize)
+HRESULT CWindowsRegistry::ReadBlob(_In_z_ LPCWSTR szNameW, _Out_ MX::TAutoFreePtr<BYTE> &cBlob, _Out_ SIZE_T &nBlobSize)
 {
   DWORD dwOsErr, dwDataSize, dwType;
 
@@ -636,7 +636,7 @@ HRESULT CWinRegistry::ReadBlob(_In_z_ LPCWSTR szNameW, _Out_ MX::TAutoFreePtr<BY
   return S_OK;
 }
 
-HRESULT CWinRegistry::ReadBlob(_In_ PUNICODE_STRING Name, _Out_ MX::TAutoFreePtr<BYTE> &cBlob, _Out_ SIZE_T &nBlobSize)
+HRESULT CWindowsRegistry::ReadBlob(_In_ PUNICODE_STRING Name, _Out_ MX::TAutoFreePtr<BYTE> &cBlob, _Out_ SIZE_T &nBlobSize)
 {
   MX::TAutoFreePtr<MX_KEY_VALUE_PARTIAL_INFORMATION> aBuffer;
   struct {
@@ -687,7 +687,7 @@ HRESULT CWinRegistry::ReadBlob(_In_ PUNICODE_STRING Name, _Out_ MX::TAutoFreePtr
   return S_OK;
 }
 
-HRESULT CWinRegistry::WriteDWord(_In_z_ LPCWSTR szNameW, _In_ DWORD dwValue)
+HRESULT CWindowsRegistry::WriteDWord(_In_z_ LPCWSTR szNameW, _In_ DWORD dwValue)
 {
   DWORD dwOsErr;
 
@@ -700,7 +700,7 @@ HRESULT CWinRegistry::WriteDWord(_In_z_ LPCWSTR szNameW, _In_ DWORD dwValue)
   return S_OK;
 }
 
-HRESULT CWinRegistry::WriteString(_In_z_ LPCWSTR szNameW, _In_z_ LPCWSTR szValueW)
+HRESULT CWindowsRegistry::WriteString(_In_z_ LPCWSTR szNameW, _In_z_ LPCWSTR szValueW)
 {
   DWORD dwOsErr;
   SIZE_T nLen;
@@ -719,7 +719,7 @@ HRESULT CWinRegistry::WriteString(_In_z_ LPCWSTR szNameW, _In_z_ LPCWSTR szValue
   return S_OK;
 }
 
-HRESULT CWinRegistry::WriteMultiString(_In_z_ LPCWSTR szNameW, _In_ SIZE_T nValuesCount, _In_ LPCWSTR *lpszValuesW)
+HRESULT CWindowsRegistry::WriteMultiString(_In_z_ LPCWSTR szNameW, _In_ SIZE_T nValuesCount, _In_ LPCWSTR *lpszValuesW)
 {
   MX::TAutoFreePtr<BYTE> cBuf;
   DWORD dwOsErr;
@@ -757,7 +757,7 @@ HRESULT CWinRegistry::WriteMultiString(_In_z_ LPCWSTR szNameW, _In_ SIZE_T nValu
   return S_OK;
 }
 
-HRESULT CWinRegistry::WriteBlob(_In_z_ LPCWSTR szNameW, _In_ LPCVOID lpValue, _In_ SIZE_T nValueLen)
+HRESULT CWindowsRegistry::WriteBlob(_In_z_ LPCWSTR szNameW, _In_ LPCVOID lpValue, _In_ SIZE_T nValueLen)
 {
   DWORD dwOsErr;
 
@@ -775,7 +775,7 @@ HRESULT CWinRegistry::WriteBlob(_In_z_ LPCWSTR szNameW, _In_ LPCVOID lpValue, _I
   return S_OK;
 }
 
-HRESULT CWinRegistry::WritePassword(_In_z_ LPCWSTR szNameW, _In_z_ LPCWSTR szPasswordW)
+HRESULT CWindowsRegistry::WritePassword(_In_z_ LPCWSTR szNameW, _In_z_ LPCWSTR szPasswordW)
 {
   DATA_BLOB sInput, sOutput;
   HRESULT hRes;
@@ -799,7 +799,7 @@ HRESULT CWinRegistry::WritePassword(_In_z_ LPCWSTR szNameW, _In_z_ LPCWSTR szPas
   return hRes;
 }
 
-HRESULT CWinRegistry::DeleteKey(_In_z_ LPCWSTR szNameW)
+HRESULT CWindowsRegistry::DeleteKey(_In_z_ LPCWSTR szNameW)
 {
   MX_UNICODE_STRING usTemp;
   SIZE_T nLen;
@@ -816,7 +816,7 @@ HRESULT CWinRegistry::DeleteKey(_In_z_ LPCWSTR szNameW)
   return RecursiveDeleteKey(hKey, &usTemp);
 }
 
-HRESULT CWinRegistry::DeleteKey(_In_ PUNICODE_STRING Name)
+HRESULT CWindowsRegistry::DeleteKey(_In_ PUNICODE_STRING Name)
 {
   if (Name == NULL || Name->Buffer == NULL)
     return E_POINTER;
@@ -825,7 +825,7 @@ HRESULT CWinRegistry::DeleteKey(_In_ PUNICODE_STRING Name)
   return RecursiveDeleteKey(hKey, (PMX_UNICODE_STRING)Name);
 }
 
-HRESULT CWinRegistry::DeleteValue(_In_opt_z_ LPCWSTR szNameW)
+HRESULT CWindowsRegistry::DeleteValue(_In_opt_z_ LPCWSTR szNameW)
 {
   DWORD dwOsErr;
 
@@ -838,7 +838,7 @@ HRESULT CWinRegistry::DeleteValue(_In_opt_z_ LPCWSTR szNameW)
   return S_OK;
 }
 
-HRESULT CWinRegistry::DeleteValue(_In_opt_ PUNICODE_STRING Name)
+HRESULT CWindowsRegistry::DeleteValue(_In_opt_ PUNICODE_STRING Name)
 {
   NTSTATUS nNtStatus;
 
@@ -856,7 +856,7 @@ HRESULT CWinRegistry::DeleteValue(_In_opt_ PUNICODE_STRING Name)
   return S_OK;
 }
 
-HRESULT CWinRegistry::EnumerateKeys(_In_ DWORD dwIndex, _Inout_ MX::CStringW &cStrKeyNameW)
+HRESULT CWindowsRegistry::EnumerateKeys(_In_ DWORD dwIndex, _Inout_ MX::CStringW &cStrKeyNameW)
 {
   DWORD dwOsErr, dw, dwBufSize;
 
@@ -889,7 +889,7 @@ HRESULT CWinRegistry::EnumerateKeys(_In_ DWORD dwIndex, _Inout_ MX::CStringW &cS
   return E_OUTOFMEMORY;
 }
 
-HRESULT CWinRegistry::EnumerateKeys(_In_ DWORD dwIndex, _Out_ PUNICODE_STRING *pKeyName)
+HRESULT CWindowsRegistry::EnumerateKeys(_In_ DWORD dwIndex, _Out_ PUNICODE_STRING *pKeyName)
 {
   MX::TAutoFreePtr<MX_KEY_BASIC_INFORMATION> aBuffer;
   ULONG Size, RetLength;
@@ -933,7 +933,7 @@ HRESULT CWinRegistry::EnumerateKeys(_In_ DWORD dwIndex, _Out_ PUNICODE_STRING *p
   return S_OK;
 }
 
-HRESULT CWinRegistry::EnumerateValues(_In_ DWORD dwIndex, _Inout_ MX::CStringW &cStrValueNameW)
+HRESULT CWindowsRegistry::EnumerateValues(_In_ DWORD dwIndex, _Inout_ MX::CStringW &cStrValueNameW)
 {
   DWORD dwOsErr, dw, dwBufSize;
 
@@ -966,7 +966,7 @@ HRESULT CWinRegistry::EnumerateValues(_In_ DWORD dwIndex, _Inout_ MX::CStringW &
   return E_OUTOFMEMORY;
 }
 
-HRESULT CWinRegistry::EnumerateValues(_In_ DWORD dwIndex, _Out_ PUNICODE_STRING *pValueName)
+HRESULT CWindowsRegistry::EnumerateValues(_In_ DWORD dwIndex, _Out_ PUNICODE_STRING *pValueName)
 {
   MX::TAutoFreePtr<MX_KEY_VALUE_FULL_INFORMATION> aBuffer;
   ULONG Size, RetLength;
@@ -1012,7 +1012,7 @@ HRESULT CWinRegistry::EnumerateValues(_In_ DWORD dwIndex, _Out_ PUNICODE_STRING 
   return S_OK;
 }
 
-}; //namespace MXHelpers
+}; //namespace MX
 
 //-----------------------------------------------------------
 

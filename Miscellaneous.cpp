@@ -9,7 +9,9 @@
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
+
+namespace Misc {
 
 //NOTE: Based on JODD's source code. BSD-License
 //      Copyright (c) 2003-2018, Jodd Team All rights reserved.
@@ -18,9 +20,9 @@ BOOL WildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR szPa
   LPCWSTR szPatternEndW, szTextEndW;
 
   if (nTextLen == (SIZE_T)-1)
-    nTextLen = MX::StrLenW(szTextW);
+    nTextLen = StrLenW(szTextW);
   if (nPatternLen == (SIZE_T)-1)
-    nPatternLen = MX::StrLenW(szPatternW);
+    nPatternLen = StrLenW(szPatternW);
   if (nPatternLen == 1 && *szPatternW == L'*')
     return TRUE; // speed-up
 
@@ -30,8 +32,9 @@ BOOL WildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR szPa
   for (;;)
   {
     //check if end of string and/or pattern occurred
-    if (szTextW >= szTextEndW) {
-      //end of string still may have pending '*' in pattern
+    if (szTextW >= szTextEndW)
+    {
+//end of string still may have pending '*' in pattern
       while (szPatternW < szPatternEndW && *szPatternW == L'*')
         szPatternW++;
       return (szPatternW >= szPatternEndW) ? TRUE : FALSE;
@@ -64,7 +67,7 @@ BOOL WildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR szPa
     }
 
     //check if pattern char and string char are equals
-    if (MX::CharToUpperW(*szTextW) != MX::CharToUpperW(*szPatternW))
+    if (CharToUpperW(*szTextW) != CharToUpperW(*szPatternW))
       break;
 
     //everything matches for now, continue
@@ -78,16 +81,16 @@ BOOL String2Guid(_Out_ GUID &sGuid, _In_z_ LPCSTR szGuidA)
 {
   DWORD i, dwVal;
 
-  MX::MemSet(&sGuid, 0, sizeof(sGuid));
+  MemSet(&sGuid, 0, sizeof(sGuid));
   if (szGuidA == NULL)
   {
 err_badformat:
-    MX::MemSet(&sGuid, 0, sizeof(sGuid));
+    MemSet(&sGuid, 0, sizeof(sGuid));
     return FALSE;
   }
   if (*szGuidA == '{')
     szGuidA++;
-  for (i=0; i<36; i++,szGuidA++)
+  for (i = 0; i < 36; i++, szGuidA++)
   {
     switch (i)
     {
@@ -138,7 +141,7 @@ set_value:
         else if (i < 23)
           sGuid.Data4[1] |= (BYTE)dwVal << ((22 - i) << 2);
         else
-          sGuid.Data4[2 + ((i - 24) >> 1)] |= (BYTE)dwVal << ((1-(i & 1)) << 2);
+          sGuid.Data4[2 + ((i - 24) >> 1)] |= (BYTE)dwVal << ((1 - (i & 1)) << 2);
         break;
     }
   }
@@ -155,12 +158,12 @@ BOOL String2Guid(_Out_ GUID &sGuid, _In_z_ LPCWSTR szGuidW)
   CHAR szBufA[64];
   SIZE_T i;
 
-  MX::MemSet(&sGuid, 0, sizeof(sGuid));
+  MemSet(&sGuid, 0, sizeof(sGuid));
   for (i = 0; i < MX_ARRAYLEN(szBufA) - 1 && szGuidW[i] != 0; i++)
   {
     if ((szGuidW[i] >= L'0' && szGuidW[i] <= L'9') ||
-        (szGuidW[i] >= L'A' && szGuidW[i] <= L'F') ||
-        (szGuidW[i] >= L'a' && szGuidW[i] <= L'f') ||
+      (szGuidW[i] >= L'A' && szGuidW[i] <= L'F') ||
+      (szGuidW[i] >= L'a' && szGuidW[i] <= L'f') ||
         szGuidW[i] == L'{' || szGuidW[i] == L'}' || szGuidW[i] == L'-')
     {
       szBufA[i] = (char)(BYTE)(USHORT)szGuidW[i];
@@ -178,12 +181,12 @@ BOOL String2Guid(_Out_ GUID &sGuid, _In_z_ LPCWSTR szGuidW)
 
 HRESULT SelfDeleteApp()
 {
-  MX::CStringW cStrTempW, cStrExeNameW;
+  CStringW cStrTempW, cStrExeNameW;
   HRESULT hRes;
 
-  hRes = GetAppFileName(cStrExeNameW);
+  hRes = FileRoutines::GetAppFileName(cStrExeNameW);
   if (SUCCEEDED(hRes))
-    hRes = GetWindowsSystemPath(cStrTempW);
+    hRes = FileRoutines::GetWindowsSystemPath(cStrTempW);
   if (SUCCEEDED(hRes))
   {
     if (cStrTempW.InsertN(L"\"", 0, 1) == FALSE ||
@@ -199,9 +202,9 @@ HRESULT SelfDeleteApp()
     STARTUPINFOW sSiW;
     PROCESS_INFORMATION sPi;
 
-    MX::MemSet(&sSiW, 0, sizeof(sSiW));
+    MemSet(&sSiW, 0, sizeof(sSiW));
     sSiW.cb = (DWORD)sizeof(sSiW);
-    MX::MemSet(&sPi, 0, sizeof(sPi));
+    MemSet(&sPi, 0, sizeof(sPi));
     if (::CreateProcessW(NULL, (LPWSTR)cStrTempW, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &sSiW,
                          &sPi) != FALSE)
     {
@@ -217,4 +220,6 @@ HRESULT SelfDeleteApp()
   return hRes;
 }
 
-}; //MXHelpers
+}; //namespace Misc
+
+}; //namespace MX

@@ -9,9 +9,6 @@
 #include <Windows.h>
 #include <lm.h>
 
-//#pragma comment(lib, "netapi32.lib")
-
-
 //-----------------------------------------------------------
 
 #define X_WCHAR_ENC(_x,_y) (WCHAR)(((USHORT)(_x)) ^ ((USHORT)_y+0x8C32))
@@ -45,9 +42,11 @@ static VOID InitializeApis();
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
-HRESULT GetOpSystemInfo(_Out_ MX::CStringW &cStrOpSystemW)
+namespace System {
+
+HRESULT GetOpSystemInfo(_Out_ CStringW &cStrOpSystemW)
 {
   static const WCHAR strW_Windows[] = {
     X_WCHAR_ENC(L'W', 0), X_WCHAR_ENC(L'i', 1), X_WCHAR_ENC(L'n',  2), X_WCHAR_ENC(L'd',  3),
@@ -122,7 +121,7 @@ HRESULT GetOpSystemInfo(_Out_ MX::CStringW &cStrOpSystemW)
   SIZE_T i;
   NTSTATUS nNtStatus;
 
-  MX::MemSet(&sOviExW, 0, sizeof(sOviExW));
+  MemSet(&sOviExW, 0, sizeof(sOviExW));
   sOviExW.dwOSVersionInfoSize = (DWORD)sizeof(sOviExW);
   nNtStatus = ::MxRtlGetVersion((PRTL_OSVERSIONINFOW)&sOviExW);
   if (!NT_SUCCESS(nNtStatus))
@@ -239,7 +238,7 @@ HRESULT GetOpSystemInfo(_Out_ MX::CStringW &cStrOpSystemW)
   return S_OK;
 }
 
-HRESULT _GetComputerNameEx(_In_ COMPUTER_NAME_FORMAT NameType, _Out_ MX::CStringW &cStrNameW)
+HRESULT _GetComputerNameEx(_In_ COMPUTER_NAME_FORMAT NameType, _Out_ CStringW &cStrNameW)
 {
   DWORD dwBufLen;
   HRESULT hRes;
@@ -317,14 +316,14 @@ VOID RegisterAppInRestartManager()
   return;
 }
 
-HRESULT GetAllUsers(_Inout_ MX::TArrayListWithFree<LPWSTR> &aUsersList)
+HRESULT GetAllUsers(_Inout_ TArrayListWithFree<LPWSTR> &aUsersList)
 {
   static const LPCWSTR aBuiltinUsersW[] = { L"S-1-5-18", L"S-1-5-19", L"S-1-5-20" };
   LPUSER_INFO_0 lpUserInfo0 = NULL;
   DWORD i, dwEntries, dwTotalEntries, dwResumeHandle;
   NET_API_STATUS nStatus;
   CSid cSid;
-  MX::CStringW cStrTempW;
+  CStringW cStrTempW;
   HRESULT hRes, hRes2;
 
   aUsersList.RemoveAllElements();
@@ -416,7 +415,7 @@ done:
   return hRes;
 }
 
-HRESULT GetAllGroups(_Inout_ MX::TArrayListWithFree<LPWSTR> &aGroupsList)
+HRESULT GetAllGroups(_Inout_ TArrayListWithFree<LPWSTR> &aGroupsList)
 {
   static const LPCWSTR aBuiltinUsersW[] = { L"S-1-1-0" };
   LPLOCALGROUP_INFO_0 lpGroupInfo0 = NULL;
@@ -424,7 +423,7 @@ HRESULT GetAllGroups(_Inout_ MX::TArrayListWithFree<LPWSTR> &aGroupsList)
   DWORD_PTR dwResumeHandle;
   NET_API_STATUS nStatus;
   CSid cSid;
-  MX::CStringW cStrTempW;
+  CStringW cStrTempW;
   HRESULT hRes, hRes2;
 
   aGroupsList.RemoveAllElements();
@@ -516,8 +515,9 @@ done:
   return hRes;
 }
 
-}; //namespace MXHelpers
+}; //namespace System
 
+}; //namespace MX
 
 //-----------------------------------------------------------
 
@@ -525,7 +525,6 @@ static VOID InitializeApis()
 {
   if (_InterlockedCompareExchange(&nInitialized, 2, 0) == 0)
   {
-    
     HINSTANCE _hNetApi32Dll;
     LPVOID _fnNetUserEnum, _fnNetLocalGroupEnum, _fnNetApiBufferFree;
 

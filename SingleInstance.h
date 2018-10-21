@@ -11,11 +11,11 @@
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
 HRESULT SingleInstanceCheck(_In_z_ LPCWSTR szNameW);
 
-}; //namespace MXHelpers
+}; //namespace MX
 
 //-----------------------------------------------------------
 

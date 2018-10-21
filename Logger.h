@@ -14,7 +14,7 @@
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
 namespace EventLogger {
 
@@ -25,11 +25,11 @@ HRESULT Log(_Printf_format_string_ LPCWSTR szFormatW, ...);
 HRESULT LogIfError(_In_ HRESULT hResError, _Printf_format_string_ LPCWSTR szFormatW, ...);
 HRESULT LogAlways(_In_ HRESULT hResError, _Printf_format_string_ LPCWSTR szFormatW, ...);
 
-HRESULT GetLogFolder(_Out_ MX::CStringW &cStrLogFolderW);
+HRESULT GetLogFolder(_Out_ CStringW &cStrLogFolderW);
 
 }; //namespace EventLogger
 
-}; //namespace MXHelpers
+}; //namespace MX
 
 //-----------------------------------------------------------
 

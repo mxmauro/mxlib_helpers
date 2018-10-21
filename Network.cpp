@@ -8,11 +8,13 @@
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
-HRESULT GetLocalIpAddresses(_Out_ MX::TArrayListWithFree<LPCWSTR> &cStrListW, _In_ int nFlags)
+namespace Network {
+
+HRESULT GetLocalIpAddresses(_Out_ TArrayListWithFree<LPCWSTR> &cStrListW, _In_ int nFlags)
 {
-  MX::TAutoFreePtr<IP_ADAPTER_ADDRESSES> cIpAddrBuffer;
+  TAutoFreePtr<IP_ADAPTER_ADDRESSES> cIpAddrBuffer;
   PIP_ADAPTER_ADDRESSES lpCurrAdapter;
   PIP_ADAPTER_UNICAST_ADDRESS lpCurrUnicastAddress;
   DWORD dwBufLen, dwRetVal, dwRetryCount;
@@ -22,7 +24,7 @@ HRESULT GetLocalIpAddresses(_Out_ MX::TArrayListWithFree<LPCWSTR> &cStrListW, _I
     SOCKADDR_IN6_W2KSP1 *lpAddrV6;
     SOCKADDR_INET *lpAddr;
   } u;
-  MX::CStringW cStrTempW;
+  CStringW cStrTempW;
   HRESULT hRes;
 
   cStrListW.RemoveAllElements();
@@ -50,7 +52,7 @@ HRESULT GetLocalIpAddresses(_Out_ MX::TArrayListWithFree<LPCWSTR> &cStrListW, _I
       continue;
     if (lpCurrAdapter->Description[0] == L'V')
       continue; //VirtualBox VMnet
-    if (MX::StrFindW(lpCurrAdapter->Description, L"loopback", FALSE, TRUE) != NULL)
+    if (StrFindW(lpCurrAdapter->Description, L"loopback", FALSE, TRUE) != NULL)
       continue;
     for (lpCurrUnicastAddress=lpCurrAdapter->FirstUnicastAddress; lpCurrUnicastAddress!=NULL;
          lpCurrUnicastAddress=lpCurrUnicastAddress->Next)
@@ -116,7 +118,7 @@ HRESULT GetLocalIpAddresses(_Out_ MX::TArrayListWithFree<LPCWSTR> &cStrListW, _I
 
   if ((nFlags & LocalIpAddressesFlagsDontAddNetbiosName) == 0)
   {
-    hRes = _GetComputerNameEx(ComputerNameDnsFullyQualified, cStrTempW);
+    hRes = System::_GetComputerNameEx(ComputerNameDnsFullyQualified, cStrTempW);
     if (FAILED(hRes))
       return hRes;
     if (cStrTempW.IsEmpty() == FALSE)
@@ -130,7 +132,7 @@ HRESULT GetLocalIpAddresses(_Out_ MX::TArrayListWithFree<LPCWSTR> &cStrListW, _I
   return (cStrListW.GetCount() > 0) ? S_OK : MX_E_NotFound;
 }
 
-HRESULT FormatIpAddress(_Out_ MX::CStringW &cStrW, _In_ PSOCKADDR_INET lpAddr)
+HRESULT FormatIpAddress(_Out_ CStringW &cStrW, _In_ PSOCKADDR_INET lpAddr)
 {
   SIZE_T nIdx;
 
@@ -192,4 +194,6 @@ HRESULT FormatIpAddress(_Out_ MX::CStringW &cStrW, _In_ PSOCKADDR_INET lpAddr)
   return S_OK;
 }
 
-}; //namespace MXHelpers
+}; //namespace Network
+
+}; //namespace MX

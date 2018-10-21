@@ -12,7 +12,9 @@
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
+
+namespace Misc {
 
 BOOL WildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR szPatternW, _In_ SIZE_T nPatternLen);
 
@@ -21,7 +23,9 @@ BOOL String2Guid(_Out_ GUID &sGuid, _In_z_ LPCWSTR szGuidW);
 
 HRESULT SelfDeleteApp();
 
-}; //MXHelpers
+}; //namespace Misc
+
+}; //namespace MX
 
 //-----------------------------------------------------------
 

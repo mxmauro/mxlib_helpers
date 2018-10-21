@@ -8,10 +8,11 @@
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
-HRESULT ExtractResourceToFile(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _In_ LPCWSTR szResTypeW,
-                              _In_ HANDLE hFile)
+namespace PEResource {
+
+HRESULT ExtractToFile(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _In_ LPCWSTR szResTypeW, _In_ HANDLE hFile)
 {
   HRSRC hRsrc;
   DWORD dwResSize, dwWritten;
@@ -40,8 +41,8 @@ HRESULT ExtractResourceToFile(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _In
   return (dwWritten == dwResSize) ? S_OK : MX_E_PartialCopy;
 }
 
-HRESULT ExtractResourceToMemory(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _In_ LPCWSTR szResTypeW,
-                                _Outptr_result_maybenull_ LPBYTE *lplpDest, _Out_ SIZE_T *lpnDestSize)
+HRESULT ExtractToMemory(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _In_ LPCWSTR szResTypeW,
+                        _Outptr_result_maybenull_ LPBYTE *lplpDest, _Out_ SIZE_T *lpnDestSize)
 {
   HRSRC hRsrc;
   DWORD dwResSize;
@@ -74,15 +75,15 @@ HRESULT ExtractResourceToMemory(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _
   if ((*lplpDest) == NULL)
     return E_OUTOFMEMORY;
   *lpnDestSize = (SIZE_T)dwResSize;
-  MX::MemCopy(*lplpDest, p, (SIZE_T)dwResSize);
+  MemCopy(*lplpDest, p, (SIZE_T)dwResSize);
   //done
   return S_OK;
 }
 
-HRESULT ExtractResourceToStream(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _In_ LPCWSTR szResTypeW,
-                                _COM_Outptr_opt_result_maybenull_ MX::CMemoryStream **lplpStream)
+HRESULT ExtractToStream(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _In_ LPCWSTR szResTypeW,
+                        _COM_Outptr_opt_result_maybenull_ MX::CMemoryStream **lplpStream)
 {
-  MX::TAutoRefCounted<MX::CMemoryStream> cStream;
+  TAutoRefCounted<CMemoryStream> cStream;
   HRSRC hRsrc;
   DWORD dwResSize;
   SIZE_T nWritten;
@@ -98,7 +99,7 @@ HRESULT ExtractResourceToStream(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _
   if (hRsrc == NULL)
     return MX_HRESULT_FROM_LASTERROR();
   //create stream
-  cStream.Attach(MX_DEBUG_NEW MX::CMemoryStream());
+  cStream.Attach(MX_DEBUG_NEW CMemoryStream());
   if (!cStream)
     return E_OUTOFMEMORY;
   hRes = cStream->Create();
@@ -123,7 +124,7 @@ HRESULT ExtractResourceToStream(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _
   if (SUCCEEDED(hRes) && (SIZE_T)dwResSize != nWritten)
     hRes = MX_E_WriteFault;
   if (SUCCEEDED(hRes))
-    hRes = cStream->Seek(0, MX::CStream::SeekStart);
+    hRes = cStream->Seek(0, CStream::SeekStart);
   if (FAILED(hRes))
     return hRes;
   //done
@@ -131,4 +132,6 @@ HRESULT ExtractResourceToStream(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _
   return S_OK;
 }
 
-}; //namespace MXHelpers
+}; //namespace PEResource
+
+}; //namespace MX

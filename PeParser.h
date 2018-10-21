@@ -12,16 +12,16 @@
 #include <ArrayList.h>
 #include <Strings\Strings.h>
 
-#define MXLIBHLP_PEPARSER_FLAG_ParseResources         0x0001
-#define MXLIBHLP_PEPARSER_FLAG_ParseExportTable       0x0002
-#define MXLIBHLP_PEPARSER_FLAG_ParseImportTables      0x0004
-#define MXLIBHLP_PEPARSER_FLAG_IgnoreMalformed        0x1000
+#define MX_PEPARSER_FLAG_ParseResources               0x0001
+#define MX_PEPARSER_FLAG_ParseExportTable             0x0002
+#define MX_PEPARSER_FLAG_ParseImportTables            0x0004
+#define MX_PEPARSER_FLAG_IgnoreMalformed              0x1000
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
-class CPeParser : public MX::CBaseMemObj
+class CPEParser : public CBaseMemObj
 {
 public:
   typedef struct tagEXPORTED_FUNCTION {
@@ -39,8 +39,8 @@ public:
   } IMPORTED_FUNCTION, *LPIMPORTED_FUNCTION;
 
 public:
-  CPeParser();
-  ~CPeParser();
+  CPEParser();
+  ~CPEParser();
 
   HRESULT InitializeFromFileName(_In_z_ LPCWSTR szFileNameW, _In_opt_ DWORD dwParseFlags=0xFFFFFFFFUL);
   HRESULT InitializeFromFileHandle(_In_ HANDLE hFile, _In_opt_ DWORD dwParseFlags=0xFFFFFFFFUL);
@@ -56,18 +56,18 @@ public:
 
   PIMAGE_DOS_HEADER GetDosHeader() const
     {
-    return &(const_cast<CPeParser*>(this)->sDosHdr);
+    return &(const_cast<CPEParser*>(this)->sDosHdr);
     };
 
   PIMAGE_NT_HEADERS32 GetNtHeaders32() const
     {
-    return &(const_cast<CPeParser*>(this)->uNtHdr.s32);
+    return &(const_cast<CPEParser*>(this)->uNtHdr.s32);
     };
 
 #if defined(_M_X64)
   PIMAGE_NT_HEADERS64 GetNtHeaders64() const
     {
-    return &(const_cast<CPeParser*>(this)->uNtHdr.s64);
+    return &(const_cast<CPEParser*>(this)->uNtHdr.s64);
     };
 #endif //_M_X64
 
@@ -79,7 +79,7 @@ public:
   PIMAGE_SECTION_HEADER GetSection(_In_ SIZE_T nSectionIndex) const
     {
     MX_ASSERT(nSectionIndex < nSectionsCount);
-    return const_cast<CPeParser*>(this)->cFileImgSect.Get() + nSectionIndex;
+    return const_cast<CPEParser*>(this)->cFileImgSect.Get() + nSectionIndex;
     };
 
   SIZE_T GetImportedDllsCount() const
@@ -119,7 +119,7 @@ public:
 
   LPBYTE GetVersionInfo() const
     {
-    return const_cast<CPeParser*>(this)->cVersionInfo.Get();
+    return const_cast<CPEParser*>(this)->cVersionInfo.Get();
     };
 
   SIZE_T GetVersionInfoSize() const
@@ -131,7 +131,7 @@ public:
   LPBYTE RvaToVa(_In_ DWORD dwVirtualAddress);
 
   BOOL ReadMem(_Out_writes_(nBytes) LPVOID lpDest, _In_ LPCVOID lpSrc, _In_ SIZE_T nBytes);
-  HRESULT ReadAnsiString(_Out_ MX::CStringA &cStrA, _In_ LPVOID lpNameAddress, _In_ SIZE_T nMaxLength);
+  HRESULT ReadAnsiString(_Out_ CStringA &cStrA, _In_ LPVOID lpNameAddress, _In_ SIZE_T nMaxLength);
 
 private:
   VOID Reset();
@@ -164,33 +164,33 @@ private:
   } uNtHdr;
 
   SIZE_T nSectionsCount;
-  MX::TAutoFreePtr<IMAGE_SECTION_HEADER> cFileImgSect;
+  TAutoFreePtr<IMAGE_SECTION_HEADER> cFileImgSect;
 
   class CImportedDll : public CBaseMemObj
   {
   public:
-    MX::CStringA cStrNameA;
-    MX::TArrayListWithFree<LPIMPORTED_FUNCTION> aEntries;
+    CStringA cStrNameA;
+    TArrayListWithFree<LPIMPORTED_FUNCTION> aEntries;
   };
 
   struct {
-    MX::TArrayListWithDelete<CImportedDll*> aDllList;
+    TArrayListWithDelete<CImportedDll*> aDllList;
   } sImportsInfo;
 
   struct {
     DWORD dwCharacteristics;
     WORD wMajorVersion;
     WORD wMinorVersion;
-    MX::TArrayListWithFree<LPEXPORTED_FUNCTION> aEntries;
+    TArrayListWithFree<LPEXPORTED_FUNCTION> aEntries;
   } sExportsInfo;
 
   PIMAGE_RESOURCE_DIRECTORY lpResourceDir;
 
-  MX::TAutoFreePtr<BYTE> cVersionInfo;
+  TAutoFreePtr<BYTE> cVersionInfo;
   SIZE_T nVersionInfoSize;
 };
 
-}; //namespace MXHelpers
+}; //namespace MX
 
 //-----------------------------------------------------------
 

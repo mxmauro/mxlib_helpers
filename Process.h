@@ -13,7 +13,9 @@
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
+
+namespace Process {
 
 typedef enum {
   TokenMembershipTypeLimitedUser,
@@ -22,18 +24,22 @@ typedef enum {
   TokenMembershipTypeRunningOnAdministratorsGroupAndElevated
 } eTokenGetMembershipType;
 
-}; //MXHelpers
+}; //Process
+
+}; //MX
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
-HRESULT ResolveChildProcessFileName(_Inout_ MX::CStringW &cStrFullNameW, _In_ LPCWSTR szApplicationNameW,
+namespace Process {
+
+HRESULT ResolveChildProcessFileName(_Inout_ CStringW &cStrFullNameW, _In_ LPCWSTR szApplicationNameW,
                                     _In_ LPCWSTR szCommandLineW);
 
-HRESULT QueryEnvironmentVariable(_In_z_ LPCWSTR szVarNameW, _Inout_ MX::CStringW &cStrDestW);
+HRESULT QueryEnvironmentVariable(_In_z_ LPCWSTR szVarNameW, _Inout_ CStringW &cStrDestW);
 
-HRESULT _ExpandEnvironmentStrings(_Inout_ MX::CStringW &cStrW);
+HRESULT _ExpandEnvironmentStrings(_Inout_ CStringW &cStrW);
 
 HRESULT GetProcessMembershipType(_Out_ eTokenGetMembershipType &nType);
 HRESULT GetThreadMembershipType(_Out_ eTokenGetMembershipType &nType);
@@ -41,7 +47,9 @@ HRESULT GetTokenMembershipType(_In_ HANDLE hToken, _Out_ eTokenGetMembershipType
 
 HRESULT EnablePrivilege(_In_z_ LPCWSTR szPrivilegeW);
 
-}; //MXHelpers
+}; //Process
+
+}; //MX
 
 //-----------------------------------------------------------
 

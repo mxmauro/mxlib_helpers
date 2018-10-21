@@ -14,9 +14,9 @@
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
-class CMemoryPackage : public virtual MX::CBaseMemObj
+class CMemoryPackage : public virtual CBaseMemObj
 {
   MX_DISABLE_COPY_CONSTRUCTOR(CMemoryPackage);
 public:
@@ -26,7 +26,7 @@ public:
   HRESULT OpenPackage(_In_ LPCVOID lpData, _In_ SIZE_T nDataSize, _In_ ULONGLONG nPasswordHash);
   VOID ClosePackage();
 
-  HRESULT GetStream(_In_z_ LPCWSTR szFileNameW, __deref_out MX::CStream **lplpStream);
+  HRESULT GetStream(_In_z_ LPCWSTR szFileNameW, __deref_out CStream **lplpStream);
 
 private:
   typedef struct {
@@ -43,10 +43,10 @@ private:
   static int FileItemCompare(void *lpContext, const FILEITEM **lplpItem1, const FILEITEM **lplpItem2);
   static int FileItemSearch(void *lpContext, const FILEITEM **lplpItem1, const FILEITEM **lplpItem2);
 
-  MX::TArrayListWithFree<LPFILEITEM, 256> aFileItemsList;
+  TArrayListWithFree<LPFILEITEM, 256> aFileItemsList;
 };
 
-}; //namespace MXHelpers
+}; //namespace MX
 
 //-----------------------------------------------------------
 

@@ -29,9 +29,11 @@ static BOOL IsWinVistaPlus();
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
-HRESULT ResolveChildProcessFileName(_Inout_ MX::CStringW &cStrFullNameW, _In_ LPCWSTR szApplicationNameW,
+namespace Process {
+
+HRESULT ResolveChildProcessFileName(_Inout_ CStringW &cStrFullNameW, _In_ LPCWSTR szApplicationNameW,
                                     _In_ LPCWSTR szCommandLineW)
 {
   HRESULT hRes;
@@ -41,7 +43,7 @@ HRESULT ResolveChildProcessFileName(_Inout_ MX::CStringW &cStrFullNameW, _In_ LP
     return E_INVALIDARG;
   if (szApplicationNameW == NULL)
   {
-    MX::CStringW cStrSearchPathW, cStrExeNameW, cStrTempW;
+    CStringW cStrSearchPathW, cStrExeNameW, cStrTempW;
     LPCWSTR szNameStartW, szNameEndW;
     SIZE_T nTempBufLen = 1024;
 
@@ -60,13 +62,13 @@ HRESULT ResolveChildProcessFileName(_Inout_ MX::CStringW &cStrFullNameW, _In_ LP
     }
     //get the path list to check (based on https://msdn.microsoft.com/en-us/library/ms682425.aspx)
     //1. The directory from which the application loaded.
-    hRes = GetAppFolderPath(cStrSearchPathW);
+    hRes = FileRoutines::GetAppFolderPath(cStrSearchPathW);
     //2. The current directory for the parent process.
     if (SUCCEEDED(hRes))
     {
       RTL_OSVERSIONINFOW sOviW;
 
-      MX::MemSet(&sOviW, 0, sizeof(sOviW));
+      MemSet(&sOviW, 0, sizeof(sOviW));
       sOviW.dwOSVersionInfoSize = (DWORD)sizeof(sOviW);
       ::MxRtlGetVersion(&sOviW);
       if (sOviW.dwMajorVersion >= 6)
@@ -81,7 +83,7 @@ HRESULT ResolveChildProcessFileName(_Inout_ MX::CStringW &cStrFullNameW, _In_ LP
     //3. The 32-bit Windows system directory.Use the GetSystemDirectory function to get the path of this directory.
     if (SUCCEEDED(hRes))
     {
-      hRes = GetWindowsSystemPath(cStrTempW);
+      hRes = FileRoutines::GetWindowsSystemPath(cStrTempW);
       if (SUCCEEDED(hRes))
       {
         if (cStrSearchPathW.ConcatN(L";", 1) == FALSE ||
@@ -96,7 +98,7 @@ HRESULT ResolveChildProcessFileName(_Inout_ MX::CStringW &cStrFullNameW, _In_ LP
     //5. The Windows directory.Use the GetWindowsDirectory function to get the path of this directory.
     if (SUCCEEDED(hRes))
     {
-      hRes = GetWindowsPath(cStrTempW);
+      hRes = FileRoutines::GetWindowsPath(cStrTempW);
       if (SUCCEEDED(hRes))
       {
         if (cStrSearchPathW.ConcatN(L";", 1) == FALSE ||
@@ -196,7 +198,7 @@ HRESULT ResolveChildProcessFileName(_Inout_ MX::CStringW &cStrFullNameW, _In_ LP
                           FILE_ATTRIBUTE_NORMAL, NULL);
     if (hFile != NULL && hFile != INVALID_HANDLE_VALUE)
     {
-      hRes = GetFileNameFromHandle(hFile, cStrFullNameW);
+      hRes = FileRoutines::GetFileNameFromHandle(hFile, cStrFullNameW);
       ::MxNtClose(hFile);
     }
     else
@@ -206,15 +208,15 @@ HRESULT ResolveChildProcessFileName(_Inout_ MX::CStringW &cStrFullNameW, _In_ LP
   }
   //convert NT paths to DOS
   if (SUCCEEDED(hRes))
-    hRes = ConvertToWin32(cStrFullNameW);
+    hRes = FileRoutines::ConvertToWin32(cStrFullNameW);
   //convert to long path
   if (SUCCEEDED(hRes))
-    hRes = ConvertToLongPath(cStrFullNameW);
+    hRes = FileRoutines::ConvertToLongPath(cStrFullNameW);
   //done
   return hRes;
 }
 
-HRESULT QueryEnvironmentVariable(_In_z_ LPCWSTR szVarNameW, _Inout_ MX::CStringW &cStrDestW)
+HRESULT QueryEnvironmentVariable(_In_z_ LPCWSTR szVarNameW, _Inout_ CStringW &cStrDestW)
 {
   SIZE_T nVarNameLen;
 
@@ -224,7 +226,7 @@ HRESULT QueryEnvironmentVariable(_In_z_ LPCWSTR szVarNameW, _Inout_ MX::CStringW
     return E_POINTER;
   if (*szVarNameW == L'%')
     szVarNameW++;
-  nVarNameLen = MX::StrLenW(szVarNameW);
+  nVarNameLen = StrLenW(szVarNameW);
   if (nVarNameLen > 0 && szVarNameW[nVarNameLen - 1] == L'%')
     nVarNameLen--;
   if (nVarNameLen == 0)
@@ -232,9 +234,9 @@ HRESULT QueryEnvironmentVariable(_In_z_ LPCWSTR szVarNameW, _Inout_ MX::CStringW
   return QueryEnvironmentVariableInternal(szVarNameW, nVarNameLen, &cStrDestW);
 }
 
-HRESULT _ExpandEnvironmentStrings(_Inout_ MX::CStringW &cStrW)
+HRESULT _ExpandEnvironmentStrings(_Inout_ CStringW &cStrW)
 {
-  MX::CStringW cStrTempW;
+  CStringW cStrTempW;
   SIZE_T nOfs;
   LPCWSTR sW, szStartW;
   HRESULT hRes;
@@ -340,7 +342,7 @@ HRESULT GetTokenMembershipType(_In_ HANDLE hToken, _Out_ eTokenGetMembershipType
     TOKEN_ELEVATION sTokElev;
     TOKEN_ELEVATION_TYPE sTokElevType;
 
-    MX::MemSet(&sTokElev, 0, sizeof(sTokElev));
+    MemSet(&sTokElev, 0, sizeof(sTokElev));
     if (::GetTokenInformation(hTokenToCheck, TokenElevation, &sTokElev, (DWORD)sizeof(sTokElev), &dw) != FALSE &&
         sTokElev.TokenIsElevated != 0)
     {
@@ -349,7 +351,7 @@ HRESULT GetTokenMembershipType(_In_ HANDLE hToken, _Out_ eTokenGetMembershipType
       goto done;
     }
     //if we are not elevated, lookup for the linked token (if exists) and check if it belongs to administrators group
-    MX::MemSet(&sTokElevType, 0, sizeof(sTokElevType));
+    MemSet(&sTokElevType, 0, sizeof(sTokElevType));
     if (::GetTokenInformation(hToken, TokenElevationType, &sTokElevType, (DWORD)sizeof(sTokElevType), &dw) != FALSE &&
         sTokElevType == TokenElevationTypeLimited)
     {
@@ -412,7 +414,7 @@ HRESULT EnablePrivilege(_In_z_ LPCWSTR szPrivilegeW)
   hRes = S_OK;
   if (::OpenProcessToken(::GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken) != FALSE)
   {
-    MX::MemSet(&sPriv, 0, sizeof(sPriv));
+    MemSet(&sPriv, 0, sizeof(sPriv));
     if (::LookupPrivilegeValueW(NULL, szPrivilegeW, &(sPriv.Privileges[0].Luid)) != FALSE)
     {
       sPriv.PrivilegeCount = 1;
@@ -420,25 +422,27 @@ HRESULT EnablePrivilege(_In_z_ LPCWSTR szPrivilegeW)
       if (::AdjustTokenPrivileges(hToken, FALSE, &sPriv, (DWORD)sizeof(sPriv), NULL, NULL) == FALSE)
       {
         hRes = MX_HRESULT_FROM_LASTERROR();
-        //MX::DebugPrint("EnableProcessPrivileges/AdjustTokenPrivileges 0x%08X\n", hRes);
+        //DebugPrint("EnableProcessPrivileges/AdjustTokenPrivileges 0x%08X\n", hRes);
       }
     }
     else
     {
       hRes = MX_HRESULT_FROM_LASTERROR();
-      //MX::DebugPrint("EnableProcessPrivileges/LookupPrivilegeValueW 0x%08X\n", hRes);
+      //DebugPrint("EnableProcessPrivileges/LookupPrivilegeValueW 0x%08X\n", hRes);
     }
     ::CloseHandle(hToken);
   }
   else
   {
     hRes = MX_HRESULT_FROM_LASTERROR();
-    //MX::DebugPrint("EnableProcessPrivileges/OpenProcessToken 0x%08X\n", hRes);
+    //DebugPrint("EnableProcessPrivileges/OpenProcessToken 0x%08X\n", hRes);
   }
   return hRes;
 }
 
-}; //MXHelpers
+}; //Process
+
+}; //MX
 
 //-----------------------------------------------------------
 

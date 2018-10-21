@@ -16,7 +16,7 @@ static LONG volatile nEnabled = 0;
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
 namespace Console {
 
@@ -28,7 +28,7 @@ VOID Initialize(_In_ BOOL bAppIsInteractive)
   return;
 }
 
-VOID Print(_In_ eConsoleColor nColor, _In_ LPCWSTR szFormatW, ...)
+VOID Print(_In_ eColor nColor, _In_ LPCWSTR szFormatW, ...)
 {
   static LONG volatile nMutex = 0;
   static HANDLE hConsoleOut = NULL;
@@ -37,27 +37,27 @@ VOID Print(_In_ eConsoleColor nColor, _In_ LPCWSTR szFormatW, ...)
 
   if (__InterlockedRead(&nEnabled) != 0)
   {
-    MX::CFastLock cLock(&nMutex);
+    CFastLock cLock(&nMutex);
 
     if (__InterlockedRead(&nEnabled) != 0)
     {
       if (hConsoleOut == NULL)
         hConsoleOut = ::GetStdHandle(STD_OUTPUT_HANDLE);
-      if (nColor != ccNormal)
+      if (nColor != ColorNormal)
       {
         ::GetConsoleScreenBufferInfo(hConsoleOut, &sCsbi);
         switch (nColor)
         {
-          case ccError:
+          case ColorError:
             ::SetConsoleTextAttribute(hConsoleOut, FOREGROUND_RED|FOREGROUND_INTENSITY);
             break;
-          case ccSuccess:
+          case ColorSuccess:
             ::SetConsoleTextAttribute(hConsoleOut, FOREGROUND_GREEN|FOREGROUND_INTENSITY);
             break;
-          case ccYellow:
+          case ColorYellow:
             ::SetConsoleTextAttribute(hConsoleOut, FOREGROUND_GREEN|FOREGROUND_RED|FOREGROUND_INTENSITY);
             break;
-          case ccBlue:
+          case ColorBlue:
             ::SetConsoleTextAttribute(hConsoleOut, FOREGROUND_BLUE|FOREGROUND_INTENSITY);
             break;
         }
@@ -65,8 +65,10 @@ VOID Print(_In_ eConsoleColor nColor, _In_ LPCWSTR szFormatW, ...)
       va_start(args, szFormatW);
       vwprintf_s(szFormatW, args);
       va_end(args);
-      if (nColor != ccNormal)
+      if (nColor != ColorNormal)
+      {
         ::SetConsoleTextAttribute(hConsoleOut, sCsbi.wAttributes);
+      }
     }
   }
   return;
@@ -75,12 +77,12 @@ VOID Print(_In_ eConsoleColor nColor, _In_ LPCWSTR szFormatW, ...)
 VOID PrintError(_In_ HRESULT hRes)
 {
   if (SUCCEEDED(hRes))
-    Console::Print(eConsoleColor::ccSuccess, L"OK");
+    Console::Print(ColorSuccess, L"OK");
   else
-    Console::Print(eConsoleColor::ccError, L"ERROR: 0x%08X", hRes);
+    Console::Print(ColorError, L"ERROR: 0x%08X", hRes);
   return;
 }
 
 }; //namespace Console
 
-}; //namespace MXHelpers
+}; //namespace MX

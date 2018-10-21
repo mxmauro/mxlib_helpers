@@ -13,9 +13,9 @@
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
-namespace Xml {
+namespace XmlHelpers {
 
 HRESULT Parse(_In_ tinyxml2::XMLDocument &cDoc, _In_ LPCVOID lpData, _In_ SIZE_T nDataLen);
 
@@ -31,9 +31,9 @@ BOOL SetElementAttribute(_In_ tinyxml2::XMLElement &cElem, _In_ LPCSTR szNameA, 
 
 int ParseBoolean(_In_ LPCSTR szValueA);
 
-}; //namespace Xml
+}; //namespace XmlHelpers
 
-}; //namespace MXHelpers
+}; //namespace MX
 
 //-----------------------------------------------------------
 

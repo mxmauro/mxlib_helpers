@@ -13,18 +13,22 @@
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
-HRESULT GetOpSystemInfo(_Out_ MX::CStringW &cStrOpSystemW);
+namespace System {
 
-HRESULT _GetComputerNameEx(_In_ COMPUTER_NAME_FORMAT NameType, _Out_ MX::CStringW &cStrNameW);
+HRESULT GetOpSystemInfo(_Out_ CStringW &cStrOpSystemW);
+
+HRESULT _GetComputerNameEx(_In_ COMPUTER_NAME_FORMAT NameType, _Out_ CStringW &cStrNameW);
 
 VOID RegisterAppInRestartManager();
 
-HRESULT GetAllUsers(_Inout_ MX::TArrayListWithFree<LPWSTR> &aUsersList);
-HRESULT GetAllGroups(_Inout_ MX::TArrayListWithFree<LPWSTR> &aGroupsList);
+HRESULT GetAllUsers(_Inout_ TArrayListWithFree<LPWSTR> &aUsersList);
+HRESULT GetAllGroups(_Inout_ TArrayListWithFree<LPWSTR> &aGroupsList);
 
-}; //MXHelpers
+}; //System
+
+}; //MX
 
 //-----------------------------------------------------------
 

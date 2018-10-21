@@ -12,21 +12,21 @@
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
 namespace Service {
 
-typedef MX::Callback<HRESULT (_In_ HANDLE hShutdownEvent, _In_ int argc, _In_ WCHAR* argv[],
-                              _In_ BOOL bIsInteractiveApp)> OnStartCallback;
-typedef MX::Callback<HRESULT ()> OnStopCallback;
+typedef Callback<HRESULT (_In_ HANDLE hShutdownEvent, _In_ int argc, _In_ WCHAR* argv[],
+                          _In_ BOOL bIsInteractiveApp)> OnStartCallback;
+typedef Callback<HRESULT ()> OnStopCallback;
 
 }; //namespace Service
 
-}; //namespace MXHelpers
+}; //namespace MX
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
 namespace Service {
 
@@ -41,7 +41,7 @@ VOID DisableStop();
 
 }; //namespace Service
 
-}; //namespace MXHelpers
+}; //namespace MX
 
 //-----------------------------------------------------------
 

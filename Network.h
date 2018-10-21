@@ -13,7 +13,11 @@
 #include <ws2ipdef.h>
 #include <Strings\Strings.h>
 
-namespace MXHelpers {
+//-----------------------------------------------------------
+
+namespace MX {
+
+namespace Network {
 
 typedef enum {
   LocalIpAddressesFlagsDontAddIpV4 = 1,
@@ -21,16 +25,23 @@ typedef enum {
   LocalIpAddressesFlagsDontAddNetbiosName = 4
 } eGetLocalIpAddressesFlags;
 
-}; //namespace MXHelpers
+}; //namespace Network
+
+}; //namespace MX
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
-HRESULT GetLocalIpAddresses(_Out_ MX::TArrayListWithFree<LPCWSTR> &cStrListW, _In_ int nFlags);
-HRESULT FormatIpAddress(_Out_ MX::CStringW &cStrW, _In_ PSOCKADDR_INET lpAddr);
+namespace Network {
 
-}; //namespace MXHelpers
+HRESULT GetLocalIpAddresses(_Out_ TArrayListWithFree<LPCWSTR> &cStrListW, _In_ int nFlags);
+HRESULT FormatIpAddress(_Out_ CStringW &cStrW, _In_ PSOCKADDR_INET lpAddr);
+
+}; //namespace Network
+
+}; //namespace MX
+
 
 //-----------------------------------------------------------
 

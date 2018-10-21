@@ -11,7 +11,7 @@
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
 namespace CrashReport {
 
@@ -20,7 +20,7 @@ BOOL HandleCrashDump(_In_z_ LPCWSTR szModuleNameW);
 
 }; //namespace CrashReport
 
-}; //namespace MXHelpers
+}; //namespace MX
 
 //-----------------------------------------------------------
 

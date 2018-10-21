@@ -15,11 +15,11 @@ static MX::CWindowsMutex cSingleInstanceMutex;
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
 HRESULT SingleInstanceCheck(_In_z_ LPCWSTR szNameW)
 {
-  MX::CStringW cStrTempW;
+  CStringW cStrTempW;
   Fnv64_t nHash;
   HRESULT hRes;
   BOOL b;
@@ -29,7 +29,7 @@ HRESULT SingleInstanceCheck(_In_z_ LPCWSTR szNameW)
   if (*szNameW == 0)
     return E_INVALIDARG;
   //check for single instance
-  nHash = fnv_64a_buf(szNameW, MX::StrLenW(szNameW) * sizeof(WCHAR), FNV1A_64_INIT);
+  nHash = fnv_64a_buf(szNameW, StrLenW(szNameW) * sizeof(WCHAR), FNV1A_64_INIT);
   if (cStrTempW.Format(L"%s_%16IX", szNameW, nHash) == FALSE)
     return E_OUTOFMEMORY;
   hRes = cSingleInstanceMutex.Create((LPCWSTR)cStrTempW, TRUE, NULL, &b);
@@ -39,4 +39,4 @@ HRESULT SingleInstanceCheck(_In_z_ LPCWSTR szNameW)
   return (b == FALSE) ? S_OK : S_FALSE;
 }
 
-}; //namespace MXHelpers
+}; //namespace MX

@@ -12,7 +12,7 @@
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
 class CAutoComInit
 {
@@ -39,7 +39,7 @@ private:
   HRESULT hRes;
 };
 
-}; //namespace MXHelpers
+}; //namespace MX
 
 //-----------------------------------------------------------
 

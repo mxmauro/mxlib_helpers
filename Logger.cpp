@@ -48,14 +48,14 @@ static VOID WriteLogCommon(_In_ BOOL bAddError, _In_ HRESULT hResError, _In_z_ L
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
 namespace EventLogger {
 
 HRESULT Initialize(_In_z_ LPCWSTR szModuleNameW, _In_z_ LPCWSTR szRegistryKeyW, _In_z_ LPCWSTR szRegistryValueW,
                    _In_ DWORD dwDefaultKeepDays)
 {
-  MX::CFastLock cLock(&nMutex);
+  CFastLock cLock(&nMutex);
   HKEY hKeyBase = HKEY_LOCAL_MACHINE;
   HRESULT hRes;
 
@@ -63,20 +63,20 @@ HRESULT Initialize(_In_z_ LPCWSTR szModuleNameW, _In_z_ LPCWSTR szRegistryKeyW, 
     return E_POINTER;
   if (*szModuleNameW == 0 || *szRegistryKeyW == 0 || *szRegistryValueW == 0 || dwDefaultKeepDays < 1)
     return E_INVALIDARG;
-  if (MX::StrNCompareW(szRegistryKeyW, L"HKLM\\", 5, TRUE) == 0)
+  if (StrNCompareW(szRegistryKeyW, L"HKLM\\", 5, TRUE) == 0)
   {
     szRegistryKeyW += 5;
   }
-  else if (MX::StrNCompareW(szRegistryKeyW, L"HKEY_LOCAL_MACHINE\\", 19, TRUE) == 0)
+  else if (StrNCompareW(szRegistryKeyW, L"HKEY_LOCAL_MACHINE\\", 19, TRUE) == 0)
   {
     szRegistryKeyW += 19;
   }
-  else if (MX::StrNCompareW(szRegistryKeyW, L"HKCU\\", 5, TRUE) == 0)
+  else if (StrNCompareW(szRegistryKeyW, L"HKCU\\", 5, TRUE) == 0)
   {
     szRegistryKeyW += 5;
     hKeyBase = HKEY_CURRENT_USER;
   }
-  else if (MX::StrNCompareW(szRegistryKeyW, L"HKEY_CURRENT_USER\\", 18, TRUE) == 0)
+  else if (StrNCompareW(szRegistryKeyW, L"HKEY_CURRENT_USER\\", 18, TRUE) == 0)
   {
     szRegistryKeyW += 18;
     hKeyBase = HKEY_CURRENT_USER;
@@ -89,7 +89,7 @@ HRESULT Initialize(_In_z_ LPCWSTR szModuleNameW, _In_z_ LPCWSTR szRegistryKeyW, 
   if (cStrLogFileNameBaseW.Copy(szModuleNameW) == FALSE)
     return E_OUTOFMEMORY;
   //setup log folder
-  hRes = GetAppDataFolderPath(cStrLogFolderW);
+  hRes = FileRoutines::GetAppDataFolderPath(cStrLogFolderW);
   if (SUCCEEDED(hRes))
   {
     if (cStrLogFolderW.ConcatN(L"Logs\\", 5) == FALSE)
@@ -98,7 +98,7 @@ HRESULT Initialize(_In_z_ LPCWSTR szModuleNameW, _In_z_ LPCWSTR szRegistryKeyW, 
   //get settings from registry
   if (SUCCEEDED(hRes))
   {
-    CWinRegistry cWinReg;
+    CWindowsRegistry cWinReg;
 
     hRes = cWinReg.Open(hKeyBase, szRegistryKeyW);
     if (SUCCEEDED(hRes))
@@ -127,7 +127,7 @@ HRESULT Initialize(_In_z_ LPCWSTR szModuleNameW, _In_z_ LPCWSTR szRegistryKeyW, 
   //register finalizer
   if (SUCCEEDED(hRes))
   {
-    hRes = MX::RegisterFinalizer(&EndLogger, 1);
+    hRes = RegisterFinalizer(&EndLogger, 1);
   }
   //done
   if (FAILED(hRes))
@@ -144,7 +144,7 @@ HRESULT Initialize(_In_z_ LPCWSTR szModuleNameW, _In_z_ LPCWSTR szRegistryKeyW, 
 
 HRESULT Log(_Printf_format_string_ LPCWSTR szFormatW, ...)
 {
-  MX::CFastLock cLock(&nMutex);
+  CFastLock cLock(&nMutex);
   va_list argptr;
   HRESULT hRes;
 
@@ -164,7 +164,7 @@ HRESULT Log(_Printf_format_string_ LPCWSTR szFormatW, ...)
 
 HRESULT LogIfError(_In_ HRESULT hResError, _Printf_format_string_ LPCWSTR szFormatW, ...)
 {
-  MX::CFastLock cLock(&nMutex);
+  CFastLock cLock(&nMutex);
   va_list argptr;
   HRESULT hRes;
 
@@ -187,7 +187,7 @@ HRESULT LogIfError(_In_ HRESULT hResError, _Printf_format_string_ LPCWSTR szForm
 
 HRESULT LogAlways(_In_ HRESULT hResError, _Printf_format_string_ LPCWSTR szFormatW, ...)
 {
-  MX::CFastLock cLock(&nMutex);
+  CFastLock cLock(&nMutex);
   va_list argptr;
   HRESULT hRes;
 
@@ -205,7 +205,7 @@ HRESULT LogAlways(_In_ HRESULT hResError, _Printf_format_string_ LPCWSTR szForma
   return S_OK;
 }
 
-HRESULT GetLogFolder(_Out_ MX::CStringW &_cStrLogFolderW)
+HRESULT GetLogFolder(_Out_ CStringW &_cStrLogFolderW)
 {
   if ((__InterlockedRead(&nInitializedFlags) & LOGFLAG_Initialized) == 0)
     return MX_E_NotReady;
@@ -214,7 +214,7 @@ HRESULT GetLogFolder(_Out_ MX::CStringW &_cStrLogFolderW)
 
 }; //namespace EventLogger
 
-}; //namespace MXHelpers
+}; //namespace MX
 
 //-----------------------------------------------------------
 
@@ -290,7 +290,7 @@ static VOID RemoveOldFiles()
                   if (cStrTempW.Copy((LPCWSTR)cStrLogFolderW) != FALSE &&
                       cStrTempW.Concat(sFindDataW.cFileName) != FALSE)
                   {
-                    MXHelpers::_DeleteFile((LPCWSTR)cStrTempW);
+                    MX::FileRoutines::_DeleteFile((LPCWSTR)cStrTempW);
                   }
                 }
               }
@@ -308,13 +308,13 @@ static VOID RemoveOldFiles()
 static HRESULT OpenLog()
 {
   MX::CStringW cStrTempW, cStrOpSystemW;
-  MXHelpers::CFileVersionInfo cVersionInfo;
+  MX::CFileVersionInfo cVersionInfo;
   WCHAR szBufW[256];
   DWORD dw, dwWritten;
   SYSTEMTIME sSt;
   MEMORYSTATUSEX sMemStatusEx;
 
-  MXHelpers::CreateDirectoryRecursive((LPCWSTR)cStrLogFolderW);
+  MX::FileRoutines::CreateDirectoryRecursive((LPCWSTR)cStrLogFolderW);
   //open/create log file
   ::GetSystemTime(&sSt);
   if (cStrTempW.Format(L"%s%s-%04u%02u%02u.log", (LPCWSTR)cStrLogFolderW, (LPCWSTR)cStrLogFileNameBaseW,
@@ -361,7 +361,7 @@ static HRESULT OpenLog()
   ::WriteFile(cLogH, (LPCWSTR)cStrTempW, (DWORD)(cStrTempW.GetLength() * sizeof(WCHAR)), &dwWritten, NULL);
 
   //write OS version
-  if (SUCCEEDED(MXHelpers::GetOpSystemInfo(cStrTempW)))
+  if (SUCCEEDED(MX::System::GetOpSystemInfo(cStrTempW)))
   {
 #if defined(_M_IX86)
     SYSTEM_INFO sSi;

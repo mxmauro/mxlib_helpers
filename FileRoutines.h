@@ -13,7 +13,9 @@
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
+
+namespace FileRoutines {
 
 typedef enum {
   DontTryDeleteOnReboot,
@@ -21,17 +23,27 @@ typedef enum {
   WaitUntilReboot
 } eDelayedDelete;
 
-HRESULT GetAppFileName(_Inout_ MX::CStringW &cStrDestW);
-HRESULT GetAppFolderPath(_Inout_ MX::CStringW &cStrDestW);
+}; //namespace FileRoutines
+
+}; //namespace MX
+
+//-----------------------------------------------------------
+
+namespace MX {
+
+namespace FileRoutines {
+
+HRESULT GetAppFileName(_Inout_ CStringW &cStrDestW);
+HRESULT GetAppFolderPath(_Inout_ CStringW &cStrDestW);
 
 //IMPORTANT: Passed parameter should exists in entire app's life.
 VOID SetAppDataFolder(_In_z_ LPCWSTR szSubFolderW);
-HRESULT GetAppDataFolderPath(_Inout_ MX::CStringW &cStrDestW);
+HRESULT GetAppDataFolderPath(_Inout_ CStringW &cStrDestW);
 
-HRESULT GetCommonAppDataFolderPath(_Inout_ MX::CStringW &cStrDestW);
-HRESULT GetWindowsPath(_Inout_ MX::CStringW &cStrDestW);
-HRESULT GetWindowsSystemPath(_Inout_ MX::CStringW &cStrDestW);
-HRESULT _GetTempPath(_Inout_ MX::CStringW &cStrDestW);
+HRESULT GetCommonAppDataFolderPath(_Inout_ CStringW &cStrDestW);
+HRESULT GetWindowsPath(_Inout_ CStringW &cStrDestW);
+HRESULT GetWindowsSystemPath(_Inout_ CStringW &cStrDestW);
+HRESULT _GetTempPath(_Inout_ CStringW &cStrDestW);
 
 HRESULT CreateDirectoryRecursive(_In_ LPCWSTR szFolderNameW);
 HRESULT RemoveDirectoryRecursive(_In_ LPCWSTR szFolderNameW, _In_opt_ eDelayedDelete nDD=DontTryDeleteOnReboot);
@@ -39,22 +51,24 @@ HRESULT RemoveDirectoryRecursive(_In_ LPCWSTR szFolderNameW, _In_opt_ eDelayedDe
 HRESULT _DeleteFile(_In_ LPCWSTR szFileNameW, _In_opt_ eDelayedDelete nDD=DontTryDeleteOnReboot);
 HRESULT DeleteDirectoryFiles(_In_ LPCWSTR szFolderNameW, _In_opt_ eDelayedDelete nDD=DontTryDeleteOnReboot);
 
-VOID NormalizePath(_Inout_ MX::CStringW &cStrPathW);
+VOID NormalizePath(_Inout_ CStringW &cStrPathW);
 
-HRESULT ConvertToLongPath(_Inout_ MX::CStringW &cStrPathW);
+HRESULT ConvertToLongPath(_Inout_ CStringW &cStrPathW);
 
-HRESULT ConvertToNative(_Inout_ MX::CStringW &cStrPathW);
-HRESULT ConvertToWin32(_Inout_ MX::CStringW &cStrPathW);
-HRESULT DeviceName2DosName(_Inout_ MX::CStringW &cStrPathW);
+HRESULT ConvertToNative(_Inout_ CStringW &cStrPathW);
+HRESULT ConvertToWin32(_Inout_ CStringW &cStrPathW);
+HRESULT DeviceName2DosName(_Inout_ CStringW &cStrPathW);
 
-HRESULT ResolveSymbolicLink(_Inout_ MX::CStringW &cStrPathW);
+HRESULT ResolveSymbolicLink(_Inout_ CStringW &cStrPathW);
 
 //Returned filename is in NT format
-HRESULT GetFileNameFromHandle(_In_ HANDLE hFile, _Inout_ MX::CStringW &cStrFileNameW);
+HRESULT GetFileNameFromHandle(_In_ HANDLE hFile, _Inout_ CStringW &cStrFileNameW);
 
 HRESULT OpenFileWithEscalatingSharing(_In_z_ LPCWSTR szFileNameW, _Out_ HANDLE *lphFile);
 
-}; //MXHelpers
+}; //namespace FileRoutines
+
+}; //namespace MX
 
 //-----------------------------------------------------------
 

@@ -2,7 +2,7 @@
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
 CSid::CSid()
 {
@@ -29,10 +29,10 @@ HRESULT CSid::Set(_In_ PSID lpSid)
   if (::IsValidSid(lpSid) == FALSE)
     return E_INVALIDARG;
   dwLength = ::GetLengthSid(lpSid);
-  cSid.Attach((LPBYTE)MX::MemAlloc((SIZE_T)dwLength));
+  cSid.Attach((LPBYTE)MemAlloc((SIZE_T)dwLength));
   if (!cSid)
     return E_OUTOFMEMORY;
-  MX::MemCopy(cSid.Get(), lpSid, (SIZE_T)dwLength);
+  MemCopy(cSid.Get(), lpSid, (SIZE_T)dwLength);
   return S_OK;
 }
 
@@ -53,13 +53,13 @@ HRESULT CSid::Set(_In_z_ LPCWSTR szAccountNameOrSidStringW)
     if (::ConvertStringSidToSidW(szAccountNameOrSidStringW, &lpSid) == FALSE)
       return MX_HRESULT_FROM_LASTERROR();
     dwLength = ::GetLengthSid(lpSid);
-    cSid.Attach((LPBYTE)MX::MemAlloc((SIZE_T)dwLength));
+    cSid.Attach((LPBYTE)MemAlloc((SIZE_T)dwLength));
     if (!cSid)
     {
       ::LocalFree(lpSid);
       return E_OUTOFMEMORY;
     }
-    MX::MemCopy(cSid.Get(), lpSid, (SIZE_T)dwLength);
+    MemCopy(cSid.Get(), lpSid, (SIZE_T)dwLength);
     ::LocalFree(lpSid);
   }
   else
@@ -73,24 +73,24 @@ HRESULT CSid::Set(_In_z_ LPCWSTR szAccountNameOrSidStringW)
     dwUserSidLen = dwReferencedDomainLen = 0;
     ::LookupAccountNameW(NULL, szAccountNameOrSidStringW, NULL, &dwUserSidLen, NULL, &dwReferencedDomainLen,
                          &nSidNameUse);
-    lpUserSid = (PSID)MX::MemAlloc((SIZE_T)dwUserSidLen);
+    lpUserSid = (PSID)MemAlloc((SIZE_T)dwUserSidLen);
     if (lpUserSid == NULL)
       return E_OUTOFMEMORY;
-    szReferencedDomainW = (LPWSTR)MX::MemAlloc((SIZE_T)dwReferencedDomainLen * sizeof(WCHAR));
+    szReferencedDomainW = (LPWSTR)MemAlloc((SIZE_T)dwReferencedDomainLen * sizeof(WCHAR));
     if (szReferencedDomainW == NULL)
     {
-      MX::MemFree(lpUserSid);
+      MemFree(lpUserSid);
       return E_OUTOFMEMORY;
     }
     if (::LookupAccountNameW(NULL, szAccountNameOrSidStringW, lpUserSid, &dwUserSidLen, szReferencedDomainW,
                              &dwReferencedDomainLen, &nSidNameUse) == FALSE)
     {
       hRes = MX_HRESULT_FROM_LASTERROR();
-      MX::MemFree(szReferencedDomainW);
-      MX::MemFree(lpUserSid);
+      MemFree(szReferencedDomainW);
+      MemFree(lpUserSid);
       return hRes;
     }
-    MX::MemFree(szReferencedDomainW);
+    MemFree(szReferencedDomainW);
     cSid.Attach((LPBYTE)lpUserSid);
   }
   return S_OK;
@@ -100,20 +100,20 @@ BOOL CSid::operator==(_In_ PSID lpSid) const
 {
   if (lpSid != NULL && cSid)
   {
-    PSID _sid = (SID*)(const_cast<MX::TAutoFreePtr<BYTE>&>(cSid).Get());
+    PSID _sid = (SID*)(const_cast<TAutoFreePtr<BYTE>&>(cSid).Get());
     DWORD dw;
 
     dw = ::GetLengthSid(lpSid);
     if (dw != ::GetLengthSid(_sid))
       return FALSE;
-    return (MX::MemCompare(lpSid, _sid, (SIZE_T)dw) == 0) ? TRUE : FALSE;
+    return (MemCompare(lpSid, _sid, (SIZE_T)dw) == 0) ? TRUE : FALSE;
   }
   return ((!lpSid) && (!cSid)) ? TRUE : FALSE;
 }
 
 HRESULT CSid::FromToken(_In_ HANDLE hToken)
 {
-  MX::TAutoFreePtr<TOKEN_USER> cTokenInfo;
+  TAutoFreePtr<TOKEN_USER> cTokenInfo;
   DWORD dwLength;
   HRESULT hRes;
 
@@ -127,7 +127,7 @@ HRESULT CSid::FromToken(_In_ HANDLE hToken)
       return hRes;
   }
   //----
-  cTokenInfo.Attach((PTOKEN_USER)MX::MemAlloc((DWORD)dwLength));
+  cTokenInfo.Attach((PTOKEN_USER)MemAlloc((DWORD)dwLength));
   if (!cTokenInfo)
     return E_OUTOFMEMORY;
   if (::GetTokenInformation(hToken, TokenUser, cTokenInfo.Get(), dwLength, &dwLength) == FALSE)
@@ -244,7 +244,7 @@ HRESULT CSid::FromThreadId(_In_ DWORD dwTid)
 HRESULT CSid::SetCurrentUserSid()
 {
   HANDLE hToken;
-  MX::TAutoFreePtr<TOKEN_USER> cTokenInfo;
+  TAutoFreePtr<TOKEN_USER> cTokenInfo;
   DWORD dwLength;
   HRESULT hRes;
 
@@ -265,7 +265,7 @@ HRESULT CSid::SetCurrentUserSid()
     }
   }
 
-  cTokenInfo.Attach((PTOKEN_USER)MX::MemAlloc((DWORD)dwLength));
+  cTokenInfo.Attach((PTOKEN_USER)MemAlloc((DWORD)dwLength));
   if (cTokenInfo)
   {
     if (::GetTokenInformation(hToken, TokenUser, cTokenInfo.Get(), dwLength, &dwLength) == FALSE)
@@ -281,41 +281,6 @@ HRESULT CSid::SetCurrentUserSid()
   return hRes;
 }
 
-
-
-HRESULT GetCurrentProcessUserSid(_Inout_ MX::CStringW &cStrUserSidW)
-{
-  MX::CWindowsHandle cToken;
-  MX::TAutoFreePtr<TOKEN_USER> cTokUser;
-  LPWSTR szSidW;
-  DWORD dwSize;
-  HRESULT hRes;
-
-  cStrUserSidW.Empty();
-  if (::OpenProcessToken(::GetCurrentProcess(), TOKEN_QUERY, &cToken) == FALSE)
-    return MX_HRESULT_FROM_LASTERROR();
-  dwSize = 0;
-  if (::GetTokenInformation(cToken, TokenUser, NULL, 0, &dwSize) == FALSE)
-  {
-    hRes = MX_HRESULT_FROM_LASTERROR();
-    if (hRes != MX_HRESULT_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER))
-      return hRes;
-  }
-  cTokUser.Attach((PTOKEN_USER)MX::MemAlloc((SIZE_T)dwSize));
-  if (!cTokUser)
-    return E_OUTOFMEMORY;
-  if (::GetTokenInformation(cToken, TokenUser, cTokUser.Get(), dwSize, &dwSize) == FALSE)
-    return MX_HRESULT_FROM_LASTERROR();
-  szSidW = NULL;
-  if (::ConvertSidToStringSidW(cTokUser->User.Sid, &szSidW) == FALSE)
-    return MX_HRESULT_FROM_LASTERROR();
-  hRes = (cStrUserSidW.Copy(szSidW) != FALSE) ? S_OK : E_OUTOFMEMORY;
-  ::LocalFree((HLOCAL)szSidW);
-  return hRes;
-}
-
-
-
 HRESULT CSid::SetWellKnownAccount(_In_ WELL_KNOWN_SID_TYPE nSidType)
 {
   BYTE aLocalSid[SECURITY_MAX_SID_SIZE];
@@ -327,7 +292,7 @@ HRESULT CSid::SetWellKnownAccount(_In_ WELL_KNOWN_SID_TYPE nSidType)
   return Set((PSID)aLocalSid);
 }
 
-HRESULT CSid::GetStringSid(_Inout_ MX::CStringW &cStrSidW)
+HRESULT CSid::GetStringSid(_Inout_ CStringW &cStrSidW)
 {
   cStrSidW.Empty();
   if (cSid)
@@ -346,9 +311,9 @@ HRESULT CSid::GetStringSid(_Inout_ MX::CStringW &cStrSidW)
   return S_OK;
 }
 
-HRESULT CSid::GetAccountName(_Inout_ MX::CStringW &cStrNameW, _In_opt_ MX::CStringW *lpStrDomainW)
+HRESULT CSid::GetAccountName(_Inout_ CStringW &cStrNameW, _In_opt_ CStringW *lpStrDomainW)
 {
-  MX::CStringW cStrTempDomainW;
+  CStringW cStrTempDomainW;
   DWORD dwNameLength, dwDomainLength;
   SID_NAME_USE nSidNameUse;
   HRESULT hRes;
@@ -401,7 +366,7 @@ BOOL CSid::IsAnyWellKnownSid() const
   //and checked for values here: https://msdn.microsoft.com/en-us/library/cc980032.aspx
   if (!cSid)
     return FALSE;
-  _sid = (SID*)(const_cast<MX::TAutoFreePtr<BYTE>&>(cSid).Get());
+  _sid = (SID*)(const_cast<TAutoFreePtr<BYTE>&>(cSid).Get());
   if (_sid->Revision != 1)
     return TRUE;
   if (MAKELONG(MAKEWORD(_sid->IdentifierAuthority.Value[5], _sid->IdentifierAuthority.Value[4]),
@@ -416,7 +381,7 @@ BOOL CSid::IsWellKnownSid(_In_ WELL_KNOWN_SID_TYPE nSidType) const
 {
   if (!cSid)
     return FALSE;
-  return ::IsWellKnownSid((PSID)(const_cast<MX::TAutoFreePtr<BYTE>&>(cSid).Get()), nSidType) ? TRUE : FALSE;
+  return ::IsWellKnownSid((PSID)(const_cast<TAutoFreePtr<BYTE>&>(cSid).Get()), nSidType) ? TRUE : FALSE;
 }
 
-}; //MXHelpers
+}; //MX

@@ -13,7 +13,7 @@
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
 namespace Signatures {
 
@@ -25,11 +25,11 @@ typedef struct tagHASHES {
 
 } //namespace Signatures
 
-} //namespace MXHelpers
+} //namespace MX
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
 namespace Signatures {
 
@@ -42,7 +42,7 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hProcess, _
                        _Out_ PFILETIME lpTimeStamp, _In_opt_ BOOL bIgnoreCache = FALSE);
 VOID FreeCertificate(_In_opt_ PCERT_CONTEXT lpCertCtx);
 
-HRESULT GetCertificateName(_In_ PCERT_CONTEXT lpCertCtx, DWORD dwType, _Inout_ MX::CStringW &cStrNameW,
+HRESULT GetCertificateName(_In_ PCERT_CONTEXT lpCertCtx, DWORD dwType, _Inout_ CStringW &cStrNameW,
                            _In_opt_ BOOL bFromIssuer=FALSE);
 HRESULT GetCertificateSerialNumber(_In_ PCERT_CONTEXT lpCertCtx, _Out_ LPBYTE *lplpSerialNumber,
                                    _Out_ PSIZE_T lpnSerialNumberLength);
@@ -51,7 +51,7 @@ HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _Out_ LPHASHES lpHashes, _In
 
 } //namespace Signatures
 
-} //namespace MXHelpers
+} //namespace MX
 
 //-----------------------------------------------------------
 

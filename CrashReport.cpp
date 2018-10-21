@@ -44,7 +44,7 @@ static HANDLE CreateDumpFile(_In_z_ LPCWSTR szBaseFileNameW);
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
 namespace CrashReport {
 
@@ -58,7 +58,7 @@ VOID Initialize()
 
 BOOL HandleCrashDump(_In_z_ LPCWSTR szModuleNameW)
 {
-  MX::CStringW cStrBaseFileNameW;
+  CStringW cStrBaseFileNameW;
   LPCWSTR sW;
   HANDLE hProc;
   LPCRASHINFO lpCrashInfo;
@@ -94,7 +94,7 @@ BOOL HandleCrashDump(_In_z_ LPCWSTR szModuleNameW)
     }
   }
 
-  if (MX::StrNCompareW(sW, L"/crash:", 7) != 0)
+  if (StrNCompareW(sW, L"/crash:", 7) != 0)
     return FALSE; //not a crash handler
   sW += 7;
 
@@ -109,11 +109,11 @@ BOOL HandleCrashDump(_In_z_ LPCWSTR szModuleNameW)
   if (cStrBaseFileNameW.Copy(szModuleNameW) == FALSE)
     return TRUE; //error (handled)
   //setup log folder
-  if (FAILED(MXHelpers::GetAppDataFolderPath(cStrBaseFileNameW)))
+  if (FAILED(MX::FileRoutines::GetAppDataFolderPath(cStrBaseFileNameW)))
     return TRUE; //error (handled)
   if (cStrBaseFileNameW.AppendFormat(L"Dumps\\%s\\", szModuleNameW) == FALSE)
     return TRUE; //error (handled)
-  MXHelpers::NormalizePath(cStrBaseFileNameW);
+  MX::FileRoutines::NormalizePath(cStrBaseFileNameW);
 
   //read crash info data
   if (::ReadProcessMemory(hProc, lpCrashInfo, &sLocalCrashInfo, sizeof(sLocalCrashInfo), NULL) == FALSE)
@@ -130,7 +130,7 @@ BOOL HandleCrashDump(_In_z_ LPCWSTR szModuleNameW)
     {
       HANDLE hFile;
 
-      MXHelpers::CreateDirectoryRecursive((LPCWSTR)cStrBaseFileNameW);
+      MX::FileRoutines::CreateDirectoryRecursive((LPCWSTR)cStrBaseFileNameW);
 
       CleanupDumpFolder((LPCWSTR)cStrBaseFileNameW);
 
@@ -159,7 +159,7 @@ BOOL HandleCrashDump(_In_z_ LPCWSTR szModuleNameW)
 
 }; //namespace CrashReport
 
-}; //namespace MXHelpers
+}; //namespace MX
 
 //-----------------------------------------------------------
 
@@ -200,7 +200,6 @@ static BOOL GetParamValue(_Inout_ LPCWSTR &sW, _Out_ LPVOID *lplpValue, _In_ WCH
   return TRUE;
 }
 
-
 static LONG WINAPI OnUnhandledExceptionFilter(_In_ PEXCEPTION_POINTERS ExceptionInfo)
 {
   HANDLE hProcDup;
@@ -216,7 +215,7 @@ static LONG WINAPI OnUnhandledExceptionFilter(_In_ PEXCEPTION_POINTERS Exception
     sCrashInfo.dwTid = ::GetCurrentThreadId();
     sCrashInfo.ExceptionInfo = ExceptionInfo;
 
-    if (SUCCEEDED(MXHelpers::GetAppFileName(cStrNameW)) &&
+    if (SUCCEEDED(MX::FileRoutines::GetAppFileName(cStrNameW)) &&
         cStrNameW.InsertN(L"\"", 0, 1) != FALSE &&
         cStrNameW.AppendFormat(L"\" /crash:0x%p,0x%p", hProcDup, &sCrashInfo) != FALSE)
     {
@@ -276,7 +275,7 @@ loop:
   {
     if (cStrFileNameW.Copy(szBaseFileNameW) == FALSE || cStrFileNameW.Concat(szLowerFileNameW) == FALSE)
       return;
-    if (FAILED(MXHelpers::_DeleteFile((LPCWSTR)cStrFileNameW)))
+    if (FAILED(MX::FileRoutines::_DeleteFile((LPCWSTR)cStrFileNameW)))
       return;
     dwCount--;
   }

@@ -15,9 +15,9 @@
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
-class CSid : public virtual MX::CBaseMemObj
+class CSid : public virtual CBaseMemObj
 {
   MX_DISABLE_COPY_CONSTRUCTOR(CSid);
 public:
@@ -40,10 +40,10 @@ public:
   HRESULT SetCurrentUserSid();
   HRESULT SetWellKnownAccount(_In_ WELL_KNOWN_SID_TYPE nSidType);
 
-  HRESULT GetStringSid(_Inout_ MX::CStringW &cStrSidW);
-  HRESULT GetAccountName(_Inout_ MX::CStringW &cStrNameW, _In_opt_ MX::CStringW *lpStrDomainW=NULL);
+  HRESULT GetStringSid(_Inout_ CStringW &cStrSidW);
+  HRESULT GetAccountName(_Inout_ CStringW &cStrNameW, _In_opt_ CStringW *lpStrDomainW=NULL);
 
-  HRESULT GetCompatibleSidString(_Inout_ MX::CStringW &cStrNameOrSidW, _In_opt_ MX::CStringW *lpStrDomainW)
+  HRESULT GetCompatibleSidString(_Inout_ CStringW &cStrNameOrSidW, _In_opt_ CStringW *lpStrDomainW)
     {
     if (lpStrDomainW != NULL)
       lpStrDomainW->Empty();
@@ -52,7 +52,7 @@ public:
 
   operator PSID() const
     {
-    return (PSID)(const_cast<MX::TAutoFreePtr<BYTE>&>(cSid).Get());
+    return (PSID)(const_cast<TAutoFreePtr<BYTE>&>(cSid).Get());
     };
 
   BOOL IsAnyWellKnownSid() const;
@@ -60,7 +60,7 @@ public:
   BOOL IsWellKnownSid(_In_ WELL_KNOWN_SID_TYPE nSidType) const;
 
 private:
-  MX::TAutoFreePtr<BYTE> cSid;
+  TAutoFreePtr<BYTE> cSid;
 };
 
 }; //MXHelpers

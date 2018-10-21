@@ -4,8 +4,8 @@
 *
 **/
 
-#ifndef _WINREGISTRY_H
-#define _WINREGISTRY_H
+#ifndef _MXLIBHLP_WINDOWS_REGISTRY_H
+#define _MXLIBHLP_WINDOWS_REGISTRY_H
 
 #include <Defines.h>
 #include <Windows.h>
@@ -17,13 +17,13 @@
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
-class CWinRegistry : public virtual MX::CBaseMemObj
+class CWindowsRegistry : public virtual CBaseMemObj
 {
 public:
-  CWinRegistry();
-  ~CWinRegistry();
+  CWindowsRegistry();
+  ~CWindowsRegistry();
 
   HRESULT Create(_In_ HKEY hParentKey, _In_z_ LPCWSTR szSubKeyW);
   HRESULT Create(_In_ HKEY hParentKey, _In_ PUNICODE_STRING SubKey);
@@ -78,8 +78,8 @@ private:
   HKEY hKey;
 };
 
-}; //namespace MXHelpers
+}; //namespace MX
 
 //-----------------------------------------------------------
 
-#endif //_WINREGISTRY_H
+#endif //_MXLIBHLP_WINDOWS_REGISTRY_H

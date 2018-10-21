@@ -12,9 +12,9 @@
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
-class CServiceManager : public virtual MX::CBaseMemObj
+class CServiceManager : public virtual CBaseMemObj
 {
 public:
   typedef enum {
@@ -52,7 +52,7 @@ private:
   SC_HANDLE hServMgr, hServ;
 };
 
-}; //namespace MXHelpers
+}; //namespace MX
 
 //-----------------------------------------------------------
 

@@ -15,9 +15,9 @@
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
-class CLightJSonBuilder : public MX::CBaseMemObj
+class CLightJSonBuilder : public CBaseMemObj
 {
 public:
   CLightJSonBuilder();
@@ -58,19 +58,19 @@ public:
     return (LPCSTR)cStrJsonA;
     };
 
-  static BOOL EscapeString(_Inout_ MX::CStringA &cStrA, _In_ LPCWSTR szValueW, _In_ SIZE_T nValueLen,
+  static BOOL EscapeString(_Inout_ CStringA &cStrA, _In_ LPCWSTR szValueW, _In_ SIZE_T nValueLen,
                            _In_opt_ BOOL bAppend = FALSE);
 
 private:
   BOOL AddEscapedString(_In_ LPCWSTR szValueW, _In_ SIZE_T nValueLen);
 
 private:
-  MX::CStringA cStrJsonA;
-  MX::TArrayList<BYTE> aNestedTypes;
+  CStringA cStrJsonA;
+  TArrayList<BYTE> aNestedTypes;
   BOOL bIsFirstItem;
 };
 
-}; //namespace MXHelpers
+}; //namespace MX
 
 //-----------------------------------------------------------
 

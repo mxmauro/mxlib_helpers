@@ -12,11 +12,13 @@
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
+
+namespace MemoryPackage {
 
 namespace Internals {
 
-class CFileStream : public MX::CStream
+class CFileStream : public CStream
 {
   MX_DISABLE_COPY_CONSTRUCTOR(CFileStream);
 private:
@@ -24,11 +26,11 @@ private:
 
 public:
   HRESULT Read(_Out_writes_bytes_(nRead) LPVOID lpDest, _In_ SIZE_T nBytes, _Out_ SIZE_T &nRead,
-               _In_opt_ ULONGLONG nStartOffset=ULONGLONG_MAX);
+               _In_opt_ ULONGLONG nStartOffset = ULONGLONG_MAX);
   HRESULT Write(_In_reads_bytes_(nBytes) LPCVOID lpSrc, _In_ SIZE_T nBytes, _Out_ SIZE_T &nWritten,
-                _In_opt_ ULONGLONG nStartOffset=ULONGLONG_MAX);
+                _In_opt_ ULONGLONG nStartOffset = ULONGLONG_MAX);
 
-  HRESULT Seek(_In_ ULONGLONG nPosition, _In_opt_ eSeekMethod nMethod=SeekStart);
+  HRESULT Seek(_In_ ULONGLONG nPosition, _In_opt_ eSeekMethod nMethod = SeekStart);
 
   ULONGLONG GetLength() const;
 
@@ -42,18 +44,20 @@ private:
   } sCompressedData;
   ULONGLONG nOffset, nUncompressedSize;
   ULONGLONG nFileHash;
-  MX::TAutoDeletePtr<MX::CZipLib> cDecompressor;
+  TAutoDeletePtr<CZipLib> cDecompressor;
 };
 
 }; //namespace Internals
 
-}; //namespace MXHelpers
+}; //namespace MemoryPackage
+
+}; //namespace MX
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
-CMemoryPackage::CMemoryPackage() : MX::CBaseMemObj()
+CMemoryPackage::CMemoryPackage() : CBaseMemObj()
 {
   return;
 }
@@ -66,7 +70,7 @@ CMemoryPackage::~CMemoryPackage()
 
 HRESULT CMemoryPackage::OpenPackage(_In_ LPCVOID lpData, _In_ SIZE_T nDataSize, _In_ ULONGLONG nPasswordHash)
 {
-  MX::TAutoFreePtr<FILEITEM> cFileItem;
+  TAutoFreePtr<FILEITEM> cFileItem;
   DWORD dwFilesCount, dwFileDataOffset, dwFileSize, dwNameLength;
   ULONGLONG nHeaderHash[2];
   LPWSTR szCurrFileNameW = NULL;
@@ -116,7 +120,7 @@ HRESULT CMemoryPackage::OpenPackage(_In_ LPCVOID lpData, _In_ SIZE_T nDataSize, 
       else if (nAvailable > 0)
       {
         ullValue = 0ui64;
-        MX::MemCopy(aByteValues, p, nAvailable);
+        MemCopy(aByteValues, p, nAvailable);
         p += nAvailable;
       }
       else
@@ -241,10 +245,10 @@ VOID CMemoryPackage::ClosePackage()
   return;
 }
 
-HRESULT CMemoryPackage::GetStream(_In_z_ LPCWSTR szFileNameW, __deref_out MX::CStream **lplpStream)
+HRESULT CMemoryPackage::GetStream(_In_z_ LPCWSTR szFileNameW, __deref_out CStream **lplpStream)
 {
-  MX::CStringW cStrFileNameW;
-  Internals::CFileStream *lpFileStream;
+  CStringW cStrFileNameW;
+  MemoryPackage::Internals::CFileStream *lpFileStream;
   FILEITEM sFileItem, *lpFileItem;
   LPVOID lpPtr;
 
@@ -285,7 +289,7 @@ HRESULT CMemoryPackage::GetStream(_In_z_ LPCWSTR szFileNameW, __deref_out MX::CS
     return MX_E_FileNotFound;
   lpFileItem = *((FILEITEM**)lpPtr);
   //create stream
-  lpFileStream = MX_DEBUG_NEW Internals::CFileStream();
+  lpFileStream = MX_DEBUG_NEW MemoryPackage::Internals::CFileStream();
   if (lpFileStream == NULL)
     return E_OUTOFMEMORY;
   lpFileStream->sCompressedData.lpStart = lpFileItem->lpCompressedData;
@@ -299,19 +303,21 @@ HRESULT CMemoryPackage::GetStream(_In_z_ LPCWSTR szFileNameW, __deref_out MX::CS
 
 int CMemoryPackage::FileItemCompare(void *lpContext, const FILEITEM **lplpItem1, const FILEITEM **lplpItem2)
 {
-  return MX::StrCompareW((*lplpItem1)->szNameW, (*lplpItem2)->szNameW, TRUE);
+  return StrCompareW((*lplpItem1)->szNameW, (*lplpItem2)->szNameW, TRUE);
 }
 
 int CMemoryPackage::FileItemSearch(void *lpContext, const FILEITEM **lplpItem1, const FILEITEM **lplpItem2)
 {
-  return MX::StrCompareW((*lplpItem1)->szSearchNameW, (*lplpItem2)->szNameW, TRUE);
+  return StrCompareW((*lplpItem1)->szSearchNameW, (*lplpItem2)->szNameW, TRUE);
 }
 
-}; //namespace MXHelpers
+}; //namespace MX
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
+
+namespace MemoryPackage {
 
 namespace Internals {
 
@@ -523,4 +529,6 @@ ULONGLONG CFileStream::GetLength() const
 
 }; //namespace Internals
 
-}; //namespace MXHelpers
+}; //namespace MemoryPackage
+
+}; //namespace MX

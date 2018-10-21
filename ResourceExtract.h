@@ -14,16 +14,19 @@
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
-HRESULT ExtractResourceToFile(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _In_ LPCWSTR szResTypeW,
-                              _In_ HANDLE hFile);
-HRESULT ExtractResourceToMemory(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _In_ LPCWSTR szResTypeW,
-                                _Outptr_result_maybenull_ LPBYTE *lplpDest, _Out_ SIZE_T *lpnDestSize);
-HRESULT ExtractResourceToStream(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _In_ LPCWSTR szResTypeW,
-                                _COM_Outptr_opt_result_maybenull_ MX::CMemoryStream **lplpStream);
+namespace PEResource {
 
-}; //namespace MXHelpers
+HRESULT ExtractToFile(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _In_ LPCWSTR szResTypeW, _In_ HANDLE hFile);
+HRESULT ExtractToMemory(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _In_ LPCWSTR szResTypeW,
+                        _Outptr_result_maybenull_ LPBYTE *lplpDest, _Out_ SIZE_T *lpnDestSize);
+HRESULT ExtractToStream(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _In_ LPCWSTR szResTypeW,
+                        _COM_Outptr_opt_result_maybenull_ MX::CMemoryStream **lplpStream);
+
+}; //namespace PEResource
+
+}; //namespace MX
 
 //-----------------------------------------------------------
 

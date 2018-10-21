@@ -11,9 +11,9 @@ static VS_FIXEDFILEINFO sNoFixedInfo = { 0 };
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
-CFileVersionInfo::CFileVersionInfo() : MX::CBaseMemObj()
+CFileVersionInfo::CFileVersionInfo() : CBaseMemObj()
 {
   lpFfi = &sNoFixedInfo;
   lpTranslationBlock = NULL;
@@ -23,10 +23,10 @@ CFileVersionInfo::CFileVersionInfo() : MX::CBaseMemObj()
 
 HRESULT CFileVersionInfo::InitializeFromFileName(_In_z_ LPCWSTR szFileNameW)
 {
-  CPeParser cPeParser;
+  CPEParser cPeParser;
   HRESULT hRes;
 
-  hRes = cPeParser.InitializeFromFileName(szFileNameW, MXLIBHLP_PEPARSER_FLAG_ParseResources);
+  hRes = cPeParser.InitializeFromFileName(szFileNameW, MX_PEPARSER_FLAG_ParseResources);
   if (SUCCEEDED(hRes))
     hRes = AnalyzeVersionInfo(&cPeParser);
   return hRes;
@@ -34,10 +34,10 @@ HRESULT CFileVersionInfo::InitializeFromFileName(_In_z_ LPCWSTR szFileNameW)
 
 HRESULT CFileVersionInfo::InitializeFromFileHandle(_In_ HANDLE hFile)
 {
-  CPeParser cPeParser;
+  CPEParser cPeParser;
   HRESULT hRes;
 
-  hRes = cPeParser.InitializeFromFileHandle(hFile, MXLIBHLP_PEPARSER_FLAG_ParseResources);
+  hRes = cPeParser.InitializeFromFileHandle(hFile, MX_PEPARSER_FLAG_ParseResources);
   if (SUCCEEDED(hRes))
     hRes = AnalyzeVersionInfo(&cPeParser);
   return hRes;
@@ -45,10 +45,10 @@ HRESULT CFileVersionInfo::InitializeFromFileHandle(_In_ HANDLE hFile)
 
 HRESULT CFileVersionInfo::InitializeFromProcessHandle(_In_opt_ HANDLE hProc)
 {
-  CPeParser cPeParser;
+  CPEParser cPeParser;
   HRESULT hRes;
 
-  hRes = cPeParser.InitializeFromProcessHandle(hProc, MXLIBHLP_PEPARSER_FLAG_ParseResources);
+  hRes = cPeParser.InitializeFromProcessHandle(hProc, MX_PEPARSER_FLAG_ParseResources);
   if (SUCCEEDED(hRes))
     hRes = AnalyzeVersionInfo(&cPeParser);
   return hRes;
@@ -64,7 +64,7 @@ WORD CFileVersionInfo::GetCharset(_In_opt_ SIZE_T nIndex) const
   return (nIndex < nTranslationBlocksCount) ? lpTranslationBlock[nIndex].wCharSet : 0;
 }
 
-HRESULT CFileVersionInfo::GetString(_In_z_ LPCWSTR szFieldW, _Inout_ MX::CStringW &cStrW, _In_opt_ SIZE_T nLangIndex)
+HRESULT CFileVersionInfo::GetString(_In_z_ LPCWSTR szFieldW, _Inout_ CStringW &cStrW, _In_opt_ SIZE_T nLangIndex)
 {
   WCHAR szStrFileInfoW[256];
   LPCWSTR sW;
@@ -73,7 +73,7 @@ HRESULT CFileVersionInfo::GetString(_In_z_ LPCWSTR szFieldW, _Inout_ MX::CString
   cStrW.Empty();
   if (szFieldW == NULL)
     return E_POINTER;
-  if (*szFieldW == 0 || MX::StrLenW(szFieldW) > 128 || nLangIndex >= nTranslationBlocksCount)
+  if (*szFieldW == 0 || StrLenW(szFieldW) > 128 || nLangIndex >= nTranslationBlocksCount)
     return E_INVALIDARG;
   _snwprintf_s(szStrFileInfoW, _countof(szStrFileInfoW), _TRUNCATE, L"\\StringFileInfo\\%04X%04X\\%s",
                lpTranslationBlock[nLangIndex].wLang, lpTranslationBlock[nLangIndex].wCharSet, szFieldW);
@@ -112,7 +112,7 @@ MX_UNICODE_STRING CFileVersionInfo::GetString(_In_z_ LPCWSTR szFieldW, _In_opt_ 
   PWSTR sW;
   UINT nLen, nMaxLen;
 
-  if (szFieldW != NULL && *szFieldW != 0 && MX::StrLenW(szFieldW) <= 128 && nLangIndex < nTranslationBlocksCount)
+  if (szFieldW != NULL && *szFieldW != 0 && StrLenW(szFieldW) <= 128 && nLangIndex < nTranslationBlocksCount)
   {
     _snwprintf_s(szStrFileInfoW, _countof(szStrFileInfoW), _TRUNCATE, L"\\StringFileInfo\\%04X%04X\\%s",
                  lpTranslationBlock[nLangIndex].wLang, lpTranslationBlock[nLangIndex].wCharSet, szFieldW);
@@ -134,7 +134,7 @@ MX_UNICODE_STRING CFileVersionInfo::GetString(_In_z_ LPCWSTR szFieldW, _In_opt_ 
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
-      MX::MemSet(&usRes, 0, sizeof(usRes));
+      MemSet(&usRes, 0, sizeof(usRes));
     }
   }
   //done
@@ -143,7 +143,7 @@ MX_UNICODE_STRING CFileVersionInfo::GetString(_In_z_ LPCWSTR szFieldW, _In_opt_ 
 
 HRESULT CFileVersionInfo::AnalyzeVersionInfo(_In_ LPVOID _lpPeParser)
 {
-  CPeParser *lpPeParser = (CPeParser*)_lpPeParser;
+  CPEParser *lpPeParser = (CPEParser*)_lpPeParser;
   UINT nLen;
 
   if (lpPeParser->GetVersionInfoSize() > 0)
@@ -151,7 +151,7 @@ HRESULT CFileVersionInfo::AnalyzeVersionInfo(_In_ LPVOID _lpPeParser)
     cVersionInfo.Attach((LPBYTE)MX_MALLOC(lpPeParser->GetVersionInfoSize()));
     if (!cVersionInfo)
       return E_OUTOFMEMORY;
-    MX::MemCopy(cVersionInfo.Get(), lpPeParser->GetVersionInfo(), lpPeParser->GetVersionInfoSize());
+    MemCopy(cVersionInfo.Get(), lpPeParser->GetVersionInfo(), lpPeParser->GetVersionInfoSize());
     __try
     {
       if (::VerQueryValueW(cVersionInfo.Get(), L"\\", (LPVOID*)&lpFfi, &nLen) == FALSE)
@@ -183,4 +183,4 @@ set_default:
   return S_OK;
 }
 
-}; //namespace MXHelpers
+}; //namespace MX

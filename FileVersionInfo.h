@@ -13,9 +13,9 @@
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
-class CFileVersionInfo : public MX::CBaseMemObj
+class CFileVersionInfo : public CBaseMemObj
 {
 public:
   CFileVersionInfo();
@@ -32,7 +32,7 @@ public:
   WORD GetLanguage(_In_opt_ SIZE_T nIndex) const;
   WORD GetCharset(_In_opt_ SIZE_T nIndex) const;
 
-  HRESULT GetString(_In_z_ LPCWSTR szFieldW, _Inout_ MX::CStringW &cStrW, _In_opt_ SIZE_T nLangIndex=0);
+  HRESULT GetString(_In_z_ LPCWSTR szFieldW, _Inout_ CStringW &cStrW, _In_opt_ SIZE_T nLangIndex=0);
   MX_UNICODE_STRING GetString(_In_z_ LPCWSTR szFieldW, _In_opt_ SIZE_T nLangIndex=0);
 
   VS_FIXEDFILEINFO* operator->() const
@@ -51,13 +51,13 @@ private:
   } TRANSLATION_BLOCK, *LPTRANSLATION_BLOCK;
 #pragma pack()
 
-  MX::TAutoFreePtr<BYTE> cVersionInfo;
+  TAutoFreePtr<BYTE> cVersionInfo;
   VS_FIXEDFILEINFO *lpFfi;
   LPTRANSLATION_BLOCK lpTranslationBlock;
   SIZE_T nTranslationBlocksCount;
 };
 
-}; //namespace MXHelpers
+}; //namespace MX
 
 //-----------------------------------------------------------
 

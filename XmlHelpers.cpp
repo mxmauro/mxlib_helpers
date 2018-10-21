@@ -9,9 +9,9 @@
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
-namespace Xml {
+namespace XmlHelpers {
 
 HRESULT Parse(_In_ tinyxml2::XMLDocument &cDoc, _In_ LPCVOID lpData, _In_ SIZE_T nDataLen)
 {
@@ -132,6 +132,6 @@ int ParseBoolean(_In_ LPCSTR szValueA)
   return -1;
 }
 
-}; //namespace Xml
+}; //namespace XmlHelpers
 
-}; //namespace MXHelpers
+}; //namespace MX

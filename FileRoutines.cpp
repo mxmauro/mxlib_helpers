@@ -60,9 +60,11 @@ static LPCWSTR szAppDataSubFolderW = NULL;
 
 //-----------------------------------------------------------
 
-namespace MXHelpers {
+namespace MX {
 
-HRESULT GetAppFileName(_Inout_ MX::CStringW &cStrDestW)
+namespace FileRoutines {
+
+HRESULT GetAppFileName(_Inout_ CStringW &cStrDestW)
 {
   DWORD dwSize, dwLen;
   HRESULT hRes;
@@ -88,7 +90,7 @@ HRESULT GetAppFileName(_Inout_ MX::CStringW &cStrDestW)
   return ConvertToLongPath(cStrDestW);
 }
 
-HRESULT GetAppFolderPath(_Inout_ MX::CStringW &cStrDestW)
+HRESULT GetAppFolderPath(_Inout_ CStringW &cStrDestW)
 {
   HRESULT hRes;
 
@@ -111,7 +113,7 @@ VOID SetAppDataFolder(_In_z_ LPCWSTR szSubFolderW)
   return;
 }
 
-HRESULT GetAppDataFolderPath(_Inout_ MX::CStringW &cStrDestW)
+HRESULT GetAppDataFolderPath(_Inout_ CStringW &cStrDestW)
 {
   HRESULT hRes;
 
@@ -129,7 +131,7 @@ HRESULT GetAppDataFolderPath(_Inout_ MX::CStringW &cStrDestW)
   return hRes;
 }
 
-HRESULT GetCommonAppDataFolderPath(_Inout_ MX::CStringW &cStrDestW)
+HRESULT GetCommonAppDataFolderPath(_Inout_ CStringW &cStrDestW)
 {
   static LONG volatile nInitLock = 0;
   static HINSTANCE volatile hShell32Dll = NULL;
@@ -150,7 +152,7 @@ HRESULT GetCommonAppDataFolderPath(_Inout_ MX::CStringW &cStrDestW)
   cStrDestW.Empty();
   if (__InterlockedReadPointer(&hShell32Dll) == NULL)
   {
-    MX::CFastLock cInitLock(&nInitLock);
+    CFastLock cInitLock(&nInitLock);
 
     if (__InterlockedReadPointer(&hShell32Dll) == NULL)
     {
@@ -177,7 +179,7 @@ HRESULT GetCommonAppDataFolderPath(_Inout_ MX::CStringW &cStrDestW)
 
   if (__InterlockedReadPointer(&hOle32Dll) == NULL)
   {
-    MX::CFastLock cInitLock(&nInitLock);
+    CFastLock cInitLock(&nInitLock);
 
     if (__InterlockedReadPointer(&hOle32Dll) == NULL)
     {
@@ -237,7 +239,7 @@ final_convert:
   return ConvertToLongPath(cStrDestW);
 }
 
-HRESULT GetWindowsPath(_Inout_ MX::CStringW &cStrDestW)
+HRESULT GetWindowsPath(_Inout_ CStringW &cStrDestW)
 {
   DWORD dwSize, dwLen;
   LPWSTR sW;
@@ -267,7 +269,7 @@ HRESULT GetWindowsPath(_Inout_ MX::CStringW &cStrDestW)
   return S_OK;
 }
 
-HRESULT GetWindowsSystemPath(_Inout_ MX::CStringW &cStrDestW)
+HRESULT GetWindowsSystemPath(_Inout_ CStringW &cStrDestW)
 {
   DWORD dwSize, dwLen;
   LPWSTR sW;
@@ -297,7 +299,7 @@ HRESULT GetWindowsSystemPath(_Inout_ MX::CStringW &cStrDestW)
   return S_OK;
 }
 
-HRESULT _GetTempPath(_Inout_ MX::CStringW &cStrDestW)
+HRESULT _GetTempPath(_Inout_ CStringW &cStrDestW)
 {
   DWORD dwSize, dwLen;
   LPWSTR sW;
@@ -329,7 +331,7 @@ HRESULT _GetTempPath(_Inout_ MX::CStringW &cStrDestW)
 
 HRESULT CreateDirectoryRecursive(_In_ LPCWSTR szFolderNameW)
 {
-  MX::CStringW cStrTempW;
+  CStringW cStrTempW;
   LARGE_INTEGER liTime;
   WCHAR chOrigW, *sW;
   SIZE_T i, nOfs;
@@ -337,7 +339,7 @@ HRESULT CreateDirectoryRecursive(_In_ LPCWSTR szFolderNameW)
 
   if (szFolderNameW == NULL)
     return E_POINTER;
-  if (MX::StrLenW(szFolderNameW) < 3)
+  if (StrLenW(szFolderNameW) < 3)
     return E_INVALIDARG;
   if (szFolderNameW[0] != L'\\')
   {
@@ -423,7 +425,7 @@ HRESULT CreateDirectoryRecursive(_In_ LPCWSTR szFolderNameW)
 
 HRESULT RemoveDirectoryRecursive(_In_ LPCWSTR szFolderNameW, _In_opt_ eDelayedDelete nDD)
 {
-  MX::CStringW cStrTempW;
+  CStringW cStrTempW;
   LARGE_INTEGER liTime;
   SIZE_T i, nBaseLen;
   HANDLE hFind;
@@ -571,7 +573,7 @@ HRESULT _DeleteFile(_In_ LPCWSTR szFileNameW, _In_opt_ eDelayedDelete nDD)
 
 HRESULT DeleteDirectoryFiles(_In_ LPCWSTR szFolderNameW, _In_opt_ eDelayedDelete nDD)
 {
-  MX::CStringW cStrTempW;
+  CStringW cStrTempW;
   SIZE_T nBaseLen;
   HANDLE hFind;
   WIN32_FIND_DATAW sFfData;
@@ -623,7 +625,7 @@ HRESULT DeleteDirectoryFiles(_In_ LPCWSTR szFolderNameW, _In_opt_ eDelayedDelete
   return S_OK;
 }
 
-VOID NormalizePath(_Inout_ MX::CStringW &cStrPathW)
+VOID NormalizePath(_Inout_ CStringW &cStrPathW)
 {
   LPWSTR sW;
   SIZE_T i;
@@ -686,7 +688,7 @@ VOID NormalizePath(_Inout_ MX::CStringW &cStrPathW)
   //convert short path to long if not a network folder
   if (((LPCWSTR)cStrPathW)[0] != L'\\')
   {
-    MX::CStringW cStrTempW;
+    CStringW cStrTempW;
     SIZE_T nLen, nSize;
 
     for (nSize = 256; nSize <= 32768 && nSize < cStrTempW.GetLength(); nSize <<= 1);
@@ -712,9 +714,9 @@ VOID NormalizePath(_Inout_ MX::CStringW &cStrPathW)
   return;
 }
 
-HRESULT ConvertToLongPath(_Inout_ MX::CStringW &cStrPathW)
+HRESULT ConvertToLongPath(_Inout_ CStringW &cStrPathW)
 {
-  MX::CStringW cStrTempW;
+  CStringW cStrTempW;
   LPCWSTR sW;
   SIZE_T i, nStartOfs, nOfs, nPrefixLen = 0;
   HANDLE hFindFile;
@@ -789,7 +791,7 @@ HRESULT ConvertToLongPath(_Inout_ MX::CStringW &cStrPathW)
         cStrTempW.Delete(nStartOfs, nOfs - nStartOfs);
         if (cStrTempW.Insert(sFindDataW.cFileName, nStartOfs) == FALSE)
           return E_OUTOFMEMORY;
-        nOfs = nStartOfs + MX::StrLenW(sFindDataW.cFileName);
+        nOfs = nStartOfs + StrLenW(sFindDataW.cFileName);
         sW = (LPCWSTR)cStrTempW;
       }
     }
@@ -800,9 +802,9 @@ HRESULT ConvertToLongPath(_Inout_ MX::CStringW &cStrPathW)
   return S_OK;
 }
 
-HRESULT ConvertToNative(_Inout_ MX::CStringW &cStrPathW)
+HRESULT ConvertToNative(_Inout_ CStringW &cStrPathW)
 {
-  MX::CStringW cStrTempW;
+  CStringW cStrTempW;
   LPCWSTR sW;
   HRESULT hRes;
 
@@ -842,9 +844,9 @@ HRESULT ConvertToNative(_Inout_ MX::CStringW &cStrPathW)
   return S_OK;
 }
 
-HRESULT ConvertToWin32(_Inout_ MX::CStringW &cStrPathW)
+HRESULT ConvertToWin32(_Inout_ CStringW &cStrPathW)
 {
-  MX::CStringW cStrTempW;
+  CStringW cStrTempW;
   MX_PROCESS_DEVICEMAP_INFORMATION sPdmi;
   SIZE_T i, nLen;
   WCHAR szDriveW[4], szVolumeNameW[512];
@@ -866,18 +868,18 @@ HRESULT ConvertToWin32(_Inout_ MX::CStringW &cStrPathW)
       cStrPathW.Attach(cStrTempW.Detach());
   }
   //network path?
-  if (MX::StrNCompareW(sW, L"\\Device\\LanmanRedirector\\", 25, TRUE) == 0)
+  if (StrNCompareW(sW, L"\\Device\\LanmanRedirector\\", 25, TRUE) == 0)
   {
     cStrPathW.Delete(1, 23);
     return S_OK;
   }
-  if (MX::StrNCompareW(sW, L"\\Device\\Mup\\", 12, TRUE) == 0)
+  if (StrNCompareW(sW, L"\\Device\\Mup\\", 12, TRUE) == 0)
   {
     cStrPathW.Delete(1, 10);
     return S_OK;
   }
   //can convert to DOS volume?
-  if (MX::StrNCompareW(sW, L"\\Device\\", 8, TRUE) == 0)
+  if (StrNCompareW(sW, L"\\Device\\", 8, TRUE) == 0)
   {
     nNtStatus = ::MxNtQueryInformationProcess(MX_CURRENTPROCESS, MxProcessDeviceMap, &(sPdmi.Query),
                                               (ULONG)sizeof(sPdmi.Query), NULL);
@@ -894,8 +896,8 @@ HRESULT ConvertToWin32(_Inout_ MX::CStringW &cStrPathW)
         if (nLen > 0)
         {
           szVolumeNameW[nLen] = 0;
-          nLen = MX::StrLenW(szVolumeNameW);
-          if (MX::StrNCompareW(sW, szVolumeNameW, nLen, TRUE) == 0 && (sW[nLen] == 0 || sW[nLen] == L'\\'))
+          nLen = StrLenW(szVolumeNameW);
+          if (StrNCompareW(sW, szVolumeNameW, nLen, TRUE) == 0 && (sW[nLen] == 0 || sW[nLen] == L'\\'))
           {
             //insert drive letter (before deletion to preserve input on error)
             i = 2;
@@ -922,7 +924,7 @@ HRESULT ConvertToWin32(_Inout_ MX::CStringW &cStrPathW)
   return S_OK;
 }
 
-HRESULT DeviceName2DosName(_Inout_ MX::CStringW &cStrPathW)
+HRESULT DeviceName2DosName(_Inout_ CStringW &cStrPathW)
 {
   WCHAR szNameW[1024], szDriveW[3], *sW;
   DWORD dwDrivesMask;
@@ -933,17 +935,17 @@ HRESULT DeviceName2DosName(_Inout_ MX::CStringW &cStrPathW)
   //try network shares first
   if (sW[0] == L'\\')
   {
-    if (MX::StrNCompareW(sW, L"\\Device\\MUP\\", 12, TRUE) == 0)
+    if (StrNCompareW(sW, L"\\Device\\MUP\\", 12, TRUE) == 0)
     {
       cStrPathW.Delete(1, 10);
       return S_OK;
     }
-    if (MX::StrNCompareW(sW, L"\\Device\\LanmanRedirector\\", 25, TRUE) == 0)
+    if (StrNCompareW(sW, L"\\Device\\LanmanRedirector\\", 25, TRUE) == 0)
     {
       cStrPathW.Delete(1, 23);
       return S_OK;
     }
-    if (MX::StrNCompareW(sW, L"\\\\?\\", 4) == 0 || MX::StrNCompareW(sW, L"\\??\\", 4) == 0)
+    if (StrNCompareW(sW, L"\\\\?\\", 4) == 0 || StrNCompareW(sW, L"\\??\\", 4) == 0)
     {
       cStrPathW.Delete(0, 4);
     }
@@ -962,7 +964,7 @@ HRESULT DeviceName2DosName(_Inout_ MX::CStringW &cStrPathW)
       {
         szNameW[_countof(szNameW) - 1] = 0;
         nNameLen = wcslen(szNameW);
-        if (MX::StrNCompareW(sW, szNameW, nNameLen, TRUE) == 0 && (sW[nNameLen] == 0 || sW[nNameLen] == L'\\'))
+        if (StrNCompareW(sW, szNameW, nNameLen, TRUE) == 0 && (sW[nNameLen] == 0 || sW[nNameLen] == L'\\'))
         {
           //first insert and then delete to avoid modifying the string if an error is raised
           if (cStrPathW.InsertN(szDriveW, 0, 2) != FALSE)
@@ -978,9 +980,9 @@ HRESULT DeviceName2DosName(_Inout_ MX::CStringW &cStrPathW)
   return hRes;
 }
 
-HRESULT ResolveSymbolicLink(_Inout_ MX::CStringW &cStrPathW)
+HRESULT ResolveSymbolicLink(_Inout_ CStringW &cStrPathW)
 {
-  MX::CStringW cStrTempPathW, cStrTempW;
+  CStringW cStrTempPathW, cStrTempW;
   MX_UNICODE_STRING usDevName, CurrName, *TempStr = NULL;
   MX_OBJECT_ATTRIBUTES sObjAttr;
   LPWSTR sW;
@@ -1014,7 +1016,7 @@ HRESULT ResolveSymbolicLink(_Inout_ MX::CStringW &cStrPathW)
   }
 restart:
   //query for the symbolic link from the full string and going back
-  MX::MemCopy(&usDevName, &CurrName, sizeof(CurrName));
+  MemCopy(&usDevName, &CurrName, sizeof(CurrName));
   while (usDevName.Length > 0 && usDevName.Buffer[usDevName.Length / 2 - 1] == L'\\')
     usDevName.Length -= 2;
   //loop while we have some string
@@ -1025,7 +1027,7 @@ restart:
     HANDLE hSymLink;
 
     //query symbolic link
-    MX::MemSet(&sObjAttr, 0, sizeof(sObjAttr));
+    MemSet(&sObjAttr, 0, sizeof(sObjAttr));
     sObjAttr.Length = sizeof(sObjAttr);
     sObjAttr.Attributes = OBJ_CASE_INSENSITIVE;
     sObjAttr.ObjectName = &usDevName;
@@ -1053,7 +1055,7 @@ restart:
 
     if (NT_SUCCESS(nNtStatus))
     {
-      MX::CStringW cStrTempW;
+      CStringW cStrTempW;
 
       //at this point we have a valid string, build replacement
       if (cStrTempW.CopyN(TempStr->Buffer, (SIZE_T)(TempStr->Length) / 2) != FALSE &&
@@ -1099,7 +1101,7 @@ restart:
   return S_OK;
 }
 
-HRESULT GetFileNameFromHandle(_In_ HANDLE hFile, _Inout_ MX::CStringW &cStrFileNameW)
+HRESULT GetFileNameFromHandle(_In_ HANDLE hFile, _Inout_ CStringW &cStrFileNameW)
 {
   PMX_OBJECT_NAME_INFORMATION lpNameInfo = NULL;
   ULONG nBufSize, nReqLength;
@@ -1115,8 +1117,8 @@ HRESULT GetFileNameFromHandle(_In_ HANDLE hFile, _Inout_ MX::CStringW &cStrFileN
   {
     if (nReqLength > nBufSize)
       nBufSize = nReqLength + 256;
-    MX::MemFree(lpNameInfo);
-    lpNameInfo = (PMX_OBJECT_NAME_INFORMATION)MX::MemAlloc(sizeof(MX_OBJECT_NAME_INFORMATION) + (SIZE_T)nBufSize);
+    MemFree(lpNameInfo);
+    lpNameInfo = (PMX_OBJECT_NAME_INFORMATION)MemAlloc(sizeof(MX_OBJECT_NAME_INFORMATION) + (SIZE_T)nBufSize);
     if (lpNameInfo != NULL)
       nNtStatus = ::MxNtQueryObject(hFile, MxObjectNameInformation, lpNameInfo, nBufSize, &nReqLength);
     else
@@ -1128,7 +1130,7 @@ HRESULT GetFileNameFromHandle(_In_ HANDLE hFile, _Inout_ MX::CStringW &cStrFileN
     if (cStrFileNameW.CopyN(lpNameInfo->Name.Buffer, (SIZE_T)(lpNameInfo->Name.Length) / 2) == FALSE)
       nNtStatus = STATUS_INSUFFICIENT_RESOURCES;
   }
-  MX::MemFree(lpNameInfo);
+  MemFree(lpNameInfo);
   if (!NT_SUCCESS(nNtStatus))
     return MX_HRESULT_FROM_WIN32(::MxRtlNtStatusToDosError(nNtStatus));
   return S_OK;
@@ -1145,22 +1147,22 @@ HRESULT OpenFileWithEscalatingSharing(_In_z_ LPCWSTR szFileNameW, _Out_ HANDLE *
 
   *lphFile = NULL;
 
-  if (MX::StrNCompareW(szFileNameW, L"\\??\\", 4) == 0 || MX::StrNCompareW(szFileNameW, L"\\Device\\", 8, TRUE) == 0)
+  if (StrNCompareW(szFileNameW, L"\\??\\", 4) == 0 || StrNCompareW(szFileNameW, L"\\Device\\", 8, TRUE) == 0)
   {
     MX_OBJECT_ATTRIBUTES sObjAttrib;
     MX_IO_STATUS_BLOCK sIoStatus;
     MX_UNICODE_STRING usFileName;
     NTSTATUS nNtStatus;
 
-    MX::MemSet(&sObjAttrib, 0, sizeof(sObjAttrib));
+    MemSet(&sObjAttrib, 0, sizeof(sObjAttrib));
     sObjAttrib.Length = (ULONG)sizeof(sObjAttrib);
     sObjAttrib.Attributes = OBJ_CASE_INSENSITIVE;
     sObjAttrib.ObjectName = &usFileName;
     usFileName.Buffer = (PWSTR)szFileNameW;
-    usFileName.Length = usFileName.MaximumLength = (USHORT)(MX::StrLenW(szFileNameW) * 2);
+    usFileName.Length = usFileName.MaximumLength = (USHORT)(StrLenW(szFileNameW) * 2);
     for (i=0; i<4; i++)
     {
-      MX::MemSet(&sIoStatus, 0, sizeof(sIoStatus));
+      MemSet(&sIoStatus, 0, sizeof(sIoStatus));
       nNtStatus = ::MxNtCreateFile(lphFile, FILE_GENERIC_READ, &sObjAttrib, &sIoStatus, NULL, 0,
                                    (ULONG)aSharingAccess[i], FILE_OPEN, FILE_NON_DIRECTORY_FILE |
                                    FILE_SEQUENTIAL_ONLY | FILE_SYNCHRONOUS_IO_NONALERT, NULL, 0);
@@ -1189,4 +1191,6 @@ HRESULT OpenFileWithEscalatingSharing(_In_z_ LPCWSTR szFileNameW, _Out_ HANDLE *
   return hRes;
 }
 
-}; //MXHelpers
+}; //namespace FileRoutines
+
+}; //namespace MX
