@@ -694,7 +694,7 @@ VOID NormalizePath(_Inout_ CStringW &cStrPathW)
     for (nSize = 256; nSize <= 32768 && nSize < cStrTempW.GetLength(); nSize <<= 1);
     while (nSize <= 32768)
     {
-      if (cStrPathW.EnsureBuffer(nSize + 4) == FALSE)
+      if (cStrTempW.EnsureBuffer(nSize + 4) == FALSE)
         break;
       nLen = (SIZE_T)::GetLongPathNameW((LPCWSTR)cStrPathW, (LPWSTR)cStrTempW, (DWORD)nSize);
       if (nLen == 0)
