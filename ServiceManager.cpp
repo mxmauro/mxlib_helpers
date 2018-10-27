@@ -11,6 +11,10 @@
 
 //-----------------------------------------------------------
 
+static DWORD GetServiceStartType(_In_ MX::CServiceManager::eStartMode nStartMode);
+
+//-----------------------------------------------------------
+
 namespace MX {
 
 CServiceManager::CServiceManager() : CBaseMemObj()
@@ -57,10 +61,7 @@ VOID CServiceManager::CloseManager()
   return;
 }
 
-HRESULT CServiceManager::Create(_In_ eServiceType nServiceType, _In_z_ LPCWSTR szServiceNameW,
-                                _In_z_ LPCWSTR szServiceDisplayNameW, _In_z_ LPCWSTR szFileNameW, _In_ BOOL bAutoStart,
-                                _In_opt_z_ LPCWSTR szDependenciesW, _In_opt_z_ LPCWSTR szRequiredPrivilegesW,
-                                _In_opt_ DWORD dwRestartOnFailureTimeMs)
+HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO lpCreateInfo)
 {
   //Reference:
   //  CC – SERVICE_QUERY_CONFIG – ask the SCM for the service’s current configuration
@@ -97,30 +98,37 @@ HRESULT CServiceManager::Create(_In_ eServiceType nServiceType, _In_z_ LPCWSTR s
     0x9D, 0x01, 0x02, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x0B, 0x00, 0x00, 0x00
   };
   static const LPCWSTR szNetworkServiceAccountW = L"NT AUTHORITY\\NetworkService";
-  SERVICE_REQUIRED_PRIVILEGES_INFOW sReqPrivInfoW;
   BOOL bIsWindowsVistaOrLater;
+  DWORD dwStartType;
   HRESULT hRes;
 
-  if (szServiceNameW == NULL || szServiceDisplayNameW == NULL || szFileNameW == NULL)
+  if (szServiceNameW == NULL || lpCreateInfo == NULL || lpCreateInfo->szServiceDisplayNameW == NULL ||
+      lpCreateInfo->szFileNameW == NULL)
+  {
     return E_POINTER;
-  if (*szServiceNameW == 0 || *szServiceDisplayNameW == 0 || *szFileNameW == 0)
+  }
+  if (*szServiceNameW == 0 || *(lpCreateInfo->szServiceDisplayNameW) == 0 || *(lpCreateInfo->szFileNameW) == 0 ||
+      (lpCreateInfo->nServiceType != ServiceTypeLocalSystem && lpCreateInfo->nServiceType != ServiceTypeKernelDriver &&
+       lpCreateInfo->nServiceType != ServiceTypeNetworkService))
+  {
     return E_INVALIDARG;
-  if (nServiceType != ServiceTypeLocalSystem && nServiceType != ServiceTypeKernelDriver &&
-      nServiceType != ServiceTypeNetworkService)
+  }
+  dwStartType = GetServiceStartType(lpCreateInfo->nStartMode);
+  if (dwStartType == 0xFFFFFFFFUL)
     return E_INVALIDARG;
   if (hServMgr == NULL)
     return MX_E_NotReady;
-  if (szDependenciesW != NULL && *szDependenciesW == 0)
-    szDependenciesW = NULL;
   bIsWindowsVistaOrLater = ::IsWindowsVistaOrGreater();
   //create service
   Close();
-  hServ = ::CreateServiceW(hServMgr, szServiceNameW, szServiceDisplayNameW, SERVICE_ALL_ACCESS,
-                           (nServiceType != ServiceTypeKernelDriver) ? SERVICE_WIN32_OWN_PROCESS
-                                                                     : SERVICE_KERNEL_DRIVER,
-                           (bAutoStart != FALSE) ? SERVICE_AUTO_START : SERVICE_DEMAND_START,
-                           SERVICE_ERROR_NORMAL, szFileNameW, NULL, NULL, szDependenciesW,
-                           (nServiceType != ServiceTypeNetworkService) ? NULL : szNetworkServiceAccountW, NULL);
+  hServ = ::CreateServiceW(hServMgr, szServiceNameW, lpCreateInfo->szServiceDisplayNameW, SERVICE_ALL_ACCESS,
+                           (lpCreateInfo->nServiceType != ServiceTypeKernelDriver) ? SERVICE_WIN32_OWN_PROCESS
+                                                                                   : SERVICE_KERNEL_DRIVER,
+                           dwStartType, SERVICE_ERROR_NORMAL, lpCreateInfo->szFileNameW, NULL, NULL,
+                           (lpCreateInfo->szDependenciesW == NULL ||
+                            *(lpCreateInfo->szDependenciesW) != 0) ? lpCreateInfo->szDependenciesW : NULL,
+                           (lpCreateInfo->nServiceType != ServiceTypeNetworkService) ? NULL : szNetworkServiceAccountW,
+                           NULL);
   if (hServ == NULL)
   {
     hRes = MX_HRESULT_FROM_LASTERROR();
@@ -130,12 +138,14 @@ HRESULT CServiceManager::Create(_In_ eServiceType nServiceType, _In_z_ LPCWSTR s
     hServ = ::OpenServiceW(hServMgr, szServiceNameW, SERVICE_ALL_ACCESS);
     if (hServ == NULL)
       return MX_HRESULT_FROM_LASTERROR();
-    if (::ChangeServiceConfigW(hServ, (nServiceType != ServiceTypeKernelDriver) ? SERVICE_WIN32_OWN_PROCESS
-                                                                                : SERVICE_KERNEL_DRIVER,
-                               (bAutoStart != FALSE) ? SERVICE_AUTO_START : SERVICE_DEMAND_START, SERVICE_ERROR_NORMAL,
-                               szFileNameW, NULL, NULL, szDependenciesW,
-                               (nServiceType != ServiceTypeNetworkService) ? NULL : szNetworkServiceAccountW, NULL,
-                               szServiceDisplayNameW) == FALSE)
+    if (::ChangeServiceConfigW(hServ, (lpCreateInfo->nServiceType != ServiceTypeKernelDriver)
+                                      ? SERVICE_WIN32_OWN_PROCESS : SERVICE_KERNEL_DRIVER,
+                               dwStartType, SERVICE_ERROR_NORMAL, lpCreateInfo->szFileNameW, NULL, NULL,
+                               (lpCreateInfo->szDependenciesW != NULL &&
+                                *(lpCreateInfo->szDependenciesW) != 0) ? lpCreateInfo->szDependenciesW : L"\0",
+                               (lpCreateInfo->nServiceType != ServiceTypeNetworkService) ? NULL
+                                                                                         : szNetworkServiceAccountW,
+                               NULL, lpCreateInfo->szServiceDisplayNameW) == FALSE)
     {
       hRes = MX_HRESULT_FROM_LASTERROR();
       ::CloseServiceHandle(hServ);
@@ -146,58 +156,68 @@ HRESULT CServiceManager::Create(_In_ eServiceType nServiceType, _In_z_ LPCWSTR s
   //change security
   hRes = S_OK;
   if (::SetServiceObjectSecurity(hServ, DACL_SECURITY_INFORMATION, (PSECURITY_DESCRIPTOR)aSecDescr) == FALSE)
-  {
     hRes = MX_HRESULT_FROM_LASTERROR();
-  }
   //setup required privileges
-  if (SUCCEEDED(hRes) && bIsWindowsVistaOrLater != FALSE && nServiceType != ServiceTypeKernelDriver &&
-      szRequiredPrivilegesW != NULL && *szRequiredPrivilegesW != 0)
+  if (SUCCEEDED(hRes) && bIsWindowsVistaOrLater != FALSE && lpCreateInfo->nServiceType != ServiceTypeKernelDriver)
   {
-    sReqPrivInfoW.pmszRequiredPrivileges = (LPWSTR)szRequiredPrivilegesW;
+    SERVICE_REQUIRED_PRIVILEGES_INFOW sReqPrivInfoW;
+
+    sReqPrivInfoW.pmszRequiredPrivileges = (lpCreateInfo->szRequiredPrivilegesW != NULL &&
+                                            *(lpCreateInfo->szRequiredPrivilegesW) != 0)
+                                           ? (LPWSTR)(lpCreateInfo->szRequiredPrivilegesW) : L"";
     if (::ChangeServiceConfig2W(hServ, SERVICE_CONFIG_REQUIRED_PRIVILEGES_INFO, &sReqPrivInfoW) == FALSE)
-    {
       hRes = MX_HRESULT_FROM_LASTERROR();
-    }
   }
   //setup sid info
-  if (SUCCEEDED(hRes) && bIsWindowsVistaOrLater != FALSE && nServiceType != ServiceTypeKernelDriver)
+  if (SUCCEEDED(hRes) && bIsWindowsVistaOrLater != FALSE && lpCreateInfo->nServiceType != ServiceTypeKernelDriver)
   {
     SERVICE_SID_INFO sServSidInfo;
 
     sServSidInfo.dwServiceSidType = SERVICE_SID_TYPE_UNRESTRICTED;
     if (::ChangeServiceConfig2W(hServ, SERVICE_CONFIG_SERVICE_SID_INFO, &sServSidInfo) == FALSE)
-    {
       hRes = MX_HRESULT_FROM_LASTERROR();
-    }
   }
   //setup restart time
-  if (SUCCEEDED(hRes) && nServiceType != ServiceTypeKernelDriver && dwRestartOnFailureTimeMs > 0)
+  if (SUCCEEDED(hRes) && lpCreateInfo->nServiceType != ServiceTypeKernelDriver)
   {
-    SERVICE_FAILURE_ACTIONSW sSfaW;
-    SC_ACTION sSfaActions[1];
-    SERVICE_FAILURE_ACTIONS_FLAG sSfaf;
+    SERVICE_FAILURE_ACTIONSW sServFailActW;
+    SC_ACTION aServActions[1];
 
-    sSfaf.fFailureActionsOnNonCrashFailures = FALSE;
-    MemSet(&sSfaW, 0, sizeof(sSfaW));
-    sSfaW.dwResetPeriod = INFINITE;
-    sSfaW.cActions = 1;
-    sSfaW.lpsaActions = sSfaActions;
-    sSfaActions[0].Type = SC_ACTION_RESTART;
-    sSfaActions[0].Delay = dwRestartOnFailureTimeMs;
-    if (::ChangeServiceConfig2W(hServ, SERVICE_CONFIG_FAILURE_ACTIONS, &sSfaW) != FALSE)
+    MemSet(&sServFailActW, 0, sizeof(sServFailActW));
+    sServFailActW.dwResetPeriod = INFINITE;
+    sServFailActW.cActions = 1;
+    sServFailActW.lpsaActions = aServActions;
+    MemSet(aServActions, 0, sizeof(aServActions));
+    if (lpCreateInfo->sFailureControl.bAutoRestart != FALSE)
     {
-      if (bIsWindowsVistaOrLater != FALSE)
+      aServActions[0].Type = SC_ACTION_RESTART;
+      aServActions[0].Delay = lpCreateInfo->sFailureControl.dwRestartDelayMs;
+    }
+    if (::ChangeServiceConfig2W(hServ, SERVICE_CONFIG_FAILURE_ACTIONS, &sServFailActW) != FALSE)
+    {
+      if (lpCreateInfo->sFailureControl.bAutoRestart != FALSE && bIsWindowsVistaOrLater != FALSE)
       {
-        if (::ChangeServiceConfig2W(hServ, SERVICE_CONFIG_FAILURE_ACTIONS_FLAG, &sSfaf) == FALSE)
-        {
+        SERVICE_FAILURE_ACTIONS_FLAG sServFailActFlagW;
+
+        MemSet(&sServFailActFlagW, 0, sizeof(sServFailActFlagW));
+        sServFailActFlagW.fFailureActionsOnNonCrashFailures = FALSE;
+        if (::ChangeServiceConfig2W(hServ, SERVICE_CONFIG_FAILURE_ACTIONS_FLAG, &sServFailActFlagW) == FALSE)
           hRes = MX_HRESULT_FROM_LASTERROR();
-        }
       }
     }
     else
     {
       hRes = MX_HRESULT_FROM_LASTERROR();
     }
+  }
+  if (SUCCEEDED(hRes) && lpCreateInfo->nServiceType != ServiceTypeKernelDriver)
+  {
+    SERVICE_DESCRIPTIONW sServDescW;
+
+    MemSet(&sServDescW, 0, sizeof(sServDescW));
+    sServDescW.lpDescription = (lpCreateInfo->szDescriptionW != NULL) ? lpCreateInfo->szDescriptionW : L"";
+    if (::ChangeServiceConfig2W(hServ, SERVICE_CONFIG_DESCRIPTION, &sServDescW) == FALSE)
+      hRes = MX_HRESULT_FROM_LASTERROR();
   }
   //done
   if (FAILED(hRes))
@@ -359,4 +379,42 @@ HRESULT CServiceManager::QueryStatus(_Out_ SERVICE_STATUS &sSvcStatus)
   return (::QueryServiceStatus(hServ, &sSvcStatus) != FALSE) ? S_OK : MX_HRESULT_FROM_LASTERROR();
 }
 
+HRESULT CServiceManager::ChangeStartMode(_In_ eStartMode nStartMode)
+{
+  DWORD dwStartType;
+
+  if (hServ == NULL)
+    return MX_E_NotReady;
+  dwStartType = GetServiceStartType(nStartMode);
+  if (dwStartType == 0xFFFFFFFFUL)
+    return E_INVALIDARG;
+  if (::ChangeServiceConfigW(hServ, SERVICE_NO_CHANGE, dwStartType, SERVICE_NO_CHANGE, NULL, NULL, NULL, NULL,
+                             NULL, NULL, NULL) == FALSE)
+  {
+    return MX_HRESULT_FROM_LASTERROR();;
+  }
+  //done
+  return S_OK;
+}
+
 }; //namespace MX
+
+//-----------------------------------------------------------
+
+static DWORD GetServiceStartType(_In_ MX::CServiceManager::eStartMode nStartMode)
+{
+  switch (nStartMode)
+  {
+    case MX::CServiceManager::StartModeAuto:
+      return SERVICE_AUTO_START;
+    case MX::CServiceManager::StartModeBoot:
+      return SERVICE_BOOT_START;
+    case MX::CServiceManager::StartModeSystem:
+      return SERVICE_SYSTEM_START;
+    case MX::CServiceManager::StartModeManual:
+      return SERVICE_DEMAND_START;
+    case MX::CServiceManager::StartModeDisabled:
+      return SERVICE_DISABLED;
+  }
+  return 0xFFFFFFFFUL;
+}

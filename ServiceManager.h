@@ -23,6 +23,30 @@ public:
     ServiceTypeNetworkService
   } eServiceType;
 
+  typedef enum {
+    StartModeAuto,
+    StartModeBoot,
+    StartModeSystem,
+    StartModeManual,
+    StartModeDisabled
+  } eStartMode;
+
+public:
+  typedef struct tagCREATEINFO {
+    eServiceType nServiceType;
+    LPCWSTR szServiceDisplayNameW;
+    LPCWSTR szFileNameW;
+    eStartMode nStartMode;
+    LPCWSTR szDependenciesW;
+    LPCWSTR szRequiredPrivilegesW;
+    LPCWSTR szDescriptionW;
+    struct {
+      BOOL bAutoRestart;
+      DWORD dwRestartDelayMs;
+    } sFailureControl;
+  } CREATEINFO, *LPCREATEINFO;
+
+public:
   CServiceManager();
   ~CServiceManager();
 
@@ -30,9 +54,7 @@ public:
   VOID CloseManager();
 
   //NOTE: If service already exists, it's configuration will be updated
-  HRESULT Create(_In_ eServiceType nServiceType, _In_z_ LPCWSTR szServiceNameW, _In_z_ LPCWSTR szServiceDisplayNameW,
-                 _In_z_ LPCWSTR szFileNameW, _In_ BOOL bAutoStart, _In_opt_z_ LPCWSTR szDependenciesW=NULL,
-                 _In_opt_z_ LPCWSTR szRequiredPrivilegesW=NULL, _In_opt_ DWORD dwRestartOnFailureTimeMs=0);
+  HRESULT Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO lpCreateInfo);
   HRESULT Open(_In_z_ LPCWSTR szServiceNameW, _In_ DWORD dwDesiredAccess);
   VOID Close();
 
@@ -47,6 +69,8 @@ public:
     {
     return hServ;
     };
+
+  HRESULT ChangeStartMode(_In_ eStartMode nStartMode);
 
 private:
   SC_HANDLE hServMgr, hServ;
