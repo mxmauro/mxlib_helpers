@@ -45,6 +45,8 @@
   #define STATUS_OBJECT_PATH_NOT_FOUND     ((NTSTATUS)0xC000003AL)
 #endif //STATUS_OBJECT_PATH_NOT_FOUND
 
+#define ___KF_FLAG_CREATE                         0x00008000
+
 //-----------------------------------------------------------
 
 typedef HRESULT (__stdcall *lpfnSHGetKnownFolderPath)(_In_ const GUID &rfid, _In_ DWORD dwFlags,
@@ -57,6 +59,11 @@ typedef VOID (__stdcall *lpfnCoTaskMemFree)(_In_opt_ LPVOID pv);
 //-----------------------------------------------------------
 
 static LPCWSTR szAppDataSubFolderW = NULL;
+
+//-----------------------------------------------------------
+
+static HRESULT _GetKnownFolderFolderPath(_In_ int csIdl, _In_ const GUID &sGuid, _In_ BOOL bCreate,
+                                         _Out_ MX::CStringW &cStrDestW);
 
 //-----------------------------------------------------------
 
@@ -131,135 +138,50 @@ HRESULT GetAppDataFolderPath(_Inout_ CStringW &cStrDestW)
   return hRes;
 }
 
-HRESULT GetCommonAppDataFolderPath(_Inout_ CStringW &cStrDestW)
+HRESULT GetCommonAppDataFolderPath(_Out_ CStringW &cStrDestW)
 {
-  static LONG volatile nInitLock = 0;
-  static HINSTANCE volatile hShell32Dll = NULL;
-  static LPVOID volatile fnSHGetKnownFolderPath = NULL;
-  static LPVOID volatile fnSHGetFolderPathW = NULL;
-  static HINSTANCE volatile hOle32Dll = NULL;
-  static LPVOID volatile fnCoTaskMemFree = NULL;
-#define ___KF_FLAG_CREATE 0x00008000
   static const GUID __FOLDERID_ProgramData = {
     0x62AB5D82, 0xFDC1, 0x4DC3, { 0xA9, 0xDD, 0x07, 0x0D, 0x1D, 0x49, 0x5D, 0x97 }
   };
-  lpfnSHGetKnownFolderPath _fnSHGetKnownFolderPath;
-  lpfnSHGetFolderPathW _fnSHGetFolderPathW;
-  lpfnCoTaskMemFree _fnCoTaskMemFree;
-  WCHAR szPathW[MAX_PATH], *szPathW_2;
-  HRESULT hRes;
-
-  cStrDestW.Empty();
-  if (__InterlockedReadPointer(&hShell32Dll) == NULL)
-  {
-    CFastLock cInitLock(&nInitLock);
-
-    if (__InterlockedReadPointer(&hShell32Dll) == NULL)
-    {
-      ULONG flags = LOAD_WITH_ALTERED_SEARCH_PATH;
-      MX_UNICODE_STRING usDllName;
-      HINSTANCE _hShell32Dll;
-      LPVOID fn;
-      LONG nNtStatus;
-
-      usDllName.Buffer = L"shell32.dll";
-      usDllName.Length = usDllName.MaximumLength = 22;
-      nNtStatus = ::MxLdrLoadDll(NULL, &flags, &usDllName, (PVOID*)&_hShell32Dll);
-      if (nNtStatus < 0)
-        return MX_HRESULT_FROM_WIN32(::MxRtlNtStatusToDosError(nNtStatus));
-
-      fn = ::GetProcAddress(_hShell32Dll, "SHGetKnownFolderPath");
-      _InterlockedExchangePointer(&fnSHGetKnownFolderPath, fn);
-      fn = ::GetProcAddress(_hShell32Dll, "SHGetFolderPathW");
-      _InterlockedExchangePointer(&fnSHGetFolderPathW, fn);
-
-      _InterlockedExchangePointer((PVOID volatile *)&hShell32Dll, _hShell32Dll);
-    }
-  }
-
-  if (__InterlockedReadPointer(&hOle32Dll) == NULL)
-  {
-    CFastLock cInitLock(&nInitLock);
-
-    if (__InterlockedReadPointer(&hOle32Dll) == NULL)
-    {
-      ULONG flags = LOAD_WITH_ALTERED_SEARCH_PATH;
-      MX_UNICODE_STRING usDllName;
-      HINSTANCE _hOle32Dll;
-      LPVOID fn;
-      LONG nNtStatus;
-
-      usDllName.Buffer = L"ole32.dll";
-      usDllName.Length = usDllName.MaximumLength = 18;
-      nNtStatus = ::MxLdrLoadDll(NULL, &flags, &usDllName, (PVOID*)&_hOle32Dll);
-      if (nNtStatus < 0)
-        return MX_HRESULT_FROM_WIN32(::MxRtlNtStatusToDosError(nNtStatus));
-
-      fn = ::GetProcAddress(_hOle32Dll, "CoTaskMemFree");
-      _InterlockedExchangePointer(&fnCoTaskMemFree, fn);
-
-      _InterlockedExchangePointer((PVOID volatile *)&hOle32Dll, _hOle32Dll);
-    }
-  }
-
-  _fnSHGetKnownFolderPath = (lpfnSHGetKnownFolderPath)__InterlockedReadPointer(&fnSHGetKnownFolderPath);
-  _fnSHGetFolderPathW = (lpfnSHGetFolderPathW)__InterlockedReadPointer(&fnSHGetFolderPathW);
-  _fnCoTaskMemFree = (lpfnCoTaskMemFree)__InterlockedReadPointer(&fnCoTaskMemFree);
-
-  //try method 1
-  if (_fnSHGetKnownFolderPath != NULL && _fnCoTaskMemFree != NULL)
-  {
-    hRes = _fnSHGetKnownFolderPath(__FOLDERID_ProgramData, ___KF_FLAG_CREATE, NULL, &szPathW_2);
-    if (SUCCEEDED(hRes))
-    {
-      if (cStrDestW.Copy(szPathW_2) == FALSE)
-      {
-        _fnCoTaskMemFree(szPathW_2);
-        return E_OUTOFMEMORY;
-      }
-      _fnCoTaskMemFree(szPathW_2);
-
-      goto final_convert;
-    }
-  }
-  //try method 2
-  if (_fnSHGetFolderPathW == NULL)
-    return MX_HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
-
-  hRes = _fnSHGetFolderPathW(NULL, CSIDL_COMMON_APPDATA | CSIDL_FLAG_CREATE, NULL, 0, szPathW);
-  if (FAILED(hRes))
-    return hRes;
-  if (cStrDestW.Copy(szPathW) == FALSE)
-    return E_OUTOFMEMORY;
-
-final_convert:
-  if (cStrDestW.ConcatN(L"\\", 1) == FALSE)
-    return E_OUTOFMEMORY;
-  NormalizePath(cStrDestW);
-  return ConvertToLongPath(cStrDestW);
+  return _GetKnownFolderFolderPath(CSIDL_COMMON_APPDATA, __FOLDERID_ProgramData, TRUE, cStrDestW);
 }
 
-HRESULT GetWindowsPath(_Inout_ CStringW &cStrDestW)
+HRESULT GetProgramFilesFolderPath(_Out_ CStringW &cStrDestW)
+{
+  static const GUID __FOLDERID_ProgramFiles = {
+    0x905E63B6, 0xC1BF, 0x494E, { 0xB2, 0x9C, 0x65, 0xB7, 0x32, 0xD3, 0xD2, 0x1A }
+  };
+  return _GetKnownFolderFolderPath(CSIDL_PROGRAM_FILES, __FOLDERID_ProgramFiles, TRUE, cStrDestW);
+}
+
+HRESULT GetWindowsPath(_Out_ CStringW &cStrDestW)
 {
   DWORD dwSize, dwLen;
   LPWSTR sW;
   HRESULT hRes;
 
-  for (dwSize=256; dwSize<=32768; dwSize<<=1)
+  for (dwSize = 256; dwSize <= 32768; dwSize <<= 1)
   {
     if (cStrDestW.EnsureBuffer((SIZE_T)dwSize) == FALSE)
+    {
+      cStrDestW.Empty();
       return E_OUTOFMEMORY;
+    }
     dwLen = ::GetWindowsDirectoryW((LPWSTR)cStrDestW, dwSize-2);
     if (dwLen == 0)
     {
       hRes = MX_HRESULT_FROM_LASTERROR();
+      cStrDestW.Empty();
       return (FAILED(hRes)) ? hRes : E_FAIL;
     }
     if (dwLen < dwSize-4)
       break;
   }
   if (dwSize > 32768)
-    return E_OUTOFMEMORY;
+  {
+    cStrDestW.Empty();
+    return MX_E_BufferOverflow;
+  }
   sW = (LPWSTR)cStrDestW;
   if (dwLen == 0 || (sW[dwLen-1] != L'/' && sW[dwLen-1] != L'\\'))
     sW[dwLen++] = L'\\';
@@ -269,27 +191,34 @@ HRESULT GetWindowsPath(_Inout_ CStringW &cStrDestW)
   return S_OK;
 }
 
-HRESULT GetWindowsSystemPath(_Inout_ CStringW &cStrDestW)
+HRESULT GetWindowsSystemPath(_Out_ CStringW &cStrDestW)
 {
   DWORD dwSize, dwLen;
   LPWSTR sW;
   HRESULT hRes;
 
-  for (dwSize=256; dwSize<=32768; dwSize<<=1)
+  for (dwSize = 256; dwSize <= 32768; dwSize <<= 1)
   {
     if (cStrDestW.EnsureBuffer((SIZE_T)dwSize) == FALSE)
+    {
+      cStrDestW.Empty();
       return E_OUTOFMEMORY;
+    }
     dwLen = ::GetSystemDirectoryW((LPWSTR)cStrDestW, dwSize-2);
     if (dwLen == 0)
     {
       hRes = MX_HRESULT_FROM_LASTERROR();
+      cStrDestW.Empty();
       return (FAILED(hRes)) ? hRes : E_FAIL;
     }
     if (dwLen < dwSize-4)
       break;
   }
   if (dwSize > 32768)
-    return E_OUTOFMEMORY;
+  {
+    cStrDestW.Empty();
+    return MX_E_BufferOverflow;
+  }
   sW = (LPWSTR)cStrDestW;
   if (dwLen == 0 || (sW[dwLen-1] != L'/' && sW[dwLen-1] != L'\\'))
     sW[dwLen++] = L'\\';
@@ -299,27 +228,34 @@ HRESULT GetWindowsSystemPath(_Inout_ CStringW &cStrDestW)
   return S_OK;
 }
 
-HRESULT _GetTempPath(_Inout_ CStringW &cStrDestW)
+HRESULT _GetTempPath(_Out_ CStringW &cStrDestW)
 {
   DWORD dwSize, dwLen;
   LPWSTR sW;
   HRESULT hRes;
 
-  for (dwSize=256; dwSize<=32768; dwSize<<=1)
+  for (dwSize = 256; dwSize <= 32768; dwSize <<= 1)
   {
     if (cStrDestW.EnsureBuffer((SIZE_T)dwSize) == FALSE)
+    {
+      cStrDestW.Empty();
       return E_OUTOFMEMORY;
+    }
     dwLen = ::GetTempPathW(dwSize-2, (LPWSTR)cStrDestW);
     if (dwLen == 0)
     {
       hRes = MX_HRESULT_FROM_LASTERROR();
+      cStrDestW.Empty();
       return (FAILED(hRes)) ? hRes : E_FAIL;
     }
     if (dwLen < dwSize-4)
       break;
   }
   if (dwSize > 32768)
-    return E_OUTOFMEMORY;
+  {
+    cStrDestW.Empty();
+    return MX_E_BufferOverflow;
+  }
   sW = (LPWSTR)cStrDestW;
   if (dwLen == 0 || (sW[dwLen-1] != L'/' && sW[dwLen-1] != L'\\'))
     sW[dwLen++] = L'\\';
@@ -1101,7 +1037,7 @@ restart:
   return S_OK;
 }
 
-HRESULT GetFileNameFromHandle(_In_ HANDLE hFile, _Inout_ CStringW &cStrFileNameW)
+HRESULT GetFileNameFromHandle(_In_ HANDLE hFile, _Out_ CStringW &cStrFileNameW)
 {
   PMX_OBJECT_NAME_INFORMATION lpNameInfo = NULL;
   ULONG nBufSize, nReqLength;
@@ -1194,3 +1130,112 @@ HRESULT OpenFileWithEscalatingSharing(_In_z_ LPCWSTR szFileNameW, _Out_ HANDLE *
 }; //namespace FileRoutines
 
 }; //namespace MX
+
+//-----------------------------------------------------------
+
+static HRESULT _GetKnownFolderFolderPath(_In_ int csIdl, _In_ const GUID &sGuid, _In_ BOOL bCreate,
+                                         _Out_ MX::CStringW &cStrDestW)
+{
+  static LONG volatile nInitLock = 0;
+  static HINSTANCE volatile hShell32Dll = NULL;
+  static LPVOID volatile fnSHGetKnownFolderPath = NULL;
+  static LPVOID volatile fnSHGetFolderPathW = NULL;
+  static HINSTANCE volatile hOle32Dll = NULL;
+  static LPVOID volatile fnCoTaskMemFree = NULL;
+  lpfnSHGetKnownFolderPath _fnSHGetKnownFolderPath;
+  lpfnSHGetFolderPathW _fnSHGetFolderPathW;
+  lpfnCoTaskMemFree _fnCoTaskMemFree;
+  WCHAR szPathW[MAX_PATH], *szPathW_2;
+  HRESULT hRes;
+
+  cStrDestW.Empty();
+  if (__InterlockedReadPointer(&hShell32Dll) == NULL)
+  {
+    MX::CFastLock cInitLock(&nInitLock);
+
+    if (__InterlockedReadPointer(&hShell32Dll) == NULL)
+    {
+      ULONG flags = LOAD_WITH_ALTERED_SEARCH_PATH;
+      MX_UNICODE_STRING usDllName;
+      HINSTANCE _hShell32Dll;
+      LPVOID fn;
+      LONG nNtStatus;
+
+      usDllName.Buffer = L"shell32.dll";
+      usDllName.Length = usDllName.MaximumLength = 22;
+      nNtStatus = ::MxLdrLoadDll(NULL, &flags, &usDllName, (PVOID*)&_hShell32Dll);
+      if (nNtStatus < 0)
+        return MX_HRESULT_FROM_WIN32(::MxRtlNtStatusToDosError(nNtStatus));
+
+      fn = ::GetProcAddress(_hShell32Dll, "SHGetKnownFolderPath");
+      _InterlockedExchangePointer(&fnSHGetKnownFolderPath, fn);
+      fn = ::GetProcAddress(_hShell32Dll, "SHGetFolderPathW");
+      _InterlockedExchangePointer(&fnSHGetFolderPathW, fn);
+
+      _InterlockedExchangePointer((PVOID volatile *)&hShell32Dll, _hShell32Dll);
+    }
+  }
+
+  if (__InterlockedReadPointer(&hOle32Dll) == NULL)
+  {
+    MX::CFastLock cInitLock(&nInitLock);
+
+    if (__InterlockedReadPointer(&hOle32Dll) == NULL)
+    {
+      ULONG flags = LOAD_WITH_ALTERED_SEARCH_PATH;
+      MX_UNICODE_STRING usDllName;
+      HINSTANCE _hOle32Dll;
+      LPVOID fn;
+      LONG nNtStatus;
+
+      usDllName.Buffer = L"ole32.dll";
+      usDllName.Length = usDllName.MaximumLength = 18;
+      nNtStatus = ::MxLdrLoadDll(NULL, &flags, &usDllName, (PVOID*)&_hOle32Dll);
+      if (nNtStatus < 0)
+        return MX_HRESULT_FROM_WIN32(::MxRtlNtStatusToDosError(nNtStatus));
+
+      fn = ::GetProcAddress(_hOle32Dll, "CoTaskMemFree");
+      _InterlockedExchangePointer(&fnCoTaskMemFree, fn);
+
+      _InterlockedExchangePointer((PVOID volatile *)&hOle32Dll, _hOle32Dll);
+    }
+  }
+
+  _fnSHGetKnownFolderPath = (lpfnSHGetKnownFolderPath)__InterlockedReadPointer(&fnSHGetKnownFolderPath);
+  _fnSHGetFolderPathW = (lpfnSHGetFolderPathW)__InterlockedReadPointer(&fnSHGetFolderPathW);
+  _fnCoTaskMemFree = (lpfnCoTaskMemFree)__InterlockedReadPointer(&fnCoTaskMemFree);
+
+  //try method 1
+  if (_fnSHGetKnownFolderPath != NULL && _fnCoTaskMemFree != NULL)
+  {
+    hRes = _fnSHGetKnownFolderPath(sGuid, (bCreate != FALSE) ? ___KF_FLAG_CREATE : 0, NULL, &szPathW_2);
+    if (SUCCEEDED(hRes))
+    {
+      if (cStrDestW.Copy(szPathW_2) == FALSE)
+      {
+        _fnCoTaskMemFree(szPathW_2);
+        return E_OUTOFMEMORY;
+      }
+      _fnCoTaskMemFree(szPathW_2);
+      goto final_convert;
+    }
+  }
+  //try method 2
+  if (_fnSHGetFolderPathW == NULL)
+    return MX_E_ProcNotFound;
+
+  hRes = _fnSHGetFolderPathW(NULL, csIdl | ((bCreate != FALSE) ? CSIDL_FLAG_CREATE : 0), NULL, 0, szPathW);
+  if (FAILED(hRes))
+    return hRes;
+  if (cStrDestW.Copy(szPathW) == FALSE)
+    return E_OUTOFMEMORY;
+
+final_convert:
+  if (cStrDestW.ConcatN(L"\\", 1) == FALSE)
+  {
+    cStrDestW.Empty();
+    return E_OUTOFMEMORY;
+  }
+  MX::FileRoutines::NormalizePath(cStrDestW);
+  return MX::FileRoutines::ConvertToLongPath(cStrDestW);
+}

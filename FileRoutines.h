@@ -33,17 +33,19 @@ namespace MX {
 
 namespace FileRoutines {
 
-HRESULT GetAppFileName(_Inout_ CStringW &cStrDestW);
-HRESULT GetAppFolderPath(_Inout_ CStringW &cStrDestW);
+HRESULT GetAppFileName(_Out_ CStringW &cStrDestW);
+HRESULT GetAppFolderPath(_Out_ CStringW &cStrDestW);
 
 //IMPORTANT: Passed parameter should exists in entire app's life.
 VOID SetAppDataFolder(_In_z_ LPCWSTR szSubFolderW);
-HRESULT GetAppDataFolderPath(_Inout_ CStringW &cStrDestW);
+HRESULT GetAppDataFolderPath(_Out_ CStringW &cStrDestW);
 
-HRESULT GetCommonAppDataFolderPath(_Inout_ CStringW &cStrDestW);
-HRESULT GetWindowsPath(_Inout_ CStringW &cStrDestW);
-HRESULT GetWindowsSystemPath(_Inout_ CStringW &cStrDestW);
-HRESULT _GetTempPath(_Inout_ CStringW &cStrDestW);
+HRESULT GetCommonAppDataFolderPath(_Out_ CStringW &cStrDestW);
+HRESULT GetProgramFilesFolderPath(_Out_ CStringW &cStrDestW)
+
+HRESULT GetWindowsPath(_Out_ CStringW &cStrDestW);
+HRESULT GetWindowsSystemPath(_Out_ CStringW &cStrDestW);
+HRESULT _GetTempPath(_Out_ CStringW &cStrDestW);
 
 HRESULT CreateDirectoryRecursive(_In_ LPCWSTR szFolderNameW);
 HRESULT RemoveDirectoryRecursive(_In_ LPCWSTR szFolderNameW, _In_opt_ eDelayedDelete nDD=DontTryDeleteOnReboot);
@@ -62,7 +64,7 @@ HRESULT DeviceName2DosName(_Inout_ CStringW &cStrPathW);
 HRESULT ResolveSymbolicLink(_Inout_ CStringW &cStrPathW);
 
 //Returned filename is in NT format
-HRESULT GetFileNameFromHandle(_In_ HANDLE hFile, _Inout_ CStringW &cStrFileNameW);
+HRESULT GetFileNameFromHandle(_In_ HANDLE hFile, _Out_ CStringW &cStrFileNameW);
 
 HRESULT OpenFileWithEscalatingSharing(_In_z_ LPCWSTR szFileNameW, _Out_ HANDLE *lphFile);
 
