@@ -1065,7 +1065,7 @@ static HRESULT RecursiveDeleteKey(_In_ HKEY hKey, _In_opt_ PMX_UNICODE_STRING Su
     sObjAttr.RootDirectory = hKey;
     sObjAttr.Attributes = OBJ_CASE_INSENSITIVE;
     sObjAttr.ObjectName = SubKey;
-    nNtStatus = ::MxNtOpenKey(&hChildKey, KEY_READ, &sObjAttr);
+    nNtStatus = ::MxNtOpenKey(&hChildKey, KEY_READ | DELETE, &sObjAttr);
     if (!NT_SUCCESS(nNtStatus))
     {
 err_translate_ntstatus:
@@ -1114,19 +1114,7 @@ err_translate_ntstatus:
   //if we have a subkey, delete it
   if (SubKey != NULL)
   {
-    HANDLE hTargetKey;
-
-    MX::MemSet(&sObjAttr, 0, sizeof(sObjAttr));
-    sObjAttr.Length = (ULONG)sizeof(sObjAttr);
-    sObjAttr.RootDirectory = hChildKey;
-    sObjAttr.Attributes = OBJ_CASE_INSENSITIVE;
-    sObjAttr.ObjectName = SubKey;
-    nNtStatus = ::MxNtOpenKey(&hTargetKey, DELETE, &sObjAttr);
-    if (nNtStatus >= 0)
-    {
-      nNtStatus = ::MxNtDeleteKey(hTargetKey);
-      ::MxNtClose(hTargetKey);
-    }
+    nNtStatus = ::MxNtDeleteKey(hChildKey);
     if (!NT_SUCCESS(nNtStatus))
       goto err_translate_ntstatus;
   }
