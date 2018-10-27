@@ -41,7 +41,7 @@ VOID SetAppDataFolder(_In_z_ LPCWSTR szSubFolderW);
 HRESULT GetAppDataFolderPath(_Out_ CStringW &cStrDestW);
 
 HRESULT GetCommonAppDataFolderPath(_Out_ CStringW &cStrDestW);
-HRESULT GetProgramFilesFolderPath(_Out_ CStringW &cStrDestW)
+HRESULT GetProgramFilesFolderPath(_Out_ CStringW &cStrDestW);
 
 HRESULT GetWindowsPath(_Out_ CStringW &cStrDestW);
 HRESULT GetWindowsSystemPath(_Out_ CStringW &cStrDestW);
