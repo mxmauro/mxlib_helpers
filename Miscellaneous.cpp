@@ -179,41 +179,64 @@ BOOL String2Guid(_Out_ GUID &sGuid, _In_z_ LPCWSTR szGuidW)
   return String2Guid(sGuid, szBufA);
 }
 
-HRESULT SelfDeleteApp()
+HRESULT ExecuteApp(_In_z_ LPCWSTR szCmdLineW, _In_ DWORD dwAfterSeconds)
 {
-  CStringW cStrTempW, cStrExeNameW;
+  CStringW cStrTempW;
   HRESULT hRes;
 
-  hRes = FileRoutines::GetAppFileName(cStrExeNameW);
-  if (SUCCEEDED(hRes))
-    hRes = FileRoutines::GetWindowsSystemPath(cStrTempW);
+  if (szCmdLineW == NULL)
+    return E_POINTER;
+  if (*szCmdLineW == 0 || dwAfterSeconds < 1)
+    return E_INVALIDARG;
+
+  hRes = FileRoutines::GetWindowsSystemPath(cStrTempW);
   if (SUCCEEDED(hRes))
   {
-    if (cStrTempW.InsertN(L"\"", 0, 1) == FALSE ||
-        cStrTempW.Concat(L"CMD.EXE\" /C PING 127.0.0.1 -n 5 & DEL \"") == FALSE ||
-        cStrTempW.ConcatN((LPCWSTR)cStrExeNameW, cStrExeNameW.GetLength()) == FALSE ||
-        cStrTempW.ConcatN("\"", 1) == FALSE)
+    if (cStrTempW.InsertN(L"\"", 0, 1) != FALSE &&
+        cStrTempW.AppendFormat(L"CMD.EXE\" /C PING 127.0.0.1 -n %lu & ", dwAfterSeconds) != FALSE &&
+        cStrTempW.Concat(szCmdLineW) != FALSE)
+    {
+      STARTUPINFOW sSiW;
+      PROCESS_INFORMATION sPi;
+
+      MemSet(&sSiW, 0, sizeof(sSiW));
+      sSiW.cb = (DWORD)sizeof(sSiW);
+      MemSet(&sPi, 0, sizeof(sPi));
+      if (::CreateProcessW(NULL, (LPWSTR)cStrTempW, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &sSiW,
+                           &sPi) != FALSE)
+      {
+        ::CloseHandle(sPi.hThread);
+        ::CloseHandle(sPi.hProcess);
+      }
+      else
+      {
+        hRes = MX_HRESULT_FROM_LASTERROR();
+      }
+    }
+    else
     {
       hRes = E_OUTOFMEMORY;
     }
   }
+  //done
+  return hRes;
+}
+
+HRESULT SelfDeleteApp(_In_ DWORD dwAfterSeconds)
+{
+  CStringW cStrCmdW;
+  HRESULT hRes;
+
+  hRes = FileRoutines::GetAppFileName(cStrCmdW);
   if (SUCCEEDED(hRes))
   {
-    STARTUPINFOW sSiW;
-    PROCESS_INFORMATION sPi;
-
-    MemSet(&sSiW, 0, sizeof(sSiW));
-    sSiW.cb = (DWORD)sizeof(sSiW);
-    MemSet(&sPi, 0, sizeof(sPi));
-    if (::CreateProcessW(NULL, (LPWSTR)cStrTempW, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &sSiW,
-                         &sPi) != FALSE)
+    if (cStrCmdW.InsertN(L"DEL \"", 0, 5) != FALSE && cStrCmdW.ConcatN("\"", 1) != FALSE)
     {
-      ::CloseHandle(sPi.hThread);
-      ::CloseHandle(sPi.hProcess);
+      hRes = ExecuteApp((LPCWSTR)cStrCmdW, dwAfterSeconds);
     }
     else
     {
-      hRes = MX_HRESULT_FROM_LASTERROR();
+      hRes = E_OUTOFMEMORY;
     }
   }
   //done

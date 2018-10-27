@@ -21,7 +21,8 @@ BOOL WildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR szPa
 BOOL String2Guid(_Out_ GUID &sGuid, _In_z_ LPCSTR szGuidA);
 BOOL String2Guid(_Out_ GUID &sGuid, _In_z_ LPCWSTR szGuidW);
 
-HRESULT SelfDeleteApp();
+HRESULT ExecuteApp(_In_z_ LPCWSTR szCmdLineW, _In_ DWORD dwAfterSeconds = 5);
+HRESULT SelfDeleteApp(_In_ DWORD dwAfterSeconds = 5);
 
 }; //namespace Misc
 
