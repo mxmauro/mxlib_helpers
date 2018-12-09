@@ -144,7 +144,7 @@ HRESULT CPEParser::InitializeFromProcessHandle(_In_opt_ HANDLE _hProc, _In_opt_ 
       if (!NT_SUCCESS(nNtStatus))
       {
         Finalize();
-        return MX_HRESULT_FROM_NT(nNtStatus);
+        return MX_HRESULT_FROM_WIN32(::MxRtlNtStatusToDosError(nNtStatus));
       }
       lpPeb = (LPBYTE)sPbi.PebBaseAddress;
 #if defined(_M_X64)

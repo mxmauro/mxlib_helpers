@@ -1096,7 +1096,7 @@ HRESULT OpenFileWithEscalatingSharing(_In_z_ LPCWSTR szFileNameW, _Out_ HANDLE *
     sObjAttrib.ObjectName = &usFileName;
     usFileName.Buffer = (PWSTR)szFileNameW;
     usFileName.Length = usFileName.MaximumLength = (USHORT)(StrLenW(szFileNameW) * 2);
-    for (i=0; i<4; i++)
+    for (i = 0; i < 4; i++)
     {
       MemSet(&sIoStatus, 0, sizeof(sIoStatus));
       nNtStatus = ::MxNtCreateFile(lphFile, FILE_GENERIC_READ, &sObjAttrib, &sIoStatus, NULL, 0,
@@ -1104,7 +1104,7 @@ HRESULT OpenFileWithEscalatingSharing(_In_z_ LPCWSTR szFileNameW, _Out_ HANDLE *
                                    FILE_SEQUENTIAL_ONLY | FILE_SYNCHRONOUS_IO_NONALERT, NULL, 0);
       if (NT_SUCCESS(nNtStatus))
         return S_OK;
-      hRes = MX_HRESULT_FROM_NT(nNtStatus);
+      hRes = MX_HRESULT_FROM_WIN32(::MxRtlNtStatusToDosError(nNtStatus));
       *lphFile = NULL;
       if (hRes != HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION))
         break;
@@ -1113,7 +1113,7 @@ HRESULT OpenFileWithEscalatingSharing(_In_z_ LPCWSTR szFileNameW, _Out_ HANDLE *
   else
   {
     //NOTE: CreateFileW adds FILE_NON_DIRECTORY_FILE flag if FILE_FLAG_BACKUP_SEMANTICS is not specified
-    for (i=0; i<4; i++)
+    for (i = 0; i < 4; i++)
     {
       *lphFile = ::CreateFileW(szFileNameW, GENERIC_READ, (DWORD)aSharingAccess[i], NULL, OPEN_EXISTING, 0, NULL);
       if ((*lphFile) != NULL && (*lphFile) != INVALID_HANDLE_VALUE)
