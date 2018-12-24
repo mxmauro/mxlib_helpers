@@ -187,7 +187,10 @@ HRESULT CWindowsRegistry::ReadDWord(_In_z_ LPCWSTR szNameW, _Out_ DWORD &dwValue
   dwDataSize = (DWORD)sizeof(DWORD);
   dwOsErr = (DWORD)::RegQueryValueExW(hKey, szNameW, NULL, &dwType, (LPBYTE)&dwValue, &dwDataSize);
   if (dwOsErr != 0)
-    return MX_HRESULT_FROM_WIN32(dwOsErr);
+  {
+    dwValue = 0;
+    return (dwOsErr == ERROR_MORE_DATA) ? MX_E_InvalidData : MX_HRESULT_FROM_WIN32(dwOsErr);
+  }
   if (dwType != REG_DWORD && dwType != REG_DWORD_BIG_ENDIAN)
   {
     dwValue = 0;
@@ -221,7 +224,12 @@ HRESULT CWindowsRegistry::ReadDWord(_In_ PUNICODE_STRING Name, _Out_ DWORD &dwVa
   nNtStatus = ::MxNtQueryValueKey((HANDLE)hKey, (PMX_UNICODE_STRING)Name, MxKeyValuePartialInformation,
                                   &s, (ULONG)sizeof(s), &RetLength);
   if (!NT_SUCCESS(nNtStatus))
-    return HRESULT_FROM_WIN32(::MxRtlNtStatusToDosError(nNtStatus));
+  {
+    dwValue = 0;
+    return (nNtStatus == STATUS_BUFFER_OVERFLOW ||
+            nNtStatus == STATUS_BUFFER_TOO_SMALL) ? MX_E_InvalidData
+                                                  : HRESULT_FROM_WIN32(::MxRtlNtStatusToDosError(nNtStatus));
+  }
   if (s.Info.Type != REG_DWORD && s.Info.Type != REG_DWORD_BIG_ENDIAN)
   {
     dwValue = 0;
@@ -284,7 +292,7 @@ HRESULT CWindowsRegistry::ReadString(_In_z_ LPCWSTR szNameW, _Out_ MX::CStringW 
 }
 
 HRESULT CWindowsRegistry::ReadString(_In_ PUNICODE_STRING Name, _Out_ PUNICODE_STRING *pValue,
-                                 _In_opt_ BOOL bAutoExpandRegSz)
+                                     _In_opt_ BOOL bAutoExpandRegSz)
 {
   MX::TAutoFreePtr<MX_KEY_VALUE_PARTIAL_INFORMATION> aBuffer;
   struct {
