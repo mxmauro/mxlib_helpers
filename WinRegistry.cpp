@@ -245,7 +245,8 @@ HRESULT CWindowsRegistry::ReadDWord(_In_ PUNICODE_STRING Name, _Out_ DWORD &dwVa
   return S_OK;
 }
 
-HRESULT CWindowsRegistry::ReadString(_In_z_ LPCWSTR szNameW, _Out_ MX::CStringW &cStrValueW, _In_opt_ BOOL bAutoExpandRegSz)
+HRESULT CWindowsRegistry::ReadString(_In_z_ LPCWSTR szNameW, _Out_ MX::CStringW &cStrValueW,
+                                     _In_opt_ BOOL bAutoExpandRegSz)
 {
   DWORD dwType, dwDataSize, dwOsErr;
 
@@ -644,7 +645,8 @@ HRESULT CWindowsRegistry::ReadBlob(_In_z_ LPCWSTR szNameW, _Out_ MX::TAutoFreePt
   return S_OK;
 }
 
-HRESULT CWindowsRegistry::ReadBlob(_In_ PUNICODE_STRING Name, _Out_ MX::TAutoFreePtr<BYTE> &cBlob, _Out_ SIZE_T &nBlobSize)
+HRESULT CWindowsRegistry::ReadBlob(_In_ PUNICODE_STRING Name, _Out_ MX::TAutoFreePtr<BYTE> &cBlob,
+                                   _Out_ SIZE_T &nBlobSize)
 {
   MX::TAutoFreePtr<MX_KEY_VALUE_PARTIAL_INFORMATION> aBuffer;
   struct {
