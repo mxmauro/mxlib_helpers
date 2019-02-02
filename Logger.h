@@ -24,6 +24,7 @@ HRESULT Initialize(_In_z_ LPCWSTR szModuleNameW, _In_z_ LPCWSTR szRegistryKeyW, 
 HRESULT Log(_Printf_format_string_ LPCWSTR szFormatW, ...);
 HRESULT LogIfError(_In_ HRESULT hResError, _Printf_format_string_ LPCWSTR szFormatW, ...);
 HRESULT LogAlways(_In_ HRESULT hResError, _Printf_format_string_ LPCWSTR szFormatW, ...);
+HRESULT LogRaw(_In_z_ LPCWSTR szTextW);
 
 HRESULT GetLogFolder(_Out_ CStringW &cStrLogFolderW);
 

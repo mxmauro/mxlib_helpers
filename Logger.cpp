@@ -205,6 +205,32 @@ HRESULT LogAlways(_In_ HRESULT hResError, _Printf_format_string_ LPCWSTR szForma
   return S_OK;
 }
 
+HRESULT LogRaw(_In_z_ LPCWSTR szTextW)
+{
+  CFastLock cLock(&nMutex);
+  DWORD dwLen, dwWritten;
+  HRESULT hRes;
+
+  dwLen = (DWORD)StrLenW(szTextW);
+  while (dwLen > 0 && (szTextW[dwLen - 1] == L'\r' || szTextW[dwLen - 1] == L'\n'))
+    dwLen--;
+  if (dwLen == 0)
+    return S_OK;
+  //initialize logger on first access
+  hRes = InitLogCommon();
+  if (FAILED(hRes))
+    return hRes;
+  //write log
+  ::WriteFile(cLogH, szTextW, dwLen * 2, &dwWritten, NULL);
+  ::WriteFile(cLogH, L"\r\n", 4, &dwWritten, NULL);
+#ifdef DEBUGOUTPUT_LOG
+  ::OutputDebugStringW(szTextW);
+  ::OutputDebugStringW(L"\r\n");
+#endif //DEBUGOUTPUT_LOG
+  //done
+  return S_OK;
+}
+
 HRESULT GetLogFolder(_Out_ CStringW &_cStrLogFolderW)
 {
   if ((__InterlockedRead(&nInitializedFlags) & LOGFLAG_Initialized) == 0)
