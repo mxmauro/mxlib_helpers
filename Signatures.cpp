@@ -14,6 +14,9 @@
 
 //-----------------------------------------------------------
 
+#define READ_RETRIES_COUNT                               200
+#define READ_RETRIES_DELAY_MS                             15
+
 #define MAX_FILE_SIZE_FOR_CATALOG_CHECK  100ui64*1048576ui64
 
 #define MAX_CACHED_ITEMS                                4096
@@ -1171,11 +1174,13 @@ static HRESULT DoTrustVerification(_In_opt_z_ LPCWSTR szPeFileNameW, _In_opt_ HA
 {
   WINTRUST_DATA sWtData;
   WINTRUST_FILE_INFO sWtFileInfo;
+  DWORD dwRetryCount = 0;
   HRESULT hRes;
 
   *lplpCertCtx = NULL;
   lpTimeStamp->dwLowDateTime = lpTimeStamp->dwHighDateTime = 0;
 
+restart:
   //verify PE's signature
   MX::MemSet(&sWtData, 0, sizeof(sWtData));
   sWtData.cbStruct = (DWORD)sizeof(sWtData);
@@ -1245,6 +1250,12 @@ done:
   sWtData.dwStateAction = WTD_STATEACTION_CLOSE;
   fnWinVerifyTrustEx((HWND)INVALID_HANDLE_VALUE, lpActionId, &sWtData);
 
+  if (hRes == HRESULT_FROM_WIN32(ERROR_LOCK_VIOLATION) && dwRetryCount < READ_RETRIES_COUNT)
+  {
+    dwRetryCount++;
+    ::Sleep(READ_RETRIES_DELAY_MS);
+    goto restart;
+  }
   return hRes;
 }
 

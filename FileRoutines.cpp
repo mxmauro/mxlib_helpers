@@ -12,11 +12,11 @@
 
 //-----------------------------------------------------------
 
-#define CREATE_RETRIES_COUNT     5
-#define CREATE_RETRIES_DELAY_MS 20
+#define CREATE_RETRIES_COUNT                             200
+#define CREATE_RETRIES_DELAY_MS                           15
 
-#define DELETE_RETRIES_COUNT     5
-#define DELETE_RETRIES_DELAY_MS 20
+#define DELETE_RETRIES_COUNT                             200
+#define DELETE_RETRIES_DELAY_MS                           15
 
 #ifndef FILE_OPEN
   #define FILE_OPEN                               0x00000001
@@ -429,7 +429,7 @@ HRESULT RemoveDirectoryRecursive(_In_ LPCWSTR szFolderNameW, _In_opt_ eDelayedDe
   else if (::RemoveDirectoryW((LPWSTR)cStrTempW) == FALSE)
   {
     ::SetFileAttributesW((LPCWSTR)cStrTempW, FILE_ATTRIBUTE_NORMAL|FILE_ATTRIBUTE_DIRECTORY);
-    for (i=DELETE_RETRIES_COUNT; i>0; i--)
+    for (i = DELETE_RETRIES_COUNT; i > 0; i--)
     {
       liTime.QuadPart = -(LONGLONG)MX_MILLISECONDS_TO_100NS(DELETE_RETRIES_DELAY_MS);
       ::MxNtDelayExecution(FALSE, &liTime);
@@ -439,8 +439,9 @@ HRESULT RemoveDirectoryRecursive(_In_ LPCWSTR szFolderNameW, _In_opt_ eDelayedDe
       if (hRes == MX_E_FileNotFound || hRes == MX_E_PathNotFound)
         break;
       if (hRes != MX_HRESULT_FROM_WIN32(ERROR_DIR_NOT_EMPTY) &&
-          hRes != MX_HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED) &&
-          hRes != MX_HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION))
+          hRes != E_ACCESSDENIED &&
+          hRes != MX_HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION) &&
+          hRes != MX_HRESULT_FROM_WIN32(ERROR_LOCK_VIOLATION))
       {
         return hRes;
       }
@@ -481,7 +482,7 @@ HRESULT _DeleteFile(_In_ LPCWSTR szFileNameW, _In_opt_ eDelayedDelete nDD)
   if (::DeleteFileW(szFileNameW) == FALSE)
   {
     ::SetFileAttributesW(szFileNameW, FILE_ATTRIBUTE_NORMAL);
-    for (dw=DELETE_RETRIES_COUNT; dw>0; dw--)
+    for (dw = DELETE_RETRIES_COUNT; dw > 0; dw--)
     {
       liTime.QuadPart = -(LONGLONG)MX_MILLISECONDS_TO_100NS(DELETE_RETRIES_DELAY_MS);
       ::MxNtDelayExecution(FALSE, &liTime);
@@ -490,8 +491,11 @@ HRESULT _DeleteFile(_In_ LPCWSTR szFileNameW, _In_opt_ eDelayedDelete nDD)
       hRes = MX_HRESULT_FROM_LASTERROR();
       if (hRes == MX_E_PathNotFound || hRes == MX_E_FileNotFound)
         break;
-      if (hRes != MX_HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED) && hRes != MX_HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION))
+      if (hRes != E_ACCESSDENIED && hRes != MX_HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION) &&
+          hRes != MX_HRESULT_FROM_WIN32(ERROR_LOCK_VIOLATION))
+      {
         return hRes;
+      }
       if (dw == 1)
       {
         if (nDD == DeleteOnRebootOnFailure)
@@ -691,7 +695,7 @@ HRESULT ConvertToLongPath(_Inout_ CStringW &cStrPathW)
 
   //look for the fourth backslash as starting offset
   sW = (LPCWSTR)cStrTempW;
-  for (i=nOfs=0; sW[nOfs] !=0; nOfs++)
+  for (i = nOfs = 0; sW[nOfs] !=0; nOfs++)
   {
     if (sW[nOfs] == L'\\')
     {
@@ -1109,11 +1113,14 @@ HRESULT OpenFileWithEscalatingSharing(_In_z_ LPCWSTR szFileNameW, _Out_ HANDLE *
           return S_OK;
         hRes = MX_HRESULT_FROM_WIN32(::MxRtlNtStatusToDosError(nNtStatus));
         *lphFile = NULL;
-        if (hRes != HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION))
+        if (hRes != HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION) && hRes != HRESULT_FROM_WIN32(ERROR_LOCK_VIOLATION))
           break;
       }
-      if (hRes != HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION) && hRes != E_ACCESSDENIED)
+      if (hRes != HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION) && hRes != HRESULT_FROM_WIN32(ERROR_LOCK_VIOLATION) &&
+          hRes != E_ACCESSDENIED)
+      {
         break;
+      }
     }
   }
   else
@@ -1130,11 +1137,14 @@ HRESULT OpenFileWithEscalatingSharing(_In_z_ LPCWSTR szFileNameW, _Out_ HANDLE *
           return S_OK;
         hRes = MX_HRESULT_FROM_LASTERROR();
         *lphFile = NULL;
-        if (hRes != HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION))
+        if (hRes != HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION) && hRes != HRESULT_FROM_WIN32(ERROR_LOCK_VIOLATION))
           break;
       }
-      if (hRes != HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION) && hRes != E_ACCESSDENIED)
+      if (hRes != HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION) && hRes != HRESULT_FROM_WIN32(ERROR_LOCK_VIOLATION) &&
+          hRes != E_ACCESSDENIED)
+      {
         break;
+      }
     }
   }
   return hRes;
