@@ -42,11 +42,11 @@ public:
   CPEParser();
   ~CPEParser();
 
-  HRESULT InitializeFromFileName(_In_z_ LPCWSTR szFileNameW, _In_opt_ DWORD dwParseFlags=0xFFFFFFFFUL);
-  HRESULT InitializeFromFileHandle(_In_ HANDLE hFile, _In_opt_ DWORD dwParseFlags=0xFFFFFFFFUL);
-  HRESULT InitializeFromProcessHandle(_In_opt_ HANDLE hProc, _In_opt_ DWORD dwParseFlags=0xFFFFFFFFUL);
-  HRESULT InitializeFromMemory(_In_ LPCVOID lpBaseAddress, _In_ BOOL bImageIsMapped,
-                               _In_opt_ DWORD dwParseFlags=0xFFFFFFFFUL);
+  HRESULT InitializeFromFileName(_In_z_ LPCWSTR szFileNameW, _In_opt_ DWORD dwParseFlags = 0xFFFFFFFFUL);
+  HRESULT InitializeFromFileHandle(_In_ HANDLE hFile, _In_opt_ DWORD dwParseFlags = 0xFFFFFFFFUL);
+  HRESULT InitializeFromProcessHandle(_In_opt_ HANDLE hProc, _In_opt_ DWORD dwParseFlags = 0xFFFFFFFFUL);
+  HRESULT InitializeFromMemory(_In_ LPCVOID lpBaseAddress, _In_ SIZE_T nImageSize, _In_ BOOL bImageIsMapped,
+                               _In_opt_ DWORD dwParseFlags = 0xFFFFFFFFUL);
   VOID Finalize();
 
   WORD GetMachineType() const
@@ -130,11 +130,11 @@ public:
   //NOTE: Returns NULL if invalid RVA
   LPBYTE RvaToVa(_In_ DWORD dwVirtualAddress);
 
-  BOOL ReadMem(_Out_writes_(nBytes) LPVOID lpDest, _In_ LPCVOID lpSrc, _In_ SIZE_T nBytes);
+  BOOL ReadRaw(_Out_writes_(nBytes) LPVOID lpDest, _In_ LPCVOID lpSrc, _In_ SIZE_T nBytes);
   HRESULT ReadAnsiString(_Out_ CStringA &cStrA, _In_ LPVOID lpNameAddress, _In_ SIZE_T nMaxLength);
 
 private:
-  VOID Reset();
+  VOID ClearVars();
 
   HRESULT DoParse(_In_ DWORD dwParseFlags);
   HRESULT DoParseImportTable(_In_ PIMAGE_IMPORT_DESCRIPTOR lpImportDesc);
@@ -147,10 +147,16 @@ private:
                               _In_ LPCWSTR szKeyW, _Out_ PIMAGE_RESOURCE_DIRECTORY_ENTRY *lplpDirEntry);
 
 private:
-  HANDLE hFile, hFileMap;
+  HANDLE hFile;
   HANDLE hProc;
+
   LPBYTE lpBaseAddress;
+  SIZE_T nDataSize;
   BOOL bImageIsMapped;
+  struct {
+    BYTE aBuffer[8192];
+    SIZE_T nOffset, nLength;
+  } sFileCache;
 
   WORD wMachine;
   LPVOID lpOriginalImageBaseAddress;

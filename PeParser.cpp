@@ -14,16 +14,18 @@
 #define MAX_IMPORTS_DLL_NAME_LENGTH                      512
 #define MAX_IMPORTS_FUNCTION_NAME_LENGTH                 512
 
+#define __ALLOCATION_GRANULARITY                       65536
+#define __CACHE_SIZE          (4 * __ALLOCATION_GRANULARITY)
+
+#define ViewShare 1
+
 //-----------------------------------------------------------
 
 namespace MX {
 
 CPEParser::CPEParser()
 {
-  hFile = hFileMap = NULL;
-  hProc = NULL;
-  //--------
-  Reset();
+  ClearVars();
   return;
 }
 
@@ -50,6 +52,7 @@ HRESULT CPEParser::InitializeFromFileName(_In_z_ LPCWSTR szFileNameW, _In_opt_ D
 
 HRESULT CPEParser::InitializeFromFileHandle(_In_ HANDLE _hFile, _In_opt_ DWORD dwParseFlags)
 {
+  ULARGE_INTEGER uliFileSize;
   HRESULT hRes;
 
   if (_hFile == NULL || _hFile == INVALID_HANDLE_VALUE)
@@ -63,22 +66,17 @@ HRESULT CPEParser::InitializeFromFileHandle(_In_ HANDLE _hFile, _In_opt_ DWORD d
     return MX_HRESULT_FROM_LASTERROR();
   }
 
-  //map file
-  hFileMap = ::CreateFileMappingW(hFile, NULL, PAGE_READONLY, 0, 0, NULL);
-  if (hFileMap == NULL)
-  {
-    hRes = MX_HRESULT_FROM_LASTERROR();
-    Finalize();
-    return hRes;
-  }
-  //----
-  lpBaseAddress = (LPBYTE)::MapViewOfFile(hFileMap, FILE_MAP_READ, 0, 0, 0);
-  if (lpBaseAddress == NULL)
-  {
-    hRes = MX_HRESULT_FROM_LASTERROR();
-    Finalize();
-    return hRes;
-  }
+  if (::GetFileSizeEx(hFile, (PLARGE_INTEGER)&uliFileSize) == FALSE)
+    return MX_HRESULT_FROM_LASTERROR();
+#if defined(_M_IX86)
+  nDataSize = (uliFileSize.HighPart != 0) ? 0xFFFFFFFFUL : (SIZE_T)(uliFileSize.LowPart);
+#elif defined(_M_X64)
+  nDataSize = uliFileSize.QuadPart;
+#else
+  #error Unsupported platform
+#endif
+
+  lpBaseAddress = (LPBYTE)0x100000; //dummy value used as a reference
 
   //parse PE
   hRes = DoParse(dwParseFlags);
@@ -99,6 +97,7 @@ HRESULT CPEParser::InitializeFromProcessHandle(_In_opt_ HANDLE _hProc, _In_opt_ 
   BOOL bIs32BitProcess = FALSE;
 #endif //_M_X64
   ULONG dwTemp;
+  SIZE_T nRead;
   HRESULT hRes;
 
   //get process' PEB
@@ -158,7 +157,7 @@ HRESULT CPEParser::InitializeFromProcessHandle(_In_opt_ HANDLE _hProc, _In_opt_ 
   {
     ULONGLONG qwTemp;
 
-    if (ReadMem(&qwTemp, lpPeb + 0x10, sizeof(qwTemp)) == FALSE)
+    if (::ReadProcessMemory(hProc, lpPeb + 0x10, &qwTemp, sizeof(qwTemp), &nRead) == FALSE || nRead != sizeof(qwTemp))
     {
       Finalize();
       return MX_E_ReadFault;
@@ -168,7 +167,7 @@ HRESULT CPEParser::InitializeFromProcessHandle(_In_opt_ HANDLE _hProc, _In_opt_ 
   else
   {
 #endif //_M_X64
-    if (ReadMem(&dwTemp, lpPeb + 0x08, sizeof(dwTemp)) == FALSE)
+    if (::ReadProcessMemory(hProc, lpPeb + 0x08, &dwTemp, sizeof(dwTemp), &nRead) == FALSE || nRead != sizeof(dwTemp))
     {
       Finalize();
       return MX_E_ReadFault;
@@ -181,6 +180,8 @@ HRESULT CPEParser::InitializeFromProcessHandle(_In_opt_ HANDLE _hProc, _In_opt_ 
 #if defined(_M_X64)
   }
 #endif //_M_X64
+
+  nDataSize = 0x80000000; //we can do a fine-tunning of image size but this should be enough
 
   //setup image mapping type
   bImageIsMapped = TRUE;
@@ -197,12 +198,18 @@ HRESULT CPEParser::InitializeFromProcessHandle(_In_opt_ HANDLE _hProc, _In_opt_ 
   return S_OK;
 }
 
-HRESULT CPEParser::InitializeFromMemory(_In_ LPCVOID _lpBaseAddress, _In_ BOOL _bImageIsMapped,
+HRESULT CPEParser::InitializeFromMemory(_In_ LPCVOID _lpBaseAddress, _In_ SIZE_T nImageSize, _In_ BOOL _bImageIsMapped,
                                         _In_opt_ DWORD dwParseFlags)
 {
   HRESULT hRes;
 
+  if (_lpBaseAddress == NULL)
+    return E_POINTER;
+  if (nImageSize < sizeof(IMAGE_DOS_HEADER))
+    return MX_HRESULT_FROM_WIN32(ERROR_BAD_EXE_FORMAT);
+
   lpBaseAddress = (LPBYTE)_lpBaseAddress;
+  nDataSize = nImageSize;
   bImageIsMapped = _bImageIsMapped;
 
   //parse PE
@@ -219,23 +226,12 @@ HRESULT CPEParser::InitializeFromMemory(_In_ LPCVOID _lpBaseAddress, _In_ BOOL _
 
 VOID CPEParser::Finalize()
 {
-  if (hFileMap != NULL && hFileMap != INVALID_HANDLE_VALUE)
-  {
-    if (lpBaseAddress != NULL)
-      ::UnmapViewOfFile(lpBaseAddress);
-    ::CloseHandle(hFileMap);
-  }
-  hFileMap = NULL;
-  //----
   if (hFile != NULL && hFile != INVALID_HANDLE_VALUE)
     ::CloseHandle(hFile);
-  hFile = NULL;
-  //----
   if (hProc != NULL)
     ::CloseHandle(hProc);
-  hProc = NULL;
   //----
-  Reset();
+  ClearVars();
   return;
 }
 
@@ -260,14 +256,71 @@ LPBYTE CPEParser::RvaToVa(_In_ DWORD dwVirtualAddress)
   return NULL;
 }
 
-BOOL CPEParser::ReadMem(_Out_writes_(nBytes) LPVOID lpDest, _In_ LPCVOID lpSrc, _In_ SIZE_T nBytes)
+BOOL CPEParser::ReadRaw(_Out_writes_(nBytes) LPVOID lpDest, _In_ LPCVOID lpSrc, _In_ SIZE_T nBytes)
 {
+  SIZE_T nOffset;
+
+  if ((SIZE_T)lpSrc < (SIZE_T)lpBaseAddress)
+    return FALSE;
+  nOffset = (SIZE_T)lpSrc - (SIZE_T)lpBaseAddress;
+  if (nOffset > nDataSize)
+    return FALSE;
+  if (nBytes > nDataSize - nOffset)
+    return FALSE;
+  if (nBytes == 0)
+    return TRUE;
+
   if (hProc != NULL)
   {
     SIZE_T nRead;
 
-    if (::ReadProcessMemory(hProc, lpSrc, lpDest, nBytes, &nRead) == FALSE || nBytes != nRead)
+    if (::ReadProcessMemory(hProc, lpBaseAddress + nOffset, lpDest, nBytes, &nRead) == FALSE || nBytes != nRead)
       return FALSE;
+  }
+  else if (hFile != NULL)
+  {
+    while (nBytes > 0)
+    {
+      SIZE_T nOffsetInCache, nToReadThisRound;
+
+      //check if data to read is in cache
+      if (nOffset < sFileCache.nOffset || nOffset >= sFileCache.nOffset + sFileCache.nLength)
+      {
+        //cache is invalid, refresh
+        DWORD dwRead;
+        ULARGE_INTEGER uliOffset;
+
+        //read from file
+        uliOffset.QuadPart = (ULONGLONG)nOffset;
+
+        if (::SetFilePointer(hFile, (LONG)(uliOffset.LowPart), (PLONG)&(uliOffset.HighPart),
+                             FILE_BEGIN) == INVALID_SET_FILE_POINTER ||
+            ::ReadFile(hFile, sFileCache.aBuffer, (DWORD)sizeof(sFileCache.aBuffer), &dwRead, NULL) == FALSE ||
+            dwRead == 0)
+        {
+          sFileCache.nOffset = sFileCache.nLength = 0; //invalidate cache
+          return FALSE;
+        }
+
+        //update cache info
+        sFileCache.nOffset = nOffset;
+        sFileCache.nLength = (SIZE_T)dwRead;
+      }
+
+      //here cache is valid, proceed with read
+      nOffsetInCache = nOffset - sFileCache.nOffset;
+      nToReadThisRound = nBytes;
+      if (nToReadThisRound > sFileCache.nLength - nOffsetInCache)
+        nToReadThisRound = sFileCache.nLength - nOffsetInCache;
+
+      //copy data
+      MemCopy(lpDest, sFileCache.aBuffer + nOffsetInCache, nToReadThisRound);
+
+      //advance offset
+      lpDest = (LPBYTE)lpDest + nToReadThisRound;
+      nOffset += nToReadThisRound;
+      nBytes -= nToReadThisRound;
+    }
   }
   else
   {
@@ -288,7 +341,7 @@ HRESULT CPEParser::ReadAnsiString(_Out_ CStringA &cStrA, _In_ LPVOID lpNameAddre
 
   while (cStrA.GetLength() < nMaxLength)
   {
-    if (ReadMem(szTempBufA, lpNameAddress, MX_ARRAYLEN(szTempBufA)) == FALSE)
+    if (ReadRaw(szTempBufA, lpNameAddress, MX_ARRAYLEN(szTempBufA)) == FALSE)
       return MX_E_ReadFault;
 
     for (nThisLen=0; nThisLen<MX_ARRAYLEN(szTempBufA) && szTempBufA[nThisLen]!=0; nThisLen++);
@@ -304,12 +357,16 @@ HRESULT CPEParser::ReadAnsiString(_Out_ CStringA &cStrA, _In_ LPVOID lpNameAddre
   return (cStrA.GetLength() < nMaxLength) ? S_OK : MX_E_InvalidData;
 }
 
-VOID CPEParser::Reset()
+VOID CPEParser::ClearVars()
 {
+  hFile = NULL;
+  hProc = NULL;
+
   wMachine = IMAGE_FILE_MACHINE_UNKNOWN;
   lpOriginalImageBaseAddress = NULL;
 
   lpBaseAddress = NULL;
+  nDataSize = 0;
   bImageIsMapped = FALSE;
 
   MemSet(&sDosHdr, 0, sizeof(sDosHdr));
@@ -341,7 +398,7 @@ HRESULT CPEParser::DoParse(_In_ DWORD dwParseFlags)
   LPBYTE lpNtHdr;
   HRESULT hRes;
 
-  if (ReadMem(&sDosHdr, lpBaseAddress, sizeof(sDosHdr)) == FALSE)
+  if (ReadRaw(&sDosHdr, lpBaseAddress, sizeof(sDosHdr)) == FALSE)
     return MX_E_ReadFault;
   if (sDosHdr.e_magic != IMAGE_DOS_SIGNATURE)
     return MX_E_InvalidData;
@@ -350,19 +407,19 @@ HRESULT CPEParser::DoParse(_In_ DWORD dwParseFlags)
   lpNtHdr = lpBaseAddress + (SIZE_T)(ULONG)(sDosHdr.e_lfanew);
 
   //check signature
-  if (ReadMem(&dwImageSignature, lpNtHdr, sizeof(dwImageSignature)) == FALSE)
+  if (ReadRaw(&dwImageSignature, lpNtHdr, sizeof(dwImageSignature)) == FALSE)
     return MX_E_ReadFault;
   if (dwImageSignature != IMAGE_NT_SIGNATURE)
     return MX_E_InvalidData;
 
   //read file header
-  if (ReadMem(&sFileHeader, lpNtHdr + sizeof(DWORD), sizeof(sFileHeader)) == FALSE)
+  if (ReadRaw(&sFileHeader, lpNtHdr + sizeof(DWORD), sizeof(sFileHeader)) == FALSE)
     return MX_E_ReadFault;
   //check machine
   switch (wMachine = sFileHeader.Machine)
   {
     case IMAGE_FILE_MACHINE_I386:
-      if (ReadMem(&(uNtHdr.s32), lpNtHdr, sizeof(uNtHdr.s32)) == FALSE)
+      if (ReadRaw(&(uNtHdr.s32), lpNtHdr, sizeof(uNtHdr.s32)) == FALSE)
         return MX_E_ReadFault;
 
       //get original image base address
@@ -375,7 +432,7 @@ HRESULT CPEParser::DoParse(_In_ DWORD dwParseFlags)
         cFileImgSect.Attach((PIMAGE_SECTION_HEADER)MX_MALLOC(nSectionsCount * sizeof(IMAGE_SECTION_HEADER)));
         if (!cFileImgSect)
           return E_OUTOFMEMORY;
-        if (ReadMem(cFileImgSect.Get(), (PIMAGE_SECTION_HEADER)(lpNtHdr + sizeof(uNtHdr.s32)),
+        if (ReadRaw(cFileImgSect.Get(), (PIMAGE_SECTION_HEADER)(lpNtHdr + sizeof(uNtHdr.s32)),
                     nSectionsCount * sizeof(IMAGE_SECTION_HEADER)) == FALSE)
         {
           return MX_E_ReadFault;
@@ -469,7 +526,7 @@ HRESULT CPEParser::DoParse(_In_ DWORD dwParseFlags)
 
 #if defined(_M_X64)
     case IMAGE_FILE_MACHINE_AMD64:
-      if (ReadMem(&(uNtHdr.s64), lpNtHdr, sizeof(uNtHdr.s64)) == FALSE)
+      if (ReadRaw(&(uNtHdr.s64), lpNtHdr, sizeof(uNtHdr.s64)) == FALSE)
         return MX_E_ReadFault;
 
       //get original image base address
@@ -482,7 +539,7 @@ HRESULT CPEParser::DoParse(_In_ DWORD dwParseFlags)
         cFileImgSect.Attach((PIMAGE_SECTION_HEADER)MX_MALLOC(nSectionsCount * sizeof(IMAGE_SECTION_HEADER)));
         if (!cFileImgSect)
           return E_OUTOFMEMORY;
-        if (ReadMem(cFileImgSect.Get(), (PIMAGE_SECTION_HEADER)(lpNtHdr + sizeof(uNtHdr.s64)),
+        if (ReadRaw(cFileImgSect.Get(), (PIMAGE_SECTION_HEADER)(lpNtHdr + sizeof(uNtHdr.s64)),
                     nSectionsCount * sizeof(IMAGE_SECTION_HEADER)) == FALSE)
         {
           return MX_E_ReadFault;
@@ -607,7 +664,7 @@ restart:
   if (!cDllEntry)
     return E_OUTOFMEMORY;
 
-  if (ReadMem(&sImportDesc, lpImportDesc, sizeof(sImportDesc)) == FALSE)
+  if (ReadRaw(&sImportDesc, lpImportDesc, sizeof(sImportDesc)) == FALSE)
     return MX_E_ReadFault;
 
   // See if we've reached an empty IMAGE_IMPORT_DESCRIPTOR
@@ -646,7 +703,7 @@ restart:
     case IMAGE_FILE_MACHINE_I386:
       while (1)
       {
-        if (ReadMem(&uThunkData, lpThunk, sizeof(uThunkData.s32)) == FALSE)
+        if (ReadRaw(&uThunkData, lpThunk, sizeof(uThunkData.s32)) == FALSE)
           return MX_E_ReadFault;
         if (uThunkData.s32.u1.AddressOfData == 0)
           break;
@@ -675,7 +732,7 @@ restart:
         lpFuncAddress = NULL;
         if (lpFunctionThunk != NULL)
         {
-          if (ReadMem(&uThunkData, lpFunctionThunk, sizeof(uThunkData.s32)) == FALSE)
+          if (ReadRaw(&uThunkData, lpFunctionThunk, sizeof(uThunkData.s32)) == FALSE)
             return MX_E_ReadFault;
           lpFuncAddress = ULongToPtr(uThunkData.s32.u1.Function);
         }
@@ -707,7 +764,7 @@ restart:
     case IMAGE_FILE_MACHINE_AMD64:
       while (1)
       {
-        if (ReadMem(&uThunkData, lpThunk, sizeof(uThunkData.s64)) == FALSE)
+        if (ReadRaw(&uThunkData, lpThunk, sizeof(uThunkData.s64)) == FALSE)
           return MX_E_ReadFault;
         if (uThunkData.s64.u1.AddressOfData == 0)
           break;
@@ -736,7 +793,7 @@ restart:
         lpFuncAddress = NULL;
         if (lpFunctionThunk != NULL)
         {
-          if (ReadMem(&uThunkData, lpFunctionThunk, sizeof(uThunkData.s64)) == FALSE)
+          if (ReadRaw(&uThunkData, lpFunctionThunk, sizeof(uThunkData.s64)) == FALSE)
             return MX_E_ReadFault;
           lpFuncAddress = (LPVOID)(uThunkData.s64.u1.Function);
         }
@@ -788,7 +845,7 @@ HRESULT CPEParser::DoParseExportTable(_In_ PIMAGE_EXPORT_DIRECTORY lpExportDir, 
   LPVOID lpFuncAddress;
   HRESULT hRes;
 
-  if (ReadMem(&sExportDir, lpExportDir, sizeof(sExportDir)) == FALSE)
+  if (ReadRaw(&sExportDir, lpExportDir, sizeof(sExportDir)) == FALSE)
     return MX_E_ReadFault;
 
   sExportsInfo.dwCharacteristics = sExportDir.Characteristics;
@@ -819,13 +876,13 @@ HRESULT CPEParser::DoParseExportTable(_In_ PIMAGE_EXPORT_DIRECTORY lpExportDir, 
     aNameOrdinalsList.Attach((LPWORD)MX_MALLOC((SIZE_T)dwNumberOfNames * sizeof(WORD)));
     if (!aNameOrdinalsList)
       return E_OUTOFMEMORY;
-    if (ReadMem(aNameOrdinalsList.Get(), lpwAddressOfNameOrdinals, (SIZE_T)dwNumberOfNames * sizeof(WORD)) == FALSE)
+    if (ReadRaw(aNameOrdinalsList.Get(), lpwAddressOfNameOrdinals, (SIZE_T)dwNumberOfNames * sizeof(WORD)) == FALSE)
       return MX_E_ReadFault;
   }
 
   for (dw=0; dw<sExportDir.NumberOfFunctions && dw<MAX_EXPORTS_COUNT; dw++)
   {
-    if (ReadMem(&dwFuncAddress, &lpdwAddressOfFunctions[dw], sizeof(dwFuncAddress)) == FALSE)
+    if (ReadRaw(&dwFuncAddress, &lpdwAddressOfFunctions[dw], sizeof(dwFuncAddress)) == FALSE)
       return MX_E_ReadFault;
     if (dwFuncAddress == 0)
       continue; //skip gaps
@@ -865,7 +922,7 @@ HRESULT CPEParser::DoParseExportTable(_In_ PIMAGE_EXPORT_DIRECTORY lpExportDir, 
     {
       if (aNameOrdinalsList[dw2] == dw)
       {
-        if (ReadMem(&dwNameAddress, &lpdwAddressOfNames[dw2], sizeof(dwNameAddress)) == FALSE)
+        if (ReadRaw(&dwNameAddress, &lpdwAddressOfNames[dw2], sizeof(dwNameAddress)) == FALSE)
           return MX_E_ReadFault;
         if (dwNameAddress != 0)
         {
@@ -930,7 +987,7 @@ HRESULT CPEParser::DoParseResources()
       cVersionInfo.Attach((LPBYTE)MX_MALLOC(nDataSize));
       if (!cVersionInfo)
         return E_OUTOFMEMORY;
-      if (ReadMem(cVersionInfo.Get(), lpData, nDataSize) == FALSE)
+      if (ReadRaw(cVersionInfo.Get(), lpData, nDataSize) == FALSE)
         return MX_E_ReadFault;
       nVersionInfoSize = nDataSize;
     }
@@ -962,7 +1019,7 @@ HRESULT CPEParser::_FindResource(_In_ LPCWSTR szNameW, _In_ LPCWSTR szTypeW, _In
   hRes = LookupResourceEntry(lpResourceDir, lpResourceDir, szTypeW, &lpDirEntry);
   if (FAILED(hRes))
     return hRes;
-  if (ReadMem(&sDirEntry, lpDirEntry, sizeof(sDirEntry)) == FALSE)
+  if (ReadRaw(&sDirEntry, lpDirEntry, sizeof(sDirEntry)) == FALSE)
     return MX_E_ReadFault;
   lpTypeResDir = (PIMAGE_RESOURCE_DIRECTORY)((LPBYTE)lpResourceDir +
                                              (SIZE_T)(sDirEntry.OffsetToData & 0x7FFFFFFF));
@@ -970,7 +1027,7 @@ HRESULT CPEParser::_FindResource(_In_ LPCWSTR szNameW, _In_ LPCWSTR szTypeW, _In
   hRes = LookupResourceEntry(lpResourceDir, lpTypeResDir, szNameW, &lpDirEntry);
   if (FAILED(hRes))
     return hRes;
-  if (ReadMem(&sDirEntry, lpDirEntry, sizeof(sDirEntry)) == FALSE)
+  if (ReadRaw(&sDirEntry, lpDirEntry, sizeof(sDirEntry)) == FALSE)
     return MX_E_ReadFault;
   lpNameResDir = (PIMAGE_RESOURCE_DIRECTORY)((LPBYTE)lpResourceDir +
                                              (SIZE_T)(sDirEntry.OffsetToData & 0x7FFFFFFF));
@@ -981,17 +1038,17 @@ HRESULT CPEParser::_FindResource(_In_ LPCWSTR szNameW, _In_ LPCWSTR szTypeW, _In
     if (hRes != MX_E_NotFound)
       return hRes;
     //get the first entry if provided language is not found
-    if (ReadMem(&sResDir, lpNameResDir, sizeof(sResDir)) == FALSE)
+    if (ReadRaw(&sResDir, lpNameResDir, sizeof(sResDir)) == FALSE)
       return MX_E_ReadFault;
     if (sResDir.NumberOfIdEntries == 0)
       return MX_E_NotFound;
     lpDirEntry = (PIMAGE_RESOURCE_DIRECTORY_ENTRY)(lpNameResDir + 1);
   }
-  if (ReadMem(&sDirEntry, lpDirEntry, sizeof(sDirEntry)) == FALSE)
+  if (ReadRaw(&sDirEntry, lpDirEntry, sizeof(sDirEntry)) == FALSE)
     return MX_E_ReadFault;
 
   //get data entry
-  if (ReadMem(&sResDataEntry, (LPBYTE)lpResourceDir + (SIZE_T)(sDirEntry.OffsetToData & 0x7FFFFFFF),
+  if (ReadRaw(&sResDataEntry, (LPBYTE)lpResourceDir + (SIZE_T)(sDirEntry.OffsetToData & 0x7FFFFFFF),
               sizeof(sResDataEntry)) == FALSE)
   {
     return MX_E_ReadFault;
@@ -1030,7 +1087,7 @@ HRESULT CPEParser::LookupResourceEntry(_In_ PIMAGE_RESOURCE_DIRECTORY lpRootDir,
   }
 
   //read dir entry header
-  if (ReadMem(&sResDir, lpDir, sizeof(sResDir)) == FALSE)
+  if (ReadRaw(&sResDir, lpDir, sizeof(sResDir)) == FALSE)
     return MX_E_ReadFault;
   lpEntries = (PIMAGE_RESOURCE_DIRECTORY_ENTRY)(lpDir + 1);
 
@@ -1047,7 +1104,7 @@ HRESULT CPEParser::LookupResourceEntry(_In_ PIMAGE_RESOURCE_DIRECTORY lpRootDir,
     while (dwEnd > dwStart)
     {
       dwMiddle = (dwStart + dwEnd) >> 1;
-      if (ReadMem(&sResDirEntry, lpEntries + (SIZE_T)dwMiddle, sizeof(sResDirEntry)) == FALSE)
+      if (ReadRaw(&sResDirEntry, lpEntries + (SIZE_T)dwMiddle, sizeof(sResDirEntry)) == FALSE)
         return MX_E_ReadFault;
 
       if (wCheck < sResDirEntry.Id)
@@ -1081,11 +1138,11 @@ HRESULT CPEParser::LookupResourceEntry(_In_ PIMAGE_RESOURCE_DIRECTORY lpRootDir,
     while (dwEnd > dwStart)
     {
       dwMiddle = (dwStart + dwEnd) >> 1;
-      if (ReadMem(&sResDirEntry, lpEntries + (SIZE_T)dwMiddle, sizeof(sResDirEntry)) == FALSE)
+      if (ReadRaw(&sResDirEntry, lpEntries + (SIZE_T)dwMiddle, sizeof(sResDirEntry)) == FALSE)
         return MX_E_ReadFault;
 
       lpPtr = (LPBYTE)lpRootDir + (SIZE_T)(sResDirEntry.Name & 0x7FFFFFFF);
-      if (ReadMem(&wResDirStringLen, lpPtr, sizeof(wResDirStringLen)) == FALSE)
+      if (ReadRaw(&wResDirStringLen, lpPtr, sizeof(wResDirStringLen)) == FALSE)
         return MX_E_ReadFault;
       lpPtr += sizeof(WORD);
 
@@ -1095,7 +1152,7 @@ HRESULT CPEParser::LookupResourceEntry(_In_ PIMAGE_RESOURCE_DIRECTORY lpRootDir,
       {
         WORD wThisRound = (wResDirStringLen > 64) ? 64 : wResDirStringLen;
 
-        if (ReadMem(szTempBufW, lpPtr, (SIZE_T)wThisRound * sizeof(WCHAR)) == FALSE)
+        if (ReadRaw(szTempBufW, lpPtr, (SIZE_T)wThisRound * sizeof(WCHAR)) == FALSE)
           return MX_E_ReadFault;
         nCmpResult = MemCompare(szCopyOfKeyW, szTempBufW, (SIZE_T)wThisRound);
         if (nCmpResult != 0)

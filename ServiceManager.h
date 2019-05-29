@@ -19,8 +19,9 @@ class CServiceManager : public virtual CBaseMemObj
 public:
   typedef enum {
     ServiceTypeLocalSystem,
+    ServiceTypeNetworkService,
     ServiceTypeKernelDriver,
-    ServiceTypeNetworkService
+    ServiceTypeFileSystemDriver
   } eServiceType;
 
   typedef enum {
@@ -37,6 +38,7 @@ public:
     LPCWSTR szServiceDisplayNameW;
     LPCWSTR szFileNameW;
     eStartMode nStartMode;
+    LPCWSTR szLoadOrderGroupW;
     LPCWSTR szDependenciesW;
     LPCWSTR szRequiredPrivilegesW;
     LPCWSTR szDescriptionW;

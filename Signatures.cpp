@@ -33,6 +33,10 @@
     { szTempW[i] = X_WCHAR_ENC(str[i], i); } \
     while (szTempW[i++] != 0)
 
+#define __ALLOCATION_GRANULARITY                       65536
+
+#define ViewShare 1
+
 //-----------------------------------------------------------
 
 #pragma pack(8)
@@ -536,8 +540,8 @@ HRESULT Initialize()
   return hRes;
 }
 
-HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hProcess, _Out_ PCERT_CONTEXT *lplpCertCtx,
-                       _Out_ PFILETIME lpTimeStamp, _In_opt_ BOOL bIgnoreCache)
+HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_opt_ HANDLE hProcess,
+                       _Out_ PCERT_CONTEXT *lplpCertCtx, _Out_ PFILETIME lpTimeStamp, _In_opt_ BOOL bIgnoreCache)
 {
   static const WCHAR strW_AppxMetadata_CodeIntegrity_cat[] = {
     X_WCHAR_ENC(L'A',  0), X_WCHAR_ENC(L'p',  1), X_WCHAR_ENC(L'p',  2), X_WCHAR_ENC(L'x',  3),
@@ -567,17 +571,21 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hProcess, _
   if (fnWinVerifyTrustEx == NULL)
     return MX_E_Cancelled;
 
-  //open file
-  hRes = FileRoutines::OpenFileWithEscalatingSharing(szPeFileNameW, &cFileH);
-  if (FAILED(hRes))
-    return hRes;
+  //open file if none provided
+  if (hFile == NULL)
+  {
+    hRes = FileRoutines::OpenFileWithEscalatingSharing(szPeFileNameW, &cFileH);
+    if (FAILED(hRes))
+      return hRes;
+    hFile = cFileH.Get();
+  }
 
   if (bIgnoreCache == FALSE)
   {
     CFastLock cLock(&(Internals::sCachedItems.nMutex));
     Internals::CCachedItem *lpCachedItem;
 
-    lpCachedItem = Internals::FindCachedItem(szPeFileNameW, cFileH);
+    lpCachedItem = Internals::FindCachedItem(szPeFileNameW, hFile);
     if (lpCachedItem != NULL)
     {
       if (lpCachedItem->sCertificate.bHasValues != FALSE)
@@ -602,13 +610,19 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hProcess, _
     UINT32 dwLen;
 
     if (cStrPackageFullPathW.EnsureBuffer(1024 + 4) == FALSE)
-      return E_OUTOFMEMORY;
+    {
+      hRes = E_OUTOFMEMORY;
+      goto done;
+    }
     dwLen = 1024;
     hRes = MX_HRESULT_FROM_WIN32(fnGetPackageFullName(hProcess, &dwLen, (LPWSTR)cStrPackageFullPathW));
     if (hRes == HRESULT_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER))
     {
       if (cStrPackageFullPathW.EnsureBuffer((SIZE_T)dwLen + 4) == FALSE)
-        return E_OUTOFMEMORY;
+      {
+        hRes = E_OUTOFMEMORY;
+        goto done;
+      }
       hRes = MX_HRESULT_FROM_WIN32(fnGetPackageFullName(hProcess, &dwLen, (LPWSTR)cStrPackageFullPathW));
     }
     if (SUCCEEDED(hRes))
@@ -618,7 +632,10 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hProcess, _
 
       aPackageId.Attach((PACKAGE_ID*)MX_MALLOC(1024));
       if (!aPackageId)
-        return E_OUTOFMEMORY;
+      {
+        hRes = E_OUTOFMEMORY;
+        goto done;
+      }
       dwLen = 1024;
       hRes = MX_HRESULT_FROM_WIN32(fnPackageIdFromFullName((LPCWSTR)cStrPackageFullPathW, PACKAGE_INFORMATION_BASIC,
                                    &dwLen, (PBYTE)(aPackageId.Get())));
@@ -631,13 +648,19 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hProcess, _
       if (SUCCEEDED(hRes))
       {
         if (cStrPackageFullPathW.EnsureBuffer(1024 + 4) == FALSE)
-          return E_OUTOFMEMORY;
+        {
+          hRes = E_OUTOFMEMORY;
+          goto done;
+        }
         dwLen = 1024;
         hRes = MX_HRESULT_FROM_WIN32(fnGetPackagePath(aPackageId.Get(), 0, &dwLen, (LPWSTR)cStrPackageFullPathW));
         if (hRes == HRESULT_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER))
         {
           if (cStrPackageFullPathW.EnsureBuffer((SIZE_T)dwLen + 4) == FALSE)
-            return E_OUTOFMEMORY;
+          {
+            hRes = E_OUTOFMEMORY;
+            goto done;
+          }
           hRes = MX_HRESULT_FROM_WIN32(fnGetPackagePath(aPackageId.Get(), 0, &dwLen, (LPWSTR)cStrPackageFullPathW));
         }
         if (SUCCEEDED(hRes))
@@ -650,31 +673,44 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hProcess, _
           if (nLen > 0 && ((LPCWSTR)cStrPackageFullPathW)[nLen - 1] != L'\\')
           {
             if (cStrPackageFullPathW.ConcatN(L"\\", 1) == FALSE)
-              return E_OUTOFMEMORY;
+            {
+              hRes = E_OUTOFMEMORY;
+              goto done;
+            }
           }
-          for (nLen=0; nLen<MX_ARRAYLEN(strW_AppxMetadata_CodeIntegrity_cat); nLen++)
+          for (nLen = 0; nLen < MX_ARRAYLEN(strW_AppxMetadata_CodeIntegrity_cat); nLen++)
           {
             WCHAR chW = X_WCHAR_ENC(strW_AppxMetadata_CodeIntegrity_cat[nLen], nLen);
             if (cStrPackageFullPathW.ConcatN(&chW, 1) == FALSE)
-              return E_OUTOFMEMORY;
+            {
+              hRes = E_OUTOFMEMORY;
+              goto done;
+            }
           }
         }
         else if (hRes == E_OUTOFMEMORY)
         {
-          return hRes;
+          goto done;
         }
       }
     }
     else if (hRes == E_OUTOFMEMORY)
     {
-      return hRes;
+      goto done;
     }
   }
 
   //verify PE's signature
-  hRes = DoTrustVerification(szPeFileNameW, cFileH.Get(), &sWVTPolicyGuid, NULL, lplpCertCtx, lpTimeStamp);
-  if (hRes == E_OUTOFMEMORY)
-    return hRes;
+  if (::SetFilePointer(hFile, 0, NULL, FILE_BEGIN) != INVALID_SET_FILE_POINTER)
+  {
+    hRes = DoTrustVerification(szPeFileNameW, hFile, &sWVTPolicyGuid, NULL, lplpCertCtx, lpTimeStamp);
+    if (hRes == E_OUTOFMEMORY)
+      goto done;
+  }
+  else
+  {
+    hRes = MX_HRESULT_FROM_LASTERROR();
+  }
 
   if (hRes == S_FALSE && fnCryptCATAdminAcquireContext != NULL)
   {
@@ -684,7 +720,7 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hProcess, _
     int nPass;
     ULARGE_INTEGER uliFileSize;
 
-    if (::GetFileSizeEx(cFileH, (PLARGE_INTEGER)&uliFileSize) != FALSE &&
+    if (::GetFileSizeEx(hFile, (PLARGE_INTEGER)&uliFileSize) != FALSE &&
         uliFileSize.QuadPart < MAX_FILE_SIZE_FOR_CATALOG_CHECK)
     {
       for (nPass = 1; nPass <= 2; nPass++)
@@ -714,17 +750,17 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hProcess, _
           aFileHash.Attach((LPBYTE)MX_MALLOC((SIZE_T)nFileHashLength));
           if (aFileHash)
           {
-            ::SetFilePointer(cFileH.Get(), 0, NULL, FILE_BEGIN);
             if (fnCryptCATAdminCalcHashFromFileHandle2 != NULL)
             {
-              if (fnCryptCATAdminCalcHashFromFileHandle2(hCatAdmin, cFileH.Get(), &nFileHashLength, aFileHash.Get(),
-                  0) == FALSE)
+              if (::SetFilePointer(hFile, 0, NULL, FILE_BEGIN) == INVALID_SET_FILE_POINTER ||
+                  fnCryptCATAdminCalcHashFromFileHandle2(hCatAdmin, hFile, &nFileHashLength, aFileHash.Get(),
+                                                         0) == FALSE)
               {
                 aFileHash.Attach((LPBYTE)MX_MALLOC((SIZE_T)nFileHashLength));
                 if (aFileHash)
                 {
-                  ::SetFilePointer(cFileH.Get(), 0, NULL, FILE_BEGIN);
-                  if (fnCryptCATAdminCalcHashFromFileHandle2(hCatAdmin, cFileH.Get(), &nFileHashLength,
+                  if (::SetFilePointer(hFile, 0, NULL, FILE_BEGIN) == INVALID_SET_FILE_POINTER ||
+                      fnCryptCATAdminCalcHashFromFileHandle2(hCatAdmin, hFile, &nFileHashLength,
                                                              aFileHash.Get(), 0) == FALSE)
                   {
                     hRes = MX_HRESULT_FROM_LASTERROR();
@@ -738,14 +774,17 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hProcess, _
             }
             else
             {
-              if (fnCryptCATAdminCalcHashFromFileHandle(cFileH.Get(), &nFileHashLength, aFileHash.Get(), 0) == FALSE)
+              if (::SetFilePointer(hFile, 0, NULL, FILE_BEGIN) == INVALID_SET_FILE_POINTER ||
+                  fnCryptCATAdminCalcHashFromFileHandle(hFile, &nFileHashLength, aFileHash.Get(), 0) == FALSE)
               {
                 aFileHash.Attach((LPBYTE)MX_MALLOC((SIZE_T)nFileHashLength));
                 if (aFileHash)
                 {
-                  ::SetFilePointer(cFileH.Get(), 0, NULL, FILE_BEGIN);
-                  if (fnCryptCATAdminCalcHashFromFileHandle(cFileH.Get(), &nFileHashLength, aFileHash.Get(), 0) == FALSE)
+                  if (::SetFilePointer(hFile, 0, NULL, FILE_BEGIN) == INVALID_SET_FILE_POINTER ||
+                      fnCryptCATAdminCalcHashFromFileHandle(hFile, &nFileHashLength, aFileHash.Get(), 0) == FALSE)
+                  {
                     hRes = MX_HRESULT_FROM_LASTERROR();
+                  }
                 }
                 else
                 {
@@ -792,13 +831,19 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hProcess, _
                 sCatInfo.pcwszCatalogFilePath = sCi.wszCatalogFile;
                 sCatInfo.pcwszMemberFilePath = szPeFileNameW;
                 sCatInfo.pcwszMemberTag = (LPCWSTR)cStrFileHashHexW;
-                sCatInfo.hMemberFile = cFileH.Get();
+                sCatInfo.hMemberFile = hFile;
                 sCatInfo.pbCalculatedFileHash = aFileHash.Get();
                 sCatInfo.cbCalculatedFileHash = nFileHashLength;
                 sCatInfo.hCatAdmin = hCatAdmin;
-                ::SetFilePointer(cFileH.Get(), 0, NULL, FILE_BEGIN);
-                hRes = DoTrustVerification(NULL, NULL, &sDriverActionVerify, (PWINTRUST_CATALOG_INFO)&sCatInfo,
-                                           lplpCertCtx, lpTimeStamp);
+                if (::SetFilePointer(hFile, 0, NULL, FILE_BEGIN) != INVALID_SET_FILE_POINTER)
+                {
+                  hRes = DoTrustVerification(NULL, NULL, &sDriverActionVerify, (PWINTRUST_CATALOG_INFO)&sCatInfo,
+                                             lplpCertCtx, lpTimeStamp);
+                }
+                else
+                {
+                  hRes = MX_HRESULT_FROM_LASTERROR();
+                }
               }
               else
               {
@@ -813,13 +858,19 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hProcess, _
               sCatInfo.pcwszCatalogFilePath = (LPCWSTR)cStrPackageFullPathW;
               sCatInfo.pcwszMemberFilePath = szPeFileNameW;
               sCatInfo.pcwszMemberTag = (LPCWSTR)cStrFileHashHexW;
-              sCatInfo.hMemberFile = cFileH.Get();
+              sCatInfo.hMemberFile = hFile;
               sCatInfo.pbCalculatedFileHash = aFileHash.Get();
               sCatInfo.cbCalculatedFileHash = nFileHashLength;
               sCatInfo.hCatAdmin = hCatAdmin;
-              ::SetFilePointer(cFileH.Get(), 0, NULL, FILE_BEGIN);
-              hRes = DoTrustVerification(NULL, NULL, &sWVTPolicyGuid, (PWINTRUST_CATALOG_INFO)&sCatInfo, lplpCertCtx,
-                                         lpTimeStamp);
+              if (::SetFilePointer(hFile, 0, NULL, FILE_BEGIN) != INVALID_SET_FILE_POINTER)
+              {
+                hRes = DoTrustVerification(NULL, NULL, &sWVTPolicyGuid, (PWINTRUST_CATALOG_INFO)&sCatInfo, lplpCertCtx,
+                                           lpTimeStamp);
+              }
+              else
+              {
+                hRes = MX_HRESULT_FROM_LASTERROR();
+              }
             }
             else
             {
@@ -849,7 +900,7 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hProcess, _
       CFastLock cLock(&(Internals::sCachedItems.nMutex));
       Internals::CCachedItem *lpCachedItem;
 
-      lpCachedItem = Internals::FindCachedItem(szPeFileNameW, cFileH.Get());
+      lpCachedItem = Internals::FindCachedItem(szPeFileNameW, hFile);
       if (lpCachedItem != NULL)
       {
         //another thread (re)created a cached item in parallel
@@ -864,7 +915,7 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hProcess, _
               *lplpCertCtx = NULL;
               MemSet(lpTimeStamp, 0, sizeof(FILETIME));
               hRes = E_OUTOFMEMORY;
-              goto after_cache_set;
+              goto done;
             }
           }
           MemCopy(&(lpCachedItem->sCertificate.sFtTimeStamp), lpTimeStamp, sizeof(FILETIME));
@@ -875,7 +926,7 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hProcess, _
       }
       else
       {
-        lpCachedItem = Internals::AddCachedItem(szPeFileNameW, cFileH.Get());
+        lpCachedItem = Internals::AddCachedItem(szPeFileNameW, hFile);
         if (lpCachedItem == NULL)
         {
           //couldn't create a new item??? Give up with an error
@@ -883,7 +934,7 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hProcess, _
           *lplpCertCtx = NULL;
           MemSet(lpTimeStamp, 0, sizeof(FILETIME));
           hRes = E_OUTOFMEMORY;
-          goto after_cache_set;
+          goto done;
         }
 
         if ((*lplpCertCtx) != NULL)
@@ -897,7 +948,7 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hProcess, _
             *lplpCertCtx = NULL;
             MemSet(lpTimeStamp, 0, sizeof(FILETIME));
             hRes = E_OUTOFMEMORY;
-            goto after_cache_set;
+            goto done;
           }
         }
         MemCopy(&(lpCachedItem->sCertificate.sFtTimeStamp), lpTimeStamp, sizeof(FILETIME));
@@ -905,11 +956,11 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hProcess, _
 
         lpCachedItem->sCertificate.bHasValues = TRUE;
       }
-after_cache_set:;
     }
   }
 
   //done
+done:
   return hRes;
 }
 
@@ -981,13 +1032,12 @@ HRESULT GetCertificateSerialNumber(_In_ PCERT_CONTEXT lpCertCtx, _Out_ LPBYTE *l
   return S_OK;
 }
 
-HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _Out_ LPHASHES lpHashes, _In_opt_ BOOL bIgnoreCache)
+HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _In_opt_ HANDLE hFile, _Out_ LPHASHES lpHashes,
+                        _In_opt_ BOOL bIgnoreCache)
 {
   CWindowsHandle cFileH;
   CDigestAlgorithmSecureHash cHashSha256, cHashSha1;
   CDigestAlgorithmMessageDigest cHashMd5;
-  BYTE aBlock[8192];
-  DWORD dwReaded;
   HRESULT hRes;
 
   if (lpHashes != NULL)
@@ -997,9 +1047,13 @@ HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _Out_ LPHASHES lpHashes, _In
   if (*szFileNameW == 0)
     return E_INVALIDARG;
 
-  hRes = FileRoutines::OpenFileWithEscalatingSharing(szFileNameW, &cFileH);
-  if (FAILED(hRes))
-    return hRes;
+  if (hFile == NULL)
+  {
+    hRes = FileRoutines::OpenFileWithEscalatingSharing(szFileNameW, &cFileH);
+    if (FAILED(hRes))
+      return hRes;
+    hFile = cFileH.Get();
+  }
 
   if (bIgnoreCache == FALSE)
   {
@@ -1022,30 +1076,39 @@ HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _Out_ LPHASHES lpHashes, _In
     hRes = cHashSha1.BeginDigest(CDigestAlgorithmSecureHash::AlgorithmSHA1);
   if (SUCCEEDED(hRes))
     hRes = cHashMd5.BeginDigest(CDigestAlgorithmMessageDigest::AlgorithmMD5);
+
   if (SUCCEEDED(hRes))
   {
+    if (::SetFilePointer(hFile, 0, NULL, FILE_BEGIN) == INVALID_SET_FILE_POINTER)
+      hRes = MX_HRESULT_FROM_LASTERROR();
+  }
+  if (SUCCEEDED(hRes))
+  {
+    BYTE aBlock[8192];
+    DWORD dwRead;
+
     do
     {
-      dwReaded = 0;
-      if (::ReadFile(cFileH.Get(), aBlock, (DWORD)sizeof(aBlock), &dwReaded, NULL) == FALSE)
+      dwRead = 0;
+      if (::ReadFile(hFile, aBlock, (DWORD)sizeof(aBlock), &dwRead, NULL) == FALSE)
       {
         hRes = MX_HRESULT_FROM_LASTERROR();
         break;
       }
-      if (dwReaded > 0)
+      if (dwRead > 0)
       {
-        hRes = cHashSha256.DigestStream(aBlock, dwReaded);
+        hRes = cHashSha256.DigestStream(aBlock, dwRead);
         if (SUCCEEDED(hRes))
         {
-          hRes = cHashSha1.DigestStream(aBlock, dwReaded);
+          hRes = cHashSha1.DigestStream(aBlock, dwRead);
           if (SUCCEEDED(hRes))
-            hRes = cHashMd5.DigestStream(aBlock, dwReaded);
+            hRes = cHashMd5.DigestStream(aBlock, dwRead);
         }
         if (FAILED(hRes))
           break;
       }
     }
-    while (dwReaded > 0);
+    while (dwRead > 0);
     if (hRes == HRESULT_FROM_WIN32(ERROR_HANDLE_EOF))
       hRes = S_OK;
 
@@ -1056,6 +1119,7 @@ HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _Out_ LPHASHES lpHashes, _In
     if (SUCCEEDED(hRes))
       hRes = cHashMd5.EndDigest();
   }
+
   if (SUCCEEDED(hRes))
   {
     MemCopy(lpHashes->aSha256, cHashSha256.GetResult(), 32);
@@ -1068,7 +1132,7 @@ HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _Out_ LPHASHES lpHashes, _In
       Internals::CCachedItem *lpCachedItem;
 
       //when we get here, we have to add the certificate to the cache store
-      lpCachedItem = Internals::FindCachedItem(szFileNameW, cFileH.Get());
+      lpCachedItem = Internals::FindCachedItem(szFileNameW, hFile);
       if (lpCachedItem != NULL)
       {
         //another thread (re)created a cached item in parallel
@@ -1081,7 +1145,7 @@ HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _Out_ LPHASHES lpHashes, _In
       }
       else
       {
-        lpCachedItem = Internals::AddCachedItem(szFileNameW, cFileH.Get());
+        lpCachedItem = Internals::AddCachedItem(szFileNameW, hFile);
         if (lpCachedItem != NULL)
         {
           MemCopy(&(lpCachedItem->sHashes.sValues), lpHashes, sizeof(lpCachedItem->sHashes.sValues));

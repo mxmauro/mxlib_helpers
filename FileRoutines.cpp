@@ -12,10 +12,10 @@
 
 //-----------------------------------------------------------
 
-#define CREATE_RETRIES_COUNT                             200
+#define CREATE_RETRIES_COUNT                             600
 #define CREATE_RETRIES_DELAY_MS                           15
 
-#define DELETE_RETRIES_COUNT                             200
+#define DELETE_RETRIES_COUNT                             400
 #define DELETE_RETRIES_DELAY_MS                           15
 
 #ifndef FILE_OPEN
