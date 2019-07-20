@@ -712,7 +712,7 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_
     hRes = MX_HRESULT_FROM_LASTERROR();
   }
 
-  if (hRes == S_FALSE && fnCryptCATAdminAcquireContext != NULL)
+  if (hRes == TRUST_E_NOSIGNATURE && fnCryptCATAdminAcquireContext != NULL)
   {
     TAutoFreePtr<BYTE> aFileHash;
     ULONG nFileHashLength;
@@ -847,7 +847,7 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_
               }
               else
               {
-                hRes = S_FALSE;
+                hRes = TRUST_E_NOSIGNATURE;
               }
               fnCryptCATAdminReleaseCatalogContext(hCatAdmin, hCatInfo, 0);
             }
@@ -874,7 +874,7 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_
             }
             else
             {
-              hRes = S_FALSE;
+              hRes = TRUST_E_NOSIGNATURE;
             }
           }
         }
@@ -883,7 +883,7 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_
           fnCryptCATAdminReleaseContext(hCatAdmin, 0);
 
         //break only if a certificate is found or a hard error
-        if (hRes != S_FALSE)
+        if (hRes != TRUST_E_NOSIGNATURE)
           break;
       }
     }
@@ -892,9 +892,6 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_
   //when we get here, we have to add the certificate to the cache store
   if (hRes != E_OUTOFMEMORY)
   {
-    if (hRes == S_FALSE)
-      hRes = TRUST_E_NOSIGNATURE;
-
     if (bIgnoreCache == FALSE)
     {
       CFastLock cLock(&(Internals::sCachedItems.nMutex));
@@ -1307,7 +1304,7 @@ restart:
   }
 
   if ((*lplpCertCtx) == NULL)
-    hRes = S_FALSE;
+    hRes = TRUST_E_NOSIGNATURE;
 
 done:
   //close the verifier
