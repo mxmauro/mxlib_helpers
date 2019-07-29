@@ -148,7 +148,10 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
   {
     hRes = MX_HRESULT_FROM_LASTERROR();
     if (hRes != HRESULT_FROM_WIN32(ERROR_SERVICE_EXISTS) && hRes != HRESULT_FROM_WIN32(ERROR_DUPLICATE_SERVICE_NAME))
+    {
+      //MX::DebugPrint("ServiceManager/CreateServiceW: %08X\n", hRes);
       return hRes;
+    }
     //if service already exists, open it and update
     hServ = ::OpenServiceW(hServMgr, szServiceNameW, SERVICE_ALL_ACCESS);
     if (hServ == NULL)
@@ -166,6 +169,7 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
       hRes = MX_HRESULT_FROM_LASTERROR();
       ::CloseServiceHandle(hServ);
       hServ = NULL;
+      //MX::DebugPrint("ServiceManager/ChangeServiceConfigW: %08X\n", hRes);
       return hRes;
     }
  }
@@ -174,7 +178,8 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
   if (::SetServiceObjectSecurity(hServ, DACL_SECURITY_INFORMATION, (PSECURITY_DESCRIPTOR)aSecDescr) == FALSE)
     hRes = MX_HRESULT_FROM_LASTERROR();
   //setup required privileges
-  if (SUCCEEDED(hRes) && bIsWindowsVistaOrLater != FALSE && lpCreateInfo->nServiceType != ServiceTypeKernelDriver)
+  if (SUCCEEDED(hRes) && bIsWindowsVistaOrLater != FALSE &&
+      (lpCreateInfo->nServiceType == ServiceTypeLocalSystem || lpCreateInfo->nServiceType == ServiceTypeNetworkService))
   {
     SERVICE_REQUIRED_PRIVILEGES_INFOW sReqPrivInfoW;
 
@@ -182,7 +187,10 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
                                             *(lpCreateInfo->szRequiredPrivilegesW) != 0)
                                            ? (LPWSTR)(lpCreateInfo->szRequiredPrivilegesW) : L"";
     if (::ChangeServiceConfig2W(hServ, SERVICE_CONFIG_REQUIRED_PRIVILEGES_INFO, &sReqPrivInfoW) == FALSE)
+    {
       hRes = MX_HRESULT_FROM_LASTERROR();
+      //MX::DebugPrint("ServiceManager/ChangeServiceConfig2W(1): %08X\n", hRes);
+    }
   }
   //setup sid info
   if (SUCCEEDED(hRes) && bIsWindowsVistaOrLater != FALSE &&
@@ -192,7 +200,10 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
 
     sServSidInfo.dwServiceSidType = SERVICE_SID_TYPE_UNRESTRICTED;
     if (::ChangeServiceConfig2W(hServ, SERVICE_CONFIG_SERVICE_SID_INFO, &sServSidInfo) == FALSE)
+    {
       hRes = MX_HRESULT_FROM_LASTERROR();
+      //MX::DebugPrint("ServiceManager/ChangeServiceConfig2W(2): %08X\n", hRes);
+    }
   }
   //setup restart time
   if (SUCCEEDED(hRes) &&
@@ -220,12 +231,16 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
         MemSet(&sServFailActFlagW, 0, sizeof(sServFailActFlagW));
         sServFailActFlagW.fFailureActionsOnNonCrashFailures = FALSE;
         if (::ChangeServiceConfig2W(hServ, SERVICE_CONFIG_FAILURE_ACTIONS_FLAG, &sServFailActFlagW) == FALSE)
+        {
           hRes = MX_HRESULT_FROM_LASTERROR();
+          //MX::DebugPrint("ServiceManager/ChangeServiceConfig2W(3): %08X\n", hRes);
+        }
       }
     }
     else
     {
       hRes = MX_HRESULT_FROM_LASTERROR();
+      //MX::DebugPrint("ServiceManager/ChangeServiceConfig2W(4): %08X\n", hRes);
     }
   }
   if (SUCCEEDED(hRes) &&
@@ -236,7 +251,10 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
     MemSet(&sServDescW, 0, sizeof(sServDescW));
     sServDescW.lpDescription = (lpCreateInfo->szDescriptionW != NULL) ? lpCreateInfo->szDescriptionW : L"";
     if (::ChangeServiceConfig2W(hServ, SERVICE_CONFIG_DESCRIPTION, &sServDescW) == FALSE)
+    {
       hRes = MX_HRESULT_FROM_LASTERROR();
+      //MX::DebugPrint("ServiceManager/ChangeServiceConfig2W(5): %08X\n", hRes);
+    }
   }
   //done
   if (FAILED(hRes))
