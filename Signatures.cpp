@@ -1364,7 +1364,6 @@ static CCachedItem* AddCachedItem(_In_z_ LPCWSTR szPeFileNameW, _In_ HANDLE hFil
   while (nMin <= nMax)
   {
     nIndex = nMin + (nMax - nMin) / 2;
-    
     lpCachedItem = sCachedItems.sInUseSortedByName.lpList[nIndex - 1];
     if (lpNewItem->nFileNameHash == lpCachedItem->nFileNameHash)
     {
