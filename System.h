@@ -21,6 +21,8 @@ HRESULT GetOpSystemInfo(_Out_ CStringW &cStrOpSystemW);
 
 HRESULT _GetComputerNameEx(_In_ COMPUTER_NAME_FORMAT NameType, _Out_ CStringW &cStrNameW);
 
+HRESULT LoadSystem32Dll(_In_z_ LPCWSTR szLibraryNameW, _Out_ HINSTANCE *lphInst);
+
 VOID RegisterAppInRestartManager();
 
 HRESULT GetAllUsers(_Inout_ TArrayListWithFree<LPWSTR> &aUsersList);

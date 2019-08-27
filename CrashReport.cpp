@@ -6,6 +6,7 @@
 
 #include "CrashReport.h"
 #include "FileRoutines.h"
+#include "System.h"
 #include <WaitableObjects.h>
 #include <Strings\Strings.h>
 #pragma warning(disable : 4091)
@@ -120,8 +121,7 @@ BOOL HandleCrashDump(_In_z_ LPCWSTR szModuleNameW)
     return TRUE; //unable to read memory (handled)
 
   //write dump
-  hDbgHelpDll = ::LoadLibraryW(L"dbghelp.dll");
-  if (hDbgHelpDll != NULL)
+  if (SUCCEEDED(System::LoadSystem32Dll(L"dbghelp.dll", &hDbgHelpDll)))
   {
     lpfnMiniDumpWriteDump fnMiniDumpWriteDump;
 

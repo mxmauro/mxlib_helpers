@@ -34,7 +34,7 @@ BOOL WildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR szPa
     //check if end of string and/or pattern occurred
     if (szTextW >= szTextEndW)
     {
-//end of string still may have pending '*' in pattern
+      //end of string still may have pending '*' in pattern
       while (szPatternW < szPatternEndW && *szPatternW == L'*')
         szPatternW++;
       return (szPatternW >= szPatternEndW) ? TRUE : FALSE;
@@ -42,7 +42,7 @@ BOOL WildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR szPa
     if (szPatternW >= szPatternEndW)
       break; //end of pattern, but not end of the string
 
-             //perform logic
+    //perform logic
     if (*szPatternW == L'?')
     {
       szTextW++;
@@ -56,8 +56,8 @@ BOOL WildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR szPa
       while (szPatternW < szPatternEndW && *szPatternW == L'*')
         szPatternW++; //skip contiguous '*'
 
-                      //find recursively if there is any substring from the end of the
-                      //line that matches the rest of the pattern !!!
+      //find recursively if there is any substring from the end of the
+      //line that matches the rest of the pattern !!!
       for (t = szTextEndW; t >= szTextW; t--)
       {
         if (WildcardMatch(t, (SIZE_T)(szTextEndW - t), szPatternW, (SIZE_T)(szPatternEndW - szPatternW)) != FALSE)

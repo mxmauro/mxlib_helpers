@@ -1,5 +1,6 @@
 #include "Signatures.h"
 #include "FileRoutines.h"
+#include "System.h"
 #include <AutoPtr.h>
 #include <LinkedList.h>
 #include <FnvHash.h>
@@ -422,10 +423,7 @@ HRESULT Initialize()
   _InterlockedExchange(&(Internals::sCachedItems.nMutex), 0);
 
   _EXPAND_W(strW_WinTrustDll);
-  hWinTrustDll = ::LoadLibraryW(szTempW);
-  _EXPAND_W(strW_Crypt32Dll);
-  hCrypt32Dll = ::LoadLibraryW(szTempW);
-  if (hWinTrustDll != NULL)
+  if (SUCCEEDED(System::LoadSystem32Dll(szTempW, &hWinTrustDll)))
   {
     _EXPAND_A(strA_WinVerifyTrustEx);
     fnWinVerifyTrustEx = (lpfnWinVerifyTrustEx)::GetProcAddress(hWinTrustDll, szTempA);
@@ -473,7 +471,8 @@ HRESULT Initialize()
       fnCryptCATAdminReleaseCatalogContext = NULL;
     }
   }
-  if (hCrypt32Dll != NULL)
+  _EXPAND_W(strW_Crypt32Dll);
+  if (SUCCEEDED(System::LoadSystem32Dll(szTempW, &hCrypt32Dll)))
   {
     _EXPAND_A(strA_CertGetNameStringW);
     fnCertGetNameStringW = (lpfnCertGetNameStringW)::GetProcAddress(hCrypt32Dll, szTempA);

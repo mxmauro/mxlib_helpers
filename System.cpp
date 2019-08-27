@@ -5,6 +5,7 @@
  **/
 
 #include "System.h"
+#include "FileRoutines.h"
 #include "Sid.h"
 #include <Windows.h>
 #include <lm.h>
@@ -296,6 +297,33 @@ try_other_method:
   return hRes;
 }
 
+HRESULT LoadSystem32Dll(_In_z_ LPCWSTR szLibraryNameW, _Out_ HINSTANCE *lphInst)
+{
+  CStringW cStrFileNameW;
+  HRESULT hRes;
+
+  *lphInst = NULL;
+
+  hRes = FileRoutines::GetWindowsSystemPath(cStrFileNameW);
+  if (SUCCEEDED(hRes))
+  {
+    if (cStrFileNameW.Concat(szLibraryNameW) != FALSE)
+    {
+      HINSTANCE hDll = ::LoadLibraryW((LPCWSTR)cStrFileNameW);
+      if (hDll != NULL)
+        *lphInst = hDll;
+      else
+        hRes = MX_HRESULT_FROM_LASTERROR();
+    }
+    else
+    {
+      hRes = E_OUTOFMEMORY;
+    }
+  }
+  //done
+  return hRes;
+}
+
 VOID RegisterAppInRestartManager()
 {
   typedef HRESULT (WINAPI *lpfnRegisterApplicationRestart)(_In_opt_ PCWSTR pwzCommandline, _In_ DWORD dwFlags);
@@ -528,8 +556,7 @@ static VOID InitializeApis()
     HINSTANCE _hNetApi32Dll;
     LPVOID _fnNetUserEnum, _fnNetLocalGroupEnum, _fnNetApiBufferFree;
 
-    _hNetApi32Dll = ::LoadLibraryW(L"netapi32.dll");
-    if (_hNetApi32Dll != NULL)
+    if (SUCCEEDED(MX::System::LoadSystem32Dll(L"netapi32.dll", &_hNetApi32Dll)))
     {
       _fnNetUserEnum = ::GetProcAddress(_hNetApi32Dll, "");
       _fnNetLocalGroupEnum = ::GetProcAddress(_hNetApi32Dll, "");
