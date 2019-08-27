@@ -1,9 +1,22 @@
-/*
- * Copyright (C) 2014-2015 Mauro H. Leggieri, Buenos Aires, Argentina.
- * All rights reserved.
+/* Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the LICENSE file distributed with
+ * this work for additional information regarding copyright ownership.
  *
- **/
-
+ * Also, if exists, check the Licenses directory for information about
+ * third-party modules.
+ *
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 #include "ServiceManager.h"
 #include <Debug.h>
 #include <Strings\Strings.h>
@@ -64,15 +77,15 @@ VOID CServiceManager::CloseManager()
 HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO lpCreateInfo)
 {
   //Reference:
-  //  CC – SERVICE_QUERY_CONFIG – ask the SCM for the service’s current configuration
-  //  LC – SERVICE_QUERY_STATUS – ask the SCM for the service’s current status
-  //  SW – SERVICE_ENUMERATE_DEPENDENTS – list dependent services
-  //  LO – SERVICE_INTERROGATE – ask the service its current status
-  //  CR – SERVICE_USER_DEFINED_CONTROL – send a service control defined by the service’s authors
-  //  RC – READ_CONTROL – read the security descriptor on this service.
-  //  RP – SERVICE_START – start the service
-  //  WP – SERVICE_STOP – stop the service
-  //  DT – SERVICE_PAUSE_CONTINUE – pause / continue the service
+  //  CC ï¿½ SERVICE_QUERY_CONFIG ï¿½ ask the SCM for the serviceï¿½s current configuration
+  //  LC ï¿½ SERVICE_QUERY_STATUS ï¿½ ask the SCM for the serviceï¿½s current status
+  //  SW ï¿½ SERVICE_ENUMERATE_DEPENDENTS ï¿½ list dependent services
+  //  LO ï¿½ SERVICE_INTERROGATE ï¿½ ask the service its current status
+  //  CR ï¿½ SERVICE_USER_DEFINED_CONTROL ï¿½ send a service control defined by the serviceï¿½s authors
+  //  RC ï¿½ READ_CONTROL ï¿½ read the security descriptor on this service.
+  //  RP ï¿½ SERVICE_START ï¿½ start the service
+  //  WP ï¿½ SERVICE_STOP ï¿½ stop the service
+  //  DT ï¿½ SERVICE_PAUSE_CONTINUE ï¿½ pause / continue the service
   //  SD - DELETE
   //  DC - SERVICE_CHANGE_CONFIG - the right to reconfigure the service
   //  SD - DELETE - the right to delete the service
