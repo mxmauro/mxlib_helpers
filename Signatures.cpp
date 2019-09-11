@@ -20,9 +20,6 @@
 #include "Signatures.h"
 #include "FileRoutines.h"
 #include "System.h"
-#include <AutoPtr.h>
-#include <LinkedList.h>
-#include <FnvHash.h>
 #include <Strings\Strings.h>
 #include <Crypto\DigestAlgorithmSHAx.h>
 #include <Crypto\DigestAlgorithmMDx.h>
@@ -31,6 +28,8 @@
 #include <mscat.h>
 #include <VersionHelpers.h>
 #include <Finalizer.h>
+#include <AutoHandle.h>
+#include <AutoPtr.h>
 
 //-----------------------------------------------------------
 
@@ -39,7 +38,7 @@
 
 #define MAX_FILE_SIZE_FOR_CATALOG_CHECK  100ui64*1048576ui64
 
-#define MAX_CACHED_ITEMS                                4096
+#define MAX_CACHED_ITEMS                                8192
 
 #define X_CHAR_ENC(_x,_y)   (CHAR)((  (BYTE)(_x)) ^ (  (BYTE)_y+0xB3))
 #define X_WCHAR_ENC(_x,_y) (WCHAR)(((USHORT)(_x)) ^ ((USHORT)_y+0x2CE3))
@@ -142,80 +141,6 @@ static lpfnCryptCATAdminReleaseCatalogContext fnCryptCATAdminReleaseCatalogConte
 
 //-----------------------------------------------------------
 
-namespace MX {
-
-namespace Signatures {
-
-namespace Internals {
-
-class CCachedItem : public CBaseMemObj, public TLnkLstNode<CCachedItem>
-{
-public:
-  CCachedItem() :  CBaseMemObj(), TLnkLstNode<CCachedItem>()
-    {
-    nFileNameHash = 0ui64;
-    MemSet(&sFtLastCreated, 0, sizeof(sFtLastCreated));
-    MemSet(&sFtLastModified, 0, sizeof(sFtLastModified));
-    liFileSize.QuadPart = 0ui64;
-    MemSet(&sCertificate, 0, sizeof(sCertificate));
-    MemSet(&sHashes, 0, sizeof(sHashes));
-    return;
-    };
-
-  ~CCachedItem()
-    {
-    Reset();
-    return;
-    };
-
-  VOID Reset()
-    {
-    if (sCertificate.lpCertCtx != NULL)
-      fnCertFreeCertificateContext(sCertificate.lpCertCtx);
-    nFileNameHash = 0ui64;
-    MemSet(&sFtLastCreated, 0, sizeof(sFtLastCreated));
-    MemSet(&sFtLastModified, 0, sizeof(sFtLastModified));
-    liFileSize.QuadPart = 0ui64;
-    MemSet(&sCertificate, 0, sizeof(sCertificate));
-    MemSet(&sHashes, 0, sizeof(sHashes));
-    return;
-    };
-
-public:
-  Fnv64_t nFileNameHash;
-  FILETIME sFtLastCreated;
-  FILETIME sFtLastModified;
-  LARGE_INTEGER liFileSize;
-  struct {
-    BOOL bHasValues;
-    FILETIME sFtTimeStamp;
-    PCERT_CONTEXT lpCertCtx;
-    HRESULT hRes;
-  } sCertificate;
-  struct {
-    BOOL bHasValues;
-    HASHES sValues;
-  } sHashes;
-};
-
-static struct {
-  LONG volatile nMutex = 0;
-  TLnkLst<CCachedItem> aInUseList, aFreeList;
-  SIZE_T nCreatedItemsCount = 0;
-  struct {
-    CCachedItem** lpList;
-    SIZE_T nCount;
-  } sInUseSortedByName = { NULL, 0 };
-} sCachedItems;
-
-}; //namespace Internals
-
-}; //namespace Signatures
-
-}; //namespace MX
-
-//-----------------------------------------------------------
-
 static BOOL IsWinVistaPlus();
 
 static VOID EndSignaturesAndInfo();
@@ -223,28 +148,6 @@ static VOID EndSignaturesAndInfo();
 static HRESULT DoTrustVerification(_In_opt_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_ LPGUID lpActionId,
                                    _In_opt_ PWINTRUST_CATALOG_INFO lpCatalogInfo, _Out_ PCERT_CONTEXT *lplpCertCtx,
                                    _Out_ PFILETIME lpTimeStamp);
-
-namespace MX {
-
-namespace Signatures {
-
-namespace Internals {
-
-static CCachedItem* AddCachedItem(_In_z_ LPCWSTR szPeFileNameW, _In_ HANDLE hFile);
-
-static VOID RemoveCachedItem(_In_z_ LPCWSTR szPeFileNameW);
-static VOID RemoveCachedItemByHash(_In_ Fnv64_t nFileNameHash);
-static VOID RemoveCachedItemByIndex(_In_ SIZE_T nIndex);
-
-static CCachedItem* FindCachedItem(_In_z_ LPCWSTR szPeFileNameW, _In_ HANDLE hFile);
-
-static SIZE_T GetCachedItemIndex(_In_ Fnv64_t nFileNameHash);
-
-}; //namespace Internals
-
-}; //namespace Signatures
-
-}; //namespace MX
 
 //-----------------------------------------------------------
 
@@ -439,8 +342,6 @@ HRESULT Initialize()
   SIZE_T i;
   HRESULT hRes = S_OK;
 
-  _InterlockedExchange(&(Internals::sCachedItems.nMutex), 0);
-
   _EXPAND_W(strW_WinTrustDll);
   if (SUCCEEDED(System::LoadSystem32Dll(szTempW, &hWinTrustDll)))
   {
@@ -537,14 +438,6 @@ HRESULT Initialize()
       fnPackageIdFromFullName = NULL;
     }
   }
-  //----
-  if (SUCCEEDED(hRes))
-  {
-    Internals::sCachedItems.sInUseSortedByName.lpList = (Internals::CCachedItem**)MX_MALLOC(MAX_CACHED_ITEMS *
-                                                                                  sizeof(Internals::CCachedItem*));
-    if (Internals::sCachedItems.sInUseSortedByName.lpList == NULL)
-      hRes = E_OUTOFMEMORY;
-  }
   //register finalizer
   if (SUCCEEDED(hRes))
   {
@@ -559,7 +452,7 @@ HRESULT Initialize()
 }
 
 HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_opt_ HANDLE hProcess,
-                       _Out_ PCERT_CONTEXT *lplpCertCtx, _Out_ PFILETIME lpTimeStamp, _In_opt_ BOOL bIgnoreCache)
+                       _Out_ PCERT_CONTEXT *lplpCertCtx, _Out_ PFILETIME lpTimeStamp)
 {
   static const WCHAR strW_AppxMetadata_CodeIntegrity_cat[] = {
     X_WCHAR_ENC(L'A',  0), X_WCHAR_ENC(L'p',  1), X_WCHAR_ENC(L'p',  2), X_WCHAR_ENC(L'x',  3),
@@ -596,29 +489,6 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_
     if (FAILED(hRes))
       return hRes;
     hFile = cFileH.Get();
-  }
-
-  if (bIgnoreCache == FALSE)
-  {
-    CFastLock cLock(&(Internals::sCachedItems.nMutex));
-    Internals::CCachedItem *lpCachedItem;
-
-    lpCachedItem = Internals::FindCachedItem(szPeFileNameW, hFile);
-    if (lpCachedItem != NULL)
-    {
-      if (lpCachedItem->sCertificate.bHasValues != FALSE)
-      {
-        if (lpCachedItem->sCertificate.lpCertCtx != NULL)
-        {
-          *lplpCertCtx = (PCERT_CONTEXT)fnCertDuplicateCertificateContext(lpCachedItem->sCertificate.lpCertCtx);
-          if ((*lplpCertCtx) == NULL)
-            return E_OUTOFMEMORY;
-        }
-        MemCopy(lpTimeStamp, &(lpCachedItem->sCertificate.sFtTimeStamp),
-                sizeof(lpCachedItem->sCertificate.sFtTimeStamp));
-        return lpCachedItem->sCertificate.hRes;
-      }
-    }
   }
 
   //if we reach here, cache is not valid or does not contains the certificate
@@ -907,79 +777,12 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_
     }
   }
 
-  //when we get here, we have to add the certificate to the cache store
-  if (hRes != E_OUTOFMEMORY)
-  {
-    if (bIgnoreCache == FALSE)
-    {
-      CFastLock cLock(&(Internals::sCachedItems.nMutex));
-      Internals::CCachedItem *lpCachedItem;
-
-      lpCachedItem = Internals::FindCachedItem(szPeFileNameW, hFile);
-      if (lpCachedItem != NULL)
-      {
-        //another thread (re)created a cached item in parallel
-        if (lpCachedItem->sCertificate.bHasValues == FALSE)
-        {
-          if ((*lplpCertCtx) != NULL)
-          {
-            lpCachedItem->sCertificate.lpCertCtx = (PCERT_CONTEXT)fnCertDuplicateCertificateContext(*lplpCertCtx);
-            if (lpCachedItem->sCertificate.lpCertCtx == NULL)
-            {
-              fnCertFreeCertificateContext(*lplpCertCtx);
-              *lplpCertCtx = NULL;
-              MemSet(lpTimeStamp, 0, sizeof(FILETIME));
-              hRes = E_OUTOFMEMORY;
-              goto done;
-            }
-          }
-          MemCopy(&(lpCachedItem->sCertificate.sFtTimeStamp), lpTimeStamp, sizeof(FILETIME));
-          lpCachedItem->sCertificate.hRes = hRes;
-
-          lpCachedItem->sCertificate.bHasValues = TRUE;
-        }
-      }
-      else
-      {
-        lpCachedItem = Internals::AddCachedItem(szPeFileNameW, hFile);
-        if (lpCachedItem == NULL)
-        {
-          //couldn't create a new item??? Give up with an error
-          fnCertFreeCertificateContext(*lplpCertCtx);
-          *lplpCertCtx = NULL;
-          MemSet(lpTimeStamp, 0, sizeof(FILETIME));
-          hRes = E_OUTOFMEMORY;
-          goto done;
-        }
-
-        if ((*lplpCertCtx) != NULL)
-        {
-          lpCachedItem->sCertificate.lpCertCtx = (PCERT_CONTEXT)fnCertDuplicateCertificateContext(*lplpCertCtx);
-          if (lpCachedItem->sCertificate.lpCertCtx == NULL)
-          {
-            Internals::RemoveCachedItemByHash(lpCachedItem->nFileNameHash);
-
-            fnCertFreeCertificateContext(*lplpCertCtx);
-            *lplpCertCtx = NULL;
-            MemSet(lpTimeStamp, 0, sizeof(FILETIME));
-            hRes = E_OUTOFMEMORY;
-            goto done;
-          }
-        }
-        MemCopy(&(lpCachedItem->sCertificate.sFtTimeStamp), lpTimeStamp, sizeof(FILETIME));
-        lpCachedItem->sCertificate.hRes = hRes;
-
-        lpCachedItem->sCertificate.bHasValues = TRUE;
-      }
-    }
-  }
-
   //done
 done:
   return hRes;
 }
 
-VOID FreeCertificate(_In_opt_ PCERT_CONTEXT lpCertCtx)
+VOID FreeCertificate(_In_opt_ PCCERT_CONTEXT lpCertCtx)
 {
   if (lpCertCtx != NULL && fnCertFreeCertificateContext != NULL)
   {
@@ -988,7 +791,13 @@ VOID FreeCertificate(_In_opt_ PCERT_CONTEXT lpCertCtx)
   return;
 }
 
-HRESULT GetCertificateName(_In_ PCERT_CONTEXT lpCertCtx, DWORD dwType, _Inout_ CStringW &cStrNameW,
+PCCERT_CONTEXT DuplicateCertificate(_In_ PCCERT_CONTEXT lpCertCtx)
+{
+  return (lpCertCtx != NULL && fnCertDuplicateCertificateContext != NULL)
+         ? fnCertDuplicateCertificateContext(lpCertCtx) : NULL;
+}
+
+HRESULT GetCertificateName(_In_ PCCERT_CONTEXT lpCertCtx, DWORD dwType, _Inout_ CStringW &cStrNameW,
                            _In_opt_ BOOL bFromIssuer)
 {
   DWORD dwFlags;
@@ -1029,7 +838,7 @@ HRESULT GetCertificateName(_In_ PCERT_CONTEXT lpCertCtx, DWORD dwType, _Inout_ C
   return S_OK;
 }
 
-HRESULT GetCertificateSerialNumber(_In_ PCERT_CONTEXT lpCertCtx, _Out_ LPBYTE *lplpSerialNumber,
+HRESULT GetCertificateSerialNumber(_In_ PCCERT_CONTEXT lpCertCtx, _Out_ LPBYTE *lplpSerialNumber,
                                    _Out_ PSIZE_T lpnSerialNumberLength)
 {
   if (lplpSerialNumber != NULL)
@@ -1047,8 +856,7 @@ HRESULT GetCertificateSerialNumber(_In_ PCERT_CONTEXT lpCertCtx, _Out_ LPBYTE *l
   return S_OK;
 }
 
-HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _In_opt_ HANDLE hFile, _Out_ LPHASHES lpHashes,
-                        _In_opt_ BOOL bIgnoreCache)
+HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _In_opt_ HANDLE hFile, _Out_ LPHASHES lpHashes)
 {
   CWindowsHandle cFileH;
   CDigestAlgorithmSecureHash cHashSha256, cHashSha1;
@@ -1068,22 +876,6 @@ HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _In_opt_ HANDLE hFile, _Out_
     if (FAILED(hRes))
       return hRes;
     hFile = cFileH.Get();
-  }
-
-  if (bIgnoreCache == FALSE)
-  {
-    CFastLock cLock(&(Internals::sCachedItems.nMutex));
-    Internals::CCachedItem *lpCachedItem;
-
-    lpCachedItem = Internals::FindCachedItem(szFileNameW, cFileH);
-    if (lpCachedItem != NULL)
-    {
-      if (lpCachedItem->sHashes.bHasValues != FALSE)
-      {
-        MemCopy(lpHashes, &(lpCachedItem->sHashes.sValues), sizeof(lpCachedItem->sHashes.sValues));
-        return S_OK;
-      }
-    }
   }
 
   hRes = cHashSha256.BeginDigest(CDigestAlgorithmSecureHash::AlgorithmSHA256);
@@ -1140,40 +932,6 @@ HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _In_opt_ HANDLE hFile, _Out_
     MemCopy(lpHashes->aSha256, cHashSha256.GetResult(), 32);
     MemCopy(lpHashes->aSha1, cHashSha1.GetResult(), 20);
     MemCopy(lpHashes->aMd5, cHashMd5.GetResult(), 16);
-
-    if (bIgnoreCache == FALSE)
-    {
-      CFastLock cLock(&(Internals::sCachedItems.nMutex));
-      Internals::CCachedItem *lpCachedItem;
-
-      //when we get here, we have to add the certificate to the cache store
-      lpCachedItem = Internals::FindCachedItem(szFileNameW, hFile);
-      if (lpCachedItem != NULL)
-      {
-        //another thread (re)created a cached item in parallel
-        if (lpCachedItem->sHashes.bHasValues == FALSE)
-        {
-          MemCopy(&(lpCachedItem->sHashes.sValues), lpHashes, sizeof(lpCachedItem->sHashes.sValues));
-
-          lpCachedItem->sHashes.bHasValues = TRUE;
-        }
-      }
-      else
-      {
-        lpCachedItem = Internals::AddCachedItem(szFileNameW, hFile);
-        if (lpCachedItem != NULL)
-        {
-          MemCopy(&(lpCachedItem->sHashes.sValues), lpHashes, sizeof(lpCachedItem->sHashes.sValues));
-
-          lpCachedItem->sHashes.bHasValues = TRUE;
-        }
-        else
-        {
-          MemSet(lpHashes, 0, sizeof(HASHES));
-          hRes = E_OUTOFMEMORY;
-        }
-      }
-    }
   }
 
   //done
@@ -1202,20 +960,6 @@ static BOOL IsWinVistaPlus()
 
 static VOID EndSignaturesAndInfo()
 {
-  MX::CFastLock cLock(&(MX::Signatures::Internals::sCachedItems.nMutex));
-  MX::Signatures::Internals::CCachedItem *lpItem;
-
-  MX_FREE(MX::Signatures::Internals::sCachedItems.sInUseSortedByName.lpList);
-  while ((lpItem = MX::Signatures::Internals::sCachedItems.aFreeList.PopHead()) != NULL)
-  {
-    delete lpItem;
-  }
-  while ((lpItem = MX::Signatures::Internals::sCachedItems.aInUseList.PopHead()) != NULL)
-  {
-    delete lpItem;
-  }
-  MX::Signatures::Internals::sCachedItems.nCreatedItemsCount = 0;
-  //----
   if (hWinTrustDll != NULL)
   {
     ::FreeLibrary(hWinTrustDll);
@@ -1331,186 +1075,14 @@ done:
 
   if (hRes == HRESULT_FROM_WIN32(ERROR_LOCK_VIOLATION) && dwRetryCount < READ_RETRIES_COUNT)
   {
+    if ((*lplpCertCtx) != NULL)
+    {
+      fnCertFreeCertificateContext(*lplpCertCtx);
+      *lplpCertCtx = NULL;
+    }
     dwRetryCount++;
     ::Sleep(READ_RETRIES_DELAY_MS);
     goto restart;
   }
   return hRes;
 }
-
-namespace MX {
-
-namespace Signatures {
-
-namespace Internals {
-
-static CCachedItem* AddCachedItem(_In_z_ LPCWSTR szPeFileNameW, _In_ HANDLE hFile)
-{
-  CCachedItem *lpNewItem, *lpCachedItem;
-  SIZE_T nIndex, nMin, nMax;
-
-  lpNewItem = sCachedItems.aFreeList.PopHead();
-  if (lpNewItem == NULL && sCachedItems.nCreatedItemsCount < MAX_CACHED_ITEMS)
-  {
-    //no free items but still room to create entries
-    lpNewItem = MX_DEBUG_NEW CCachedItem();
-    if (lpNewItem != NULL)
-      (sCachedItems.nCreatedItemsCount)++;
-  }
-  if (lpNewItem == NULL)
-  {
-    //no free items, then take the less recently used one
-    lpNewItem = sCachedItems.aInUseList.GetTail();
-    if (lpNewItem == NULL)
-      return NULL;
-    RemoveCachedItemByHash(lpNewItem->nFileNameHash);
-
-    lpNewItem = sCachedItems.aFreeList.PopHead();
-    MX_ASSERT(lpNewItem != NULL);
-  }
-
-  //set the item key
-  lpNewItem->nFileNameHash = fnv_64a_buf(szPeFileNameW, StrLenW(szPeFileNameW) * 2, FNV1A_64_INIT);
-
-  //insert the item in the in-use list
-  sCachedItems.aInUseList.PushHead(lpNewItem);
-
-  //insert the item in the sorted by name in-use list
-  nMin = 1; //shifted by one to avoid problems with negative indexes
-  nMax = sCachedItems.sInUseSortedByName.nCount; //if count == 0, loop will not enter
-  MX_ASSERT(nMax < MAX_CACHED_ITEMS);
-  while (nMin <= nMax)
-  {
-    nIndex = nMin + (nMax - nMin) / 2;
-    lpCachedItem = sCachedItems.sInUseSortedByName.lpList[nIndex - 1];
-    if (lpNewItem->nFileNameHash == lpCachedItem->nFileNameHash)
-    {
-      nMin = nIndex;
-      break;
-    }
-    if (lpNewItem->nFileNameHash < lpCachedItem->nFileNameHash)
-      nMax = nIndex - 1;
-    else
-      nMin = nIndex + 1;
-  }
-  nIndex = nMin - 1;
-
-  MemMove(&(sCachedItems.sInUseSortedByName.lpList[nIndex+1]), &(sCachedItems.sInUseSortedByName.lpList[nIndex]),
-          (sCachedItems.sInUseSortedByName.nCount - nIndex) * sizeof(CCachedItem*));
-  sCachedItems.sInUseSortedByName.lpList[nIndex] = lpNewItem;
-  (sCachedItems.sInUseSortedByName.nCount)++;
-
-  //set file times
-  if (::GetFileTime(hFile, &(lpNewItem->sFtLastCreated), NULL, &(lpNewItem->sFtLastModified)) == FALSE)
-  {
-    MemSet(&(lpNewItem->sFtLastCreated), 0, sizeof(lpNewItem->sFtLastCreated));
-    MemSet(&(lpNewItem->sFtLastModified), 0, sizeof(lpNewItem->sFtLastModified));
-  }
-  if (::GetFileSizeEx(hFile, &(lpNewItem->liFileSize)) == FALSE)
-  {
-    lpNewItem->liFileSize.QuadPart = 0ui64;
-  }
-
-  //done
-  return lpNewItem;
-}
-
-static VOID RemoveCachedItem(_In_z_ LPCWSTR szPeFileNameW)
-{
-  RemoveCachedItemByHash(fnv_64a_buf(szPeFileNameW, StrLenW(szPeFileNameW) * 2, FNV1A_64_INIT));
-  return;
-}
-
-static VOID RemoveCachedItemByHash(_In_ Fnv64_t nFileNameHash)
-{
-  SIZE_T nIndex;
-
-  nIndex = GetCachedItemIndex(nFileNameHash);
-  if (nIndex != (SIZE_T)-1)
-  {
-    RemoveCachedItemByIndex(nIndex);
-  }
-  return;
-}
-
-static VOID RemoveCachedItemByIndex(_In_ SIZE_T nIndex)
-{
-  CCachedItem *lpFoundItem = sCachedItems.sInUseSortedByName.lpList[nIndex];
-
-  //remove from sorted by name list
-  (sCachedItems.sInUseSortedByName.nCount)--;
-  MemMove(&(sCachedItems.sInUseSortedByName.lpList[nIndex]), &(sCachedItems.sInUseSortedByName.lpList[nIndex + 1]),
-          (sCachedItems.sInUseSortedByName.nCount - nIndex) * sizeof(CCachedItem*));
-
-  //move from in-use list to the free list
-  MX_ASSERT(lpFoundItem->GetLinkedList() == &(sCachedItems.aInUseList));
-  lpFoundItem->RemoveNode();
-  sCachedItems.aFreeList.PushTail(lpFoundItem);
-
-  lpFoundItem->Reset();
-  return;
-}
-
-static CCachedItem* FindCachedItem(_In_z_ LPCWSTR szPeFileNameW, _In_ HANDLE hFile)
-{
-  CCachedItem *lpFoundItem = NULL;
-  SIZE_T nIndex;
-  FILETIME sFtCreationTime, sFtLastWriteTime;
-  LARGE_INTEGER liFileSize;
-
-  //get cached item
-  nIndex =  GetCachedItemIndex(fnv_64a_buf(szPeFileNameW, StrLenW(szPeFileNameW) * 2, FNV1A_64_INIT));
-  if (nIndex != (SIZE_T)-1)
-  {
-    lpFoundItem = sCachedItems.sInUseSortedByName.lpList[nIndex];
-
-    //check if file was changed
-    if (::GetFileTime(hFile, &sFtCreationTime, NULL, &sFtLastWriteTime) != FALSE &&
-        ::GetFileSizeEx(hFile, &liFileSize) != FALSE &&
-        sFtCreationTime.dwHighDateTime == lpFoundItem->sFtLastCreated.dwHighDateTime &&
-        sFtCreationTime.dwLowDateTime == lpFoundItem->sFtLastCreated.dwLowDateTime &&
-        sFtLastWriteTime.dwHighDateTime == lpFoundItem->sFtLastModified.dwHighDateTime &&
-        sFtLastWriteTime.dwLowDateTime == lpFoundItem->sFtLastModified.dwLowDateTime &&
-        liFileSize.QuadPart == lpFoundItem->liFileSize.QuadPart)
-    {
-      //cached item is valid, move to top of the in-use list
-      lpFoundItem->RemoveNode();
-      sCachedItems.aInUseList.PushHead(lpFoundItem);
-    }
-    else
-    {
-      //invalid, remove from the list
-      RemoveCachedItemByIndex(nIndex);
-      lpFoundItem = NULL;
-    }
-  }
-  return lpFoundItem;
-}
-
-static SIZE_T GetCachedItemIndex(_In_ Fnv64_t nFileNameHash)
-{
-  CCachedItem *lpCachedItem;
-  SIZE_T nMid, nMin, nMax;
-
-  nMin = 1; //shifted by one to avoid problems with negative indexes
-  nMax = sCachedItems.sInUseSortedByName.nCount; //if count == 0, loop will not enter
-  while (nMin <= nMax)
-  {
-    nMid = nMin + (nMax - nMin) / 2;
-
-    lpCachedItem = sCachedItems.sInUseSortedByName.lpList[nMid - 1];
-    if (nFileNameHash == lpCachedItem->nFileNameHash)
-      return nMid - 1;
-    if (nFileNameHash < lpCachedItem->nFileNameHash)
-      nMax = nMid - 1;
-    else
-      nMin = nMid + 1;
-  }
-  return (SIZE_T)-1;
-}
-
-}; //namespace Internals
-
-}; //namespace Signatures
-
-}; //namespace MX
