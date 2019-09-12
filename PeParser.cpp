@@ -176,20 +176,42 @@ HRESULT CPEParser::InitializeFromProcessHandle(_In_opt_ HANDLE _hProc, _In_opt_ 
   {
     ULONGLONG qwTemp;
 
-    if (::ReadProcessMemory(hProc, lpPeb + 0x10, &qwTemp, sizeof(qwTemp), &nRead) == FALSE || nRead != sizeof(qwTemp))
+    if (hProc != NULL)
     {
-      Finalize();
-      return MX_E_ReadFault;
+      if (::ReadProcessMemory(hProc, lpPeb + 0x10, &qwTemp, sizeof(qwTemp), &nRead) == FALSE || nRead != sizeof(qwTemp))
+      {
+        Finalize();
+        return MX_E_ReadFault;
+      }
+    }
+    else
+    {
+      if (TryMemCopy(&qwTemp, lpPeb + 0x10, sizeof(qwTemp)) != sizeof(qwTemp))
+      {
+        Finalize();
+        return MX_E_ReadFault;
+      }
     }
     lpBaseAddress = (LPBYTE)qwTemp;
   }
   else
   {
 #endif //_M_X64
-    if (::ReadProcessMemory(hProc, lpPeb + 0x08, &dwTemp, sizeof(dwTemp), &nRead) == FALSE || nRead != sizeof(dwTemp))
+    if (hProc != NULL)
     {
-      Finalize();
-      return MX_E_ReadFault;
+      if (::ReadProcessMemory(hProc, lpPeb + 0x08, &dwTemp, sizeof(dwTemp), &nRead) == FALSE || nRead != sizeof(dwTemp))
+      {
+        Finalize();
+        return MX_E_ReadFault;
+      }
+    }
+    else
+    {
+      if (TryMemCopy(&dwTemp, lpPeb + 0x08, sizeof(dwTemp)) != sizeof(dwTemp))
+      {
+        Finalize();
+        return MX_E_ReadFault;
+    }
     }
 #if defined(_M_X64)
     lpBaseAddress = (LPBYTE)UlongToPtr(dwTemp);
