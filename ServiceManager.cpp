@@ -18,13 +18,55 @@
  * limitations under the License.
  */
 #include "ServiceManager.h"
+#include "WinRegistry.h"
 #include <Debug.h>
 #include <Strings\Strings.h>
 #include <VersionHelpers.h>
+#include <AutoPtr.h>
+#include <ArrayList.h>
 
 //-----------------------------------------------------------
 
 static DWORD GetServiceStartType(_In_ MX::CServiceManager::eStartMode nStartMode);
+
+//-----------------------------------------------------------
+
+namespace MX {
+
+namespace Internals {
+
+class CRegistryBackupValue : public MX::CBaseMemObj
+{
+public:
+  CStringW cStrValueNameW;
+  DWORD dwType;
+  TAutoFreePtr<BYTE> cData;
+  SIZE_T nDataSize;
+};
+
+class CRegistryBackupKey : public MX::CBaseMemObj
+{
+public:
+  CStringW cStrKeyNameW;
+  TArrayListWithDelete<CRegistryBackupValue*> aValuesList;
+};
+
+class CRegistryBackup : public MX::CBaseMemObj
+{
+public:
+  HRESULT Backup(_In_z_ LPCWSTR szServiceNameW);
+  HRESULT Restore();
+
+private:
+  HRESULT BackupRecurse(_In_ CRegistryBackupKey *lpKey);
+
+private:
+  TArrayListWithDelete<CRegistryBackupKey*> aKeyList;
+};
+
+}; //namespace Internals
+
+}; //namespace MX
 
 //-----------------------------------------------------------
 
@@ -92,14 +134,14 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
   //  WD - WRITE_DAC - permission to change the permissions
   //  WO - WRITE_OWNER - permission to take ownership
 
-  //D:(A;;GA;;;SY)
+  //D:(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;SY)
   //  (A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)
   //  (A;;CCLCSWRPLOCRRC;;;IU)
   //  (A;;CCLCSWRPLOCRRC;;;SU)
   //  (A;;CCLCSWRPLOCRRC;;;AU)
   //S:(AU;FA;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;WD) -Enable auditing for anyone
   static const BYTE aSecDescr[] = {
-    0x01, 0x00, 0x14, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00,
+    0x01, 0x00, 0x14, 0x80, 0xA0, 0x00, 0x00, 0x00, 0xAC, 0x00, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00,
     0x30, 0x00, 0x00, 0x00, 0x02, 0x00, 0x1C, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x80, 0x14, 0x00,
     0xFF, 0x01, 0x0F, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
     0x02, 0x00, 0x70, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x14, 0x00, 0xFD, 0x01, 0x02, 0x00,
@@ -108,7 +150,9 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
     0x20, 0x02, 0x00, 0x00, 0x00, 0x00, 0x14, 0x00, 0x9D, 0x01, 0x02, 0x00, 0x01, 0x01, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x05, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x14, 0x00, 0x9D, 0x01, 0x02, 0x00,
     0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x14, 0x00,
-    0x9D, 0x01, 0x02, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x0B, 0x00, 0x00, 0x00
+    0x9D, 0x01, 0x02, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x0B, 0x00, 0x00, 0x00,
+    0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x12, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x05, 0x12, 0x00, 0x00, 0x00
   };
   static const LPCWSTR szNetworkServiceAccountW = L"NT AUTHORITY\\NetworkService";
   BOOL bIsWindowsVistaOrLater;
@@ -150,11 +194,11 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
   Close();
   hServ = ::CreateServiceW(hServMgr, szServiceNameW, lpCreateInfo->szServiceDisplayNameW, SERVICE_ALL_ACCESS,
                            dwServiceType, dwStartType, SERVICE_ERROR_NORMAL, lpCreateInfo->szFileNameW,
-                           (lpCreateInfo->szLoadOrderGroupW != NULL &&
-                            *(lpCreateInfo->szLoadOrderGroupW) != 0) ? lpCreateInfo->szLoadOrderGroupW : NULL,
+                           ((lpCreateInfo->szLoadOrderGroupW != NULL && *(lpCreateInfo->szLoadOrderGroupW) != 0)
+                            ? lpCreateInfo->szLoadOrderGroupW : NULL),
                            NULL,
-                           (lpCreateInfo->szDependenciesW != NULL &&
-                            *(lpCreateInfo->szDependenciesW) != 0) ? lpCreateInfo->szDependenciesW : NULL,
+                           ((lpCreateInfo->szDependenciesW != NULL && *(lpCreateInfo->szDependenciesW) != 0)
+                            ? lpCreateInfo->szDependenciesW : NULL),
                            (lpCreateInfo->nServiceType != ServiceTypeNetworkService) ? NULL : szNetworkServiceAccountW,
                            NULL);
   if (hServ == NULL)
@@ -170,26 +214,66 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
     if (hServ == NULL)
       return MX_HRESULT_FROM_LASTERROR();
     if (::ChangeServiceConfigW(hServ, dwServiceType, dwStartType, SERVICE_ERROR_NORMAL, lpCreateInfo->szFileNameW,
-                               (lpCreateInfo->szLoadOrderGroupW != NULL &&
-                                *(lpCreateInfo->szLoadOrderGroupW) != 0) ? lpCreateInfo->szLoadOrderGroupW : NULL,
+                               ((lpCreateInfo->szLoadOrderGroupW != NULL && *(lpCreateInfo->szLoadOrderGroupW) != 0)
+                                ? lpCreateInfo->szLoadOrderGroupW : L""),
                                NULL,
-                               (lpCreateInfo->szDependenciesW != NULL &&
-                                *(lpCreateInfo->szDependenciesW) != 0) ? lpCreateInfo->szDependenciesW : L"\0",
+                               ((lpCreateInfo->szDependenciesW != NULL && *(lpCreateInfo->szDependenciesW) != 0)
+                                ? lpCreateInfo->szDependenciesW : L"\0"),
                                (lpCreateInfo->nServiceType != ServiceTypeNetworkService) ? NULL
                                                                                          : szNetworkServiceAccountW,
                                NULL, lpCreateInfo->szServiceDisplayNameW) == FALSE)
     {
       hRes = MX_HRESULT_FROM_LASTERROR();
-      ::CloseServiceHandle(hServ);
-      hServ = NULL;
-      //MX::DebugPrint("ServiceManager/ChangeServiceConfigW: %08X\n", hRes);
-      return hRes;
+      if (hRes != MX_HRESULT_FROM_WIN32(ERROR_GEN_FAILURE))
+      {
+        ::CloseServiceHandle(hServ);
+        hServ = NULL;
+        //MX::DebugPrint("ServiceManager/ChangeServiceConfigW: %08X\n", hRes);
+        return hRes;
+      }
+      else
+      {
+        //try deleting and recreating the service
+        Internals::CRegistryBackup aRegBackup;
+
+        hRes = aRegBackup.Backup(szServiceNameW);
+        if (SUCCEEDED(hRes))
+        {
+          hRes = Delete();
+          if (SUCCEEDED(hRes))
+          {
+            ::CloseServiceHandle(hServ);
+            hServ = ::CreateServiceW(hServMgr, szServiceNameW, lpCreateInfo->szServiceDisplayNameW, SERVICE_ALL_ACCESS,
+                                      dwServiceType, dwStartType, SERVICE_ERROR_NORMAL, lpCreateInfo->szFileNameW,
+                                      ((lpCreateInfo->szLoadOrderGroupW != NULL &&
+                                       *(lpCreateInfo->szLoadOrderGroupW) != 0)
+                                      ? lpCreateInfo->szLoadOrderGroupW : NULL),
+                                      NULL,
+                                      ((lpCreateInfo->szDependenciesW != NULL && *(lpCreateInfo->szDependenciesW) != 0)
+                                      ? lpCreateInfo->szDependenciesW : NULL),
+                                      (lpCreateInfo->nServiceType != ServiceTypeNetworkService)
+                                      ? NULL : szNetworkServiceAccountW,
+                                      NULL);
+            if (hServ != NULL)
+            {
+              hRes = aRegBackup.Restore();
+            }
+            else
+            {
+              hRes = MX_HRESULT_FROM_LASTERROR();
+              //MX::DebugPrint("ServiceManager/CreateServiceW(2): %08X\n", hRes);
+              return hRes;
+            }
+          }
+        }
+        if (FAILED(hRes))
+          return hRes;
+      }
     }
  }
   //change security
-  hRes = S_OK;
-  if (::SetServiceObjectSecurity(hServ, DACL_SECURITY_INFORMATION, (PSECURITY_DESCRIPTOR)aSecDescr) == FALSE)
-    hRes = MX_HRESULT_FROM_LASTERROR();
+  hRes = (::SetServiceObjectSecurity(hServ, DACL_SECURITY_INFORMATION, (PSECURITY_DESCRIPTOR)aSecDescr) != FALSE)
+         ? S_OK : MX_HRESULT_FROM_LASTERROR();
   //setup required privileges
   if (SUCCEEDED(hRes) && bIsWindowsVistaOrLater != FALSE &&
       (lpCreateInfo->nServiceType == ServiceTypeLocalSystem || lpCreateInfo->nServiceType == ServiceTypeNetworkService))
@@ -446,6 +530,207 @@ HRESULT CServiceManager::ChangeStartMode(_In_ eStartMode nStartMode)
   //done
   return S_OK;
 }
+
+}; //namespace MX
+
+//-----------------------------------------------------------
+
+namespace MX {
+
+namespace Internals {
+
+HRESULT CRegistryBackup::Backup(_In_z_ LPCWSTR szServiceNameW)
+{
+  CWindowsRegistry cWinReg;
+  CStringW cStrFullKeyNameW;
+  HRESULT hRes;
+
+  //open key
+  if (cStrFullKeyNameW.CopyN(L"SYSTEM\\CurrentControlSet\\Services\\", 34) == FALSE ||
+      cStrFullKeyNameW.Concat(szServiceNameW) == FALSE)
+  {
+    return E_OUTOFMEMORY;
+  }
+  hRes = cWinReg.Open(HKEY_LOCAL_MACHINE, (LPCWSTR)cStrFullKeyNameW);
+  if (SUCCEEDED(hRes))
+  {
+    //enumerate childs keys
+    for (DWORD dwIndex = 0; ; dwIndex++)
+    {
+      CStringW cStrSubKeyNameW;
+
+      hRes = cWinReg.EnumerateKeys(dwIndex, cStrSubKeyNameW);
+      if (FAILED(hRes))
+      {
+        if (hRes == MX_E_EndOfFileReached)
+          hRes = S_OK;
+        break;
+      }
+      if (MX::StrCompareW((LPCWSTR)cStrSubKeyNameW, L"Security", TRUE) != 0 &&
+          MX::StrCompareW((LPCWSTR)cStrSubKeyNameW, L"Enum", TRUE) != 0)
+      {
+        CRegistryBackupKey *lpNewKey;
+
+        //add key
+        lpNewKey = MX_DEBUG_NEW CRegistryBackupKey();
+        if (lpNewKey == NULL)
+        {
+          hRes = E_OUTOFMEMORY;
+          break;
+        }
+        if (lpNewKey->cStrKeyNameW.Copy((LPCWSTR)cStrFullKeyNameW) == FALSE ||
+            lpNewKey->cStrKeyNameW.ConcatN(L"\\", 1) == FALSE ||
+            lpNewKey->cStrKeyNameW.ConcatN((LPCWSTR)cStrSubKeyNameW, cStrSubKeyNameW.GetLength()) == FALSE ||
+            aKeyList.AddElement(lpNewKey) == FALSE)
+        {
+          delete lpNewKey;
+          hRes = E_OUTOFMEMORY;
+          break;
+        }
+
+        hRes = BackupRecurse(lpNewKey);
+        if (FAILED(hRes))
+          break;
+      }
+    }
+  }
+  else if (hRes == MX_E_PathNotFound || hRes == MX_E_FileNotFound)
+  {
+    hRes = S_OK;
+  }
+  return hRes;
+}
+
+HRESULT CRegistryBackup::Restore()
+{
+  CRegistryBackupKey **lplpKey;
+  CRegistryBackupValue **lplpValue;
+  CWindowsRegistry cWinReg;
+  SIZE_T nKeyIndex, nValueIndex;
+  HRESULT hRes;
+
+  lplpKey = aKeyList.GetBuffer();
+  for (nKeyIndex = aKeyList.GetCount(); nKeyIndex > 0; nKeyIndex--, lplpKey++)
+  {
+    hRes = cWinReg.Create(HKEY_LOCAL_MACHINE, (LPCWSTR)((*lplpKey)->cStrKeyNameW));
+    if (FAILED(hRes))
+      return hRes;
+
+    lplpValue = (*lplpKey)->aValuesList.GetBuffer();
+    for (nValueIndex = (*lplpKey)->aValuesList.GetCount(); nValueIndex > 0; nValueIndex--, lplpValue++)
+    {
+      hRes = cWinReg.WriteAny((LPCWSTR)((*lplpValue)->cStrValueNameW), (*lplpValue)->dwType,
+                              (*lplpValue)->cData.Get(), (*lplpValue)->nDataSize);
+      if (FAILED(hRes))
+        return hRes;
+    }
+
+    cWinReg.Close();
+  }
+  return S_OK;
+}
+
+HRESULT CRegistryBackup::BackupRecurse(_In_ CRegistryBackupKey *lpKey)
+{
+  CWindowsRegistry cWinReg;
+  CStringW cStrSubKeyNameW, cStrValueNameW;
+  CRegistryBackupKey *lpNewKey;
+  CRegistryBackupValue *lpNewValue;
+  DWORD dwIndex;
+  HRESULT hRes;
+
+  //open key
+  hRes = cWinReg.Open(HKEY_LOCAL_MACHINE, (LPCWSTR)(lpKey->cStrKeyNameW));
+  if (FAILED(hRes))
+  {
+    return (hRes == MX_E_PathNotFound || hRes == MX_E_FileNotFound) ? S_OK : hRes;
+  }
+
+  //add default value
+  lpNewValue = MX_DEBUG_NEW CRegistryBackupValue();
+  if (lpNewValue == NULL)
+    return E_OUTOFMEMORY;
+  if (lpKey->aValuesList.AddElement(lpNewValue) == FALSE)
+  {
+    delete lpNewValue;
+    return E_OUTOFMEMORY;
+  }
+
+  //default value
+  hRes = cWinReg.ReadAny(L"", lpNewValue->dwType, lpNewValue->cData, lpNewValue->nDataSize);
+  if (FAILED(hRes))
+  {
+    if (hRes != MX_E_PathNotFound && hRes != MX_E_FileNotFound)
+      return hRes;
+    lpKey->aValuesList.RemoveElementAt(lpKey->aValuesList.GetCount() - 1);
+  }
+
+  //enumerate the rest of values
+  for (dwIndex = 0; ; dwIndex++)
+  {
+    hRes = cWinReg.EnumerateValues(dwIndex, cStrValueNameW);
+    if (FAILED(hRes))
+    {
+      if (hRes == MX_E_EndOfFileReached)
+        break;
+      return hRes;
+    }
+
+    //add value
+    lpNewValue = MX_DEBUG_NEW CRegistryBackupValue();
+    if (lpNewValue == NULL)
+      return E_OUTOFMEMORY;
+    if (lpNewValue->cStrValueNameW.CopyN((LPCWSTR)cStrValueNameW, cStrValueNameW.GetLength()) == FALSE ||
+        lpKey->aValuesList.AddElement(lpNewValue) == FALSE)
+    {
+      delete lpNewValue;
+      return E_OUTOFMEMORY;
+    }
+
+    //read value
+    hRes = cWinReg.ReadAny((LPCWSTR)cStrValueNameW, lpNewValue->dwType, lpNewValue->cData, lpNewValue->nDataSize);
+    if (FAILED(hRes))
+    {
+      if (hRes != MX_E_PathNotFound && hRes != MX_E_FileNotFound)
+        return hRes;
+      lpKey->aValuesList.RemoveElementAt(lpKey->aValuesList.GetCount() - 1);
+    }
+  }
+
+  //enumerate childs keys
+  for (dwIndex = 0; ; dwIndex++)
+  {
+    hRes = cWinReg.EnumerateKeys(dwIndex, cStrSubKeyNameW);
+    if (FAILED(hRes))
+    {
+      if (hRes == MX_E_EndOfFileReached)
+        break;
+      return hRes;
+    }
+
+    //add key
+    lpNewKey = MX_DEBUG_NEW CRegistryBackupKey();
+    if (lpNewKey == NULL)
+      return E_OUTOFMEMORY;
+    if (lpNewKey->cStrKeyNameW.CopyN((LPCWSTR)(lpKey->cStrKeyNameW), lpKey->cStrKeyNameW.GetLength()) == FALSE ||
+        lpNewKey->cStrKeyNameW.ConcatN(L"\\", 1) == FALSE ||
+        lpNewKey->cStrKeyNameW.ConcatN((LPCWSTR)cStrSubKeyNameW, cStrSubKeyNameW.GetLength()) == FALSE ||
+        aKeyList.AddElement(lpNewKey) == FALSE)
+    {
+      delete lpNewKey;
+      return E_OUTOFMEMORY;
+    }
+
+    hRes = BackupRecurse(lpNewKey);
+    if (FAILED(hRes))
+      break;
+  }
+
+  //done
+  return S_OK;
+}
+
+}; //namespace Internals
 
 }; //namespace MX
 
