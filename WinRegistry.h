@@ -54,16 +54,21 @@ public:
   HRESULT ReadDWord(_In_z_ LPCWSTR szNameW, _Out_ DWORD &dwValue);
   HRESULT ReadDWord(_In_ PUNICODE_STRING Name, _Out_ DWORD &dwValue);
 
-  HRESULT ReadString(_In_z_ LPCWSTR szNameW, _Out_ MX::CStringW &cStrValueW, _In_opt_ BOOL bAutoExpandRegSz=TRUE);
+  HRESULT ReadString(_In_z_ LPCWSTR szNameW, _Out_ CStringW &cStrValueW, _In_opt_ BOOL bAutoExpandRegSz=TRUE);
   HRESULT ReadString(_In_ PUNICODE_STRING Name, _Out_ PUNICODE_STRING *pValue, _In_opt_ BOOL bAutoExpandRegSz = TRUE);
 
-  HRESULT ReadPassword(_In_z_ LPCWSTR szNameW, _Out_ MX::CStringW &cStrPasswordW);
+  HRESULT ReadPassword(_In_z_ LPCWSTR szNameW, _Out_ CStringW &cStrPasswordW);
 
-  HRESULT ReadMultiString(_In_z_ LPCWSTR szNameW, _Out_ MX::TArrayListWithFree<LPWSTR> &aStrValuesList);
-  HRESULT ReadMultiString(_In_ PUNICODE_STRING Name, _Out_ MX::TArrayListWithFree<PUNICODE_STRING> &aStrValuesList);
+  HRESULT ReadMultiString(_In_z_ LPCWSTR szNameW, _Out_ TArrayListWithFree<LPWSTR> &aStrValuesList);
+  HRESULT ReadMultiString(_In_ PUNICODE_STRING Name, _Out_ TArrayListWithFree<PUNICODE_STRING> &aStrValuesList);
 
-  HRESULT ReadBlob(_In_z_ LPCWSTR szNameW, _Out_ MX::TAutoFreePtr<BYTE> &cBlob, _Out_ SIZE_T &nBlobSize);
-  HRESULT ReadBlob(_In_ PUNICODE_STRING Name, _Out_ MX::TAutoFreePtr<BYTE> &cBlob, _Out_ SIZE_T &nBlobSize);
+  HRESULT ReadBlob(_In_z_ LPCWSTR szNameW, _Out_ TAutoFreePtr<BYTE> &cBlob, _Out_ SIZE_T &nBlobSize);
+  HRESULT ReadBlob(_In_ PUNICODE_STRING Name, _Out_ TAutoFreePtr<BYTE> &cBlob, _Out_ SIZE_T &nBlobSize);
+
+  HRESULT ReadAny(_In_z_ LPCWSTR szNameW, _Out_ DWORD &dwType, _Out_ TAutoFreePtr<BYTE> &cData,
+                  _Out_ SIZE_T &nDataSize);
+  HRESULT ReadAny(_In_ PUNICODE_STRING Name, _Out_ DWORD &dwType, _Out_ TAutoFreePtr<BYTE> &cData,
+                  _Out_ SIZE_T &nDataSize);
 
   HRESULT WriteDWord(_In_z_ LPCWSTR szNameW, _In_ DWORD dwValue);
 
@@ -73,6 +78,8 @@ public:
 
   HRESULT WriteBlob(_In_z_ LPCWSTR szNameW, _In_ LPCVOID lpValue, _In_ SIZE_T nValueLen);
 
+  HRESULT WriteAny(_In_z_ LPCWSTR szNameW, _In_ DWORD dwType, _In_ LPCVOID lpValue, _In_ SIZE_T nValueLen);
+
   HRESULT WritePassword(_In_z_ LPCWSTR szNameW, _In_z_ LPCWSTR szPasswordW);
 
   HRESULT DeleteKey(_In_z_ LPCWSTR szNameW);
@@ -81,10 +88,10 @@ public:
   HRESULT DeleteValue(_In_opt_z_ LPCWSTR szNameW);
   HRESULT DeleteValue(_In_opt_ PUNICODE_STRING Name);
 
-  HRESULT EnumerateKeys(_In_ DWORD dwIndex, _Inout_ MX::CStringW &cStrKeyNameW);
+  HRESULT EnumerateKeys(_In_ DWORD dwIndex, _Inout_ CStringW &cStrKeyNameW);
   HRESULT EnumerateKeys(_In_ DWORD dwIndex, _Out_ PUNICODE_STRING *pKeyName);
 
-  HRESULT EnumerateValues(_In_ DWORD dwIndex, _Inout_ MX::CStringW &cStrValueNameW);
+  HRESULT EnumerateValues(_In_ DWORD dwIndex, _Inout_ CStringW &cStrValueNameW);
   HRESULT EnumerateValues(_In_ DWORD dwIndex, _Out_ PUNICODE_STRING *pValueName);
 
 private:
