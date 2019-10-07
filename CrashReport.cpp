@@ -235,6 +235,7 @@ static LONG WINAPI OnUnhandledExceptionFilter(_In_ PEXCEPTION_POINTERS Exception
       STARTUPINFOW sSiW = { 0 };
       PROCESS_INFORMATION sPi = { 0 };
 
+      sSiW.cb = (DWORD)sizeof(sSiW);
       if (::CreateProcessW(NULL, (LPWSTR)cStrNameW, NULL, NULL, TRUE, CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP,
                            NULL, NULL, &sSiW, &sPi) != FALSE)
       {
