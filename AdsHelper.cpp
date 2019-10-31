@@ -43,11 +43,11 @@ CAdsHelper::CAdsHelper() : CBaseMemObj()
 CAdsHelper::~CAdsHelper()
 {
   if (cStrServerAddressW.IsEmpty() == FALSE)
-    MemSet((LPWSTR)cStrServerAddressW, '*', cStrServerAddressW.GetLength() * 2);
+    ::MxMemSet((LPWSTR)cStrServerAddressW, '*', cStrServerAddressW.GetLength() * 2);
   if (cStrUserNameW.IsEmpty() == FALSE)
-    MemSet((LPWSTR)cStrUserNameW, '*', cStrUserNameW.GetLength() * 2);
+    ::MxMemSet((LPWSTR)cStrUserNameW, '*', cStrUserNameW.GetLength() * 2);
   if (cStrPasswordW.IsEmpty() == FALSE)
-    MemSet((LPWSTR)cStrPasswordW, '*', cStrPasswordW.GetLength() * 2);
+    ::MxMemSet((LPWSTR)cStrPasswordW, '*', cStrPasswordW.GetLength() * 2);
   //----
   if (SUCCEEDED(hResComInit))
     ::CoUninitialize();

@@ -969,7 +969,7 @@ HRESULT ResolveSymbolicLink(_Inout_ CStringW &cStrPathW)
   }
 restart:
   //query for the symbolic link from the full string and going back
-  MemCopy(&usDevName, &CurrName, sizeof(CurrName));
+  ::MxMemCopy(&usDevName, &CurrName, sizeof(CurrName));
   while (usDevName.Length > 0 && usDevName.Buffer[usDevName.Length / 2 - 1] == L'\\')
     usDevName.Length -= 2;
   //loop while we have some string
@@ -980,7 +980,7 @@ restart:
     HANDLE hSymLink;
 
     //query symbolic link
-    MemSet(&sObjAttr, 0, sizeof(sObjAttr));
+    ::MxMemSet(&sObjAttr, 0, sizeof(sObjAttr));
     sObjAttr.Length = sizeof(sObjAttr);
     sObjAttr.Attributes = OBJ_CASE_INSENSITIVE;
     sObjAttr.ObjectName = &usDevName;
@@ -1070,8 +1070,8 @@ HRESULT GetFileNameFromHandle(_In_ HANDLE hFile, _Out_ CStringW &cStrFileNameW)
   {
     if (nReqLength > nBufSize)
       nBufSize = nReqLength + 256;
-    MemFree(lpNameInfo);
-    lpNameInfo = (PMX_OBJECT_NAME_INFORMATION)MemAlloc(sizeof(MX_OBJECT_NAME_INFORMATION) + (SIZE_T)nBufSize);
+    ::MxMemFree(lpNameInfo);
+    lpNameInfo = (PMX_OBJECT_NAME_INFORMATION)::MxMemAlloc(sizeof(MX_OBJECT_NAME_INFORMATION) + (SIZE_T)nBufSize);
     if (lpNameInfo != NULL)
       nNtStatus = ::MxNtQueryObject(hFile, MxObjectNameInformation, lpNameInfo, nBufSize, &nReqLength);
     else
@@ -1083,7 +1083,7 @@ HRESULT GetFileNameFromHandle(_In_ HANDLE hFile, _Out_ CStringW &cStrFileNameW)
     if (cStrFileNameW.CopyN(lpNameInfo->Name.Buffer, (SIZE_T)(lpNameInfo->Name.Length) / 2) == FALSE)
       nNtStatus = STATUS_INSUFFICIENT_RESOURCES;
   }
-  MemFree(lpNameInfo);
+  ::MxMemFree(lpNameInfo);
   if (!NT_SUCCESS(nNtStatus))
     return MX_HRESULT_FROM_WIN32(::MxRtlNtStatusToDosError(nNtStatus));
   return S_OK;
@@ -1106,7 +1106,7 @@ HRESULT OpenFileWithEscalatingSharing(_In_z_ LPCWSTR szFileNameW, _Out_ HANDLE *
     MX_UNICODE_STRING usFileName;
     NTSTATUS nNtStatus;
 
-    MemSet(&sObjAttrib, 0, sizeof(sObjAttrib));
+    ::MxMemSet(&sObjAttrib, 0, sizeof(sObjAttrib));
     sObjAttrib.Length = (ULONG)sizeof(sObjAttrib);
     sObjAttrib.Attributes = OBJ_CASE_INSENSITIVE;
     sObjAttrib.ObjectName = &usFileName;
@@ -1118,7 +1118,7 @@ HRESULT OpenFileWithEscalatingSharing(_In_z_ LPCWSTR szFileNameW, _Out_ HANDLE *
         ::Sleep(CREATE_RETRIES_DELAY_MS);
       for (i = 0; i < 4; i++)
       {
-        MemSet(&sIoStatus, 0, sizeof(sIoStatus));
+        ::MxMemSet(&sIoStatus, 0, sizeof(sIoStatus));
         nNtStatus = ::MxNtCreateFile(lphFile, FILE_GENERIC_READ, &sObjAttrib, &sIoStatus, NULL, 0,
                                      (ULONG)aSharingAccess[i], FILE_OPEN, FILE_NON_DIRECTORY_FILE |
                                      FILE_SEQUENTIAL_ONLY | FILE_SYNCHRONOUS_IO_NONALERT, NULL, 0);

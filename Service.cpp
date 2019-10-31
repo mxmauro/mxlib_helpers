@@ -96,7 +96,7 @@ HRESULT Run(_In_opt_z_ LPCWSTR szServiceNameW, _In_ OnStartCallback _cStartCallb
   //run
   if (bRunningAsConsole == FALSE)
   {
-    MX::MemSet(&aServiceTableW, 0, sizeof(aServiceTableW));
+    ::MxMemSet(&aServiceTableW, 0, sizeof(aServiceTableW));
     aServiceTableW[0].lpServiceName = (LPWSTR)cStrServiceNameW;
     aServiceTableW[0].lpServiceProc = &_ServiceMain;
     hRes = (::StartServiceCtrlDispatcherW(aServiceTableW) != FALSE) ? S_OK : MX_HRESULT_FROM_LASTERROR();

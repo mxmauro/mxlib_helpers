@@ -153,7 +153,7 @@ MX_UNICODE_STRING CFileVersionInfo::GetString(_In_z_ LPCWSTR szFieldW, _In_opt_ 
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
-      MemSet(&usRes, 0, sizeof(usRes));
+      ::MxMemSet(&usRes, 0, sizeof(usRes));
     }
   }
   //done
@@ -170,7 +170,7 @@ HRESULT CFileVersionInfo::AnalyzeVersionInfo(_In_ LPVOID _lpPeParser)
     cVersionInfo.Attach((LPBYTE)MX_MALLOC(lpPeParser->GetVersionInfoSize()));
     if (!cVersionInfo)
       return E_OUTOFMEMORY;
-    MemCopy(cVersionInfo.Get(), lpPeParser->GetVersionInfo(), lpPeParser->GetVersionInfoSize());
+    ::MxMemCopy(cVersionInfo.Get(), lpPeParser->GetVersionInfo(), lpPeParser->GetVersionInfoSize());
     __try
     {
       if (::VerQueryValueW(cVersionInfo.Get(), L"\\", (LPVOID*)&lpFfi, &nLen) == FALSE)

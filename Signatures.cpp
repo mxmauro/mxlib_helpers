@@ -446,8 +446,8 @@ HRESULT Initialize()
   //done
   if (FAILED(hRes))
     EndSignaturesAndInfo();
-  MemSet(szTempA, 0, sizeof(szTempA));
-  MemSet(szTempW, 0, sizeof(szTempW));
+  ::MxMemSet(szTempA, 0, sizeof(szTempA));
+  ::MxMemSet(szTempW, 0, sizeof(szTempW));
   return hRes;
 }
 
@@ -620,7 +620,7 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_
 
           if (fnCryptCATAdminAcquireContext2 == NULL)
             continue;
-          //MemSet(&sSigningPolicy, 0, sizeof(sSigningPolicy));
+          //::MxMemSet(&sSigningPolicy, 0, sizeof(sSigningPolicy));
           //sSigningPolicy.cbSize = (DWORD)sizeof(sSigningPolicy);
           //sSigningPolicy.dwInfoChoice = CERT_STRONG_SIGN_OID_INFO_CHOICE;
           //sSigningPolicy.pszOID = szOID_CERT_STRONG_SIGN_OS_CURRENT;
@@ -711,10 +711,10 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_
 
               if (fnCryptCATCatalogInfoFromContext(hCatInfo, &sCi, 0) != FALSE)
               {
-                MemSet(&sDrvVerInfo, 0, sizeof(sDrvVerInfo));
+                ::MxMemSet(&sDrvVerInfo, 0, sizeof(sDrvVerInfo));
                 sDrvVerInfo.cbStruct = (DWORD)sizeof(DRIVER_VER_INFO);
 
-                MemSet(&sCatInfo, 0, sizeof(sCatInfo));
+                ::MxMemSet(&sCatInfo, 0, sizeof(sCatInfo));
                 sCatInfo.cbStruct = (DWORD)sizeof(sCatInfo);
                 sCatInfo.pcwszCatalogFilePath = sCi.wszCatalogFile;
                 sCatInfo.pcwszMemberFilePath = szPeFileNameW;
@@ -741,7 +741,7 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_
             }
             else if (cStrPackageFullPathW.IsEmpty() == FALSE)
             {
-              MemSet(&sCatInfo, 0, sizeof(sCatInfo));
+              ::MxMemSet(&sCatInfo, 0, sizeof(sCatInfo));
               sCatInfo.cbStruct = sizeof(sCatInfo);
               sCatInfo.pcwszCatalogFilePath = (LPCWSTR)cStrPackageFullPathW;
               sCatInfo.pcwszMemberFilePath = szPeFileNameW;
@@ -850,7 +850,7 @@ HRESULT GetCertificateSerialNumber(_In_ PCCERT_CONTEXT lpCertCtx, _Out_ LPBYTE *
   *lplpSerialNumber = (LPBYTE)MX_MALLOC((SIZE_T)(lpCertCtx->pCertInfo->SerialNumber.cbData));
   if ((*lplpSerialNumber) == NULL)
     return E_OUTOFMEMORY;
-  MemCopy(*lplpSerialNumber, lpCertCtx->pCertInfo->SerialNumber.pbData,
+  ::MxMemCopy(*lplpSerialNumber, lpCertCtx->pCertInfo->SerialNumber.pbData,
           (SIZE_T)(lpCertCtx->pCertInfo->SerialNumber.cbData));
   *lpnSerialNumberLength = (SIZE_T)(lpCertCtx->pCertInfo->SerialNumber.cbData);
   return S_OK;
@@ -864,7 +864,7 @@ HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _In_opt_ HANDLE hFile, _Out_
   HRESULT hRes;
 
   if (lpHashes != NULL)
-    MemSet(lpHashes, 0, sizeof(HASHES));
+    ::MxMemSet(lpHashes, 0, sizeof(HASHES));
   if (szFileNameW == NULL || lpHashes == NULL)
     return E_POINTER;
   if (*szFileNameW == 0)
@@ -929,9 +929,9 @@ HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _In_opt_ HANDLE hFile, _Out_
 
   if (SUCCEEDED(hRes))
   {
-    MemCopy(lpHashes->aSha256, cHashSha256.GetResult(), 32);
-    MemCopy(lpHashes->aSha1, cHashSha1.GetResult(), 20);
-    MemCopy(lpHashes->aMd5, cHashMd5.GetResult(), 16);
+    ::MxMemCopy(lpHashes->aSha256, cHashSha256.GetResult(), 32);
+    ::MxMemCopy(lpHashes->aSha1, cHashSha1.GetResult(), 20);
+    ::MxMemCopy(lpHashes->aMd5, cHashMd5.GetResult(), 16);
   }
 
   //done
@@ -1005,7 +1005,7 @@ static HRESULT DoTrustVerification(_In_opt_z_ LPCWSTR szPeFileNameW, _In_opt_ HA
 
 restart:
   //verify PE's signature
-  MX::MemSet(&sWtData, 0, sizeof(sWtData));
+  ::MxMemSet(&sWtData, 0, sizeof(sWtData));
   sWtData.cbStruct = (DWORD)sizeof(sWtData);
   sWtData.dwUIContext = WTD_UICONTEXT_EXECUTE;
   sWtData.dwUIChoice = WTD_UI_NONE;
@@ -1023,7 +1023,7 @@ restart:
     sWtData.dwUnionChoice = WTD_CHOICE_FILE;
     sWtData.pFile = &sWtFileInfo;
 
-    MX::MemSet(&sWtFileInfo, 0, sizeof(sWtFileInfo));
+    ::MxMemSet(&sWtFileInfo, 0, sizeof(sWtFileInfo));
     sWtFileInfo.cbStruct = (DWORD)sizeof(sWtFileInfo);
     sWtFileInfo.pcwszFilePath = szPeFileNameW;
     sWtFileInfo.hFile = hFile;

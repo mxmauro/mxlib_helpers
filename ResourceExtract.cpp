@@ -88,7 +88,7 @@ HRESULT ExtractToMemory(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _In_ LPCW
   if ((*lplpDest) == NULL)
     return E_OUTOFMEMORY;
   *lpnDestSize = (SIZE_T)dwResSize;
-  MemCopy(*lplpDest, p, (SIZE_T)dwResSize);
+  ::MxMemCopy(*lplpDest, p, (SIZE_T)dwResSize);
   //done
   return S_OK;
 }

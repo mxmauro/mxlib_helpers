@@ -94,11 +94,11 @@ BOOL String2Guid(_Out_ GUID &sGuid, _In_z_ LPCSTR szGuidA)
 {
   DWORD i, dwVal;
 
-  MemSet(&sGuid, 0, sizeof(sGuid));
+  ::MxMemSet(&sGuid, 0, sizeof(sGuid));
   if (szGuidA == NULL)
   {
 err_badformat:
-    MemSet(&sGuid, 0, sizeof(sGuid));
+    ::MxMemSet(&sGuid, 0, sizeof(sGuid));
     return FALSE;
   }
   if (*szGuidA == '{')
@@ -171,7 +171,7 @@ BOOL String2Guid(_Out_ GUID &sGuid, _In_z_ LPCWSTR szGuidW)
   CHAR szBufA[64];
   SIZE_T i;
 
-  MemSet(&sGuid, 0, sizeof(sGuid));
+  ::MxMemSet(&sGuid, 0, sizeof(sGuid));
   for (i = 0; i < MX_ARRAYLEN(szBufA) - 1 && szGuidW[i] != 0; i++)
   {
     if ((szGuidW[i] >= L'0' && szGuidW[i] <= L'9') ||
@@ -212,9 +212,9 @@ HRESULT ExecuteApp(_In_z_ LPCWSTR szCmdLineW, _In_ DWORD dwAfterSeconds)
       STARTUPINFOW sSiW;
       PROCESS_INFORMATION sPi;
 
-      MemSet(&sSiW, 0, sizeof(sSiW));
+      ::MxMemSet(&sSiW, 0, sizeof(sSiW));
       sSiW.cb = (DWORD)sizeof(sSiW);
-      MemSet(&sPi, 0, sizeof(sPi));
+      ::MxMemSet(&sPi, 0, sizeof(sPi));
       if (::CreateProcessW(NULL, (LPWSTR)cStrTempW, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &sSiW,
                            &sPi) != FALSE)
       {

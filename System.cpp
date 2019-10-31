@@ -135,7 +135,7 @@ HRESULT GetOpSystemInfo(_Out_ CStringW &cStrOpSystemW)
   SIZE_T i;
   NTSTATUS nNtStatus;
 
-  MemSet(&sOviExW, 0, sizeof(sOviExW));
+  ::MxMemSet(&sOviExW, 0, sizeof(sOviExW));
   sOviExW.dwOSVersionInfoSize = (DWORD)sizeof(sOviExW);
   nNtStatus = ::MxRtlGetVersion((PRTL_OSVERSIONINFOW)&sOviExW);
   if (!NT_SUCCESS(nNtStatus))

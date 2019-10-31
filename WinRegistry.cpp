@@ -86,7 +86,7 @@ HRESULT CWindowsRegistry::Create(_In_ HKEY hParentKey, _In_ PUNICODE_STRING SubK
   if (SubKey != NULL && SubKey->Buffer == NULL && SubKey->Length > 0)
     return E_POINTER;
   //prepare
-  MemSet(&sObjAttr, 0, sizeof(sObjAttr));
+  ::MxMemSet(&sObjAttr, 0, sizeof(sObjAttr));
   sObjAttr.Length = (ULONG)sizeof(sObjAttr);
   sObjAttr.Attributes = OBJ_CASE_INSENSITIVE;
   //open base key if needed
@@ -153,7 +153,7 @@ HRESULT CWindowsRegistry::Open(_In_ HKEY hParentKey, _In_ PUNICODE_STRING SubKey
   if (SubKey != NULL && SubKey->Buffer == NULL && SubKey->Length > 0)
     return E_POINTER;
   //prepare
-  MemSet(&sObjAttr, 0, sizeof(sObjAttr));
+  ::MxMemSet(&sObjAttr, 0, sizeof(sObjAttr));
   sObjAttr.Length = (ULONG)sizeof(sObjAttr);
   sObjAttr.Attributes = OBJ_CASE_INSENSITIVE;
   //open base key if needed
@@ -390,7 +390,7 @@ HRESULT CWindowsRegistry::ReadString(_In_ PUNICODE_STRING Name, _Out_ PUNICODE_S
         if ((ULONG)Cap > cStrTempW.GetLength() * 2)
           Cap = (USHORT)(cStrTempW.GetLength() * 2);
 
-        MemCopy(aTempStr->Buffer + (SIZE_T)(aTempStr->Length) / 2, (LPCWSTR)cStrTempW, (SIZE_T)Cap);
+        ::MxMemCopy(aTempStr->Buffer + (SIZE_T)(aTempStr->Length) / 2, (LPCWSTR)cStrTempW, (SIZE_T)Cap);
         aTempStr->Length += Cap;
       }
       //process nul characters
@@ -403,7 +403,7 @@ HRESULT CWindowsRegistry::ReadString(_In_ PUNICODE_STRING Name, _Out_ PUNICODE_S
         if ((ULONG)Cap > Idx - StartIdx)
           Cap = (USHORT)(Idx - StartIdx);
 
-        MemSet(aTempStr->Buffer + (SIZE_T)(aTempStr->Length) / 2, 0, (SIZE_T)Cap);
+        ::MxMemSet(aTempStr->Buffer + (SIZE_T)(aTempStr->Length) / 2, 0, (SIZE_T)Cap);
         aTempStr->Length += Cap;
       }
     }
@@ -414,7 +414,7 @@ HRESULT CWindowsRegistry::ReadString(_In_ PUNICODE_STRING Name, _Out_ PUNICODE_S
     //copy key name
     (*pValue)->Buffer = (PWSTR)((*pValue) + 1);
     (*pValue)->Length = (*pValue)->MaximumLength = aTempStr->Length;
-    MemCopy((*pValue)->Buffer, aTempStr->Buffer, (SIZE_T)(aTempStr->Length));
+    ::MxMemCopy((*pValue)->Buffer, aTempStr->Buffer, (SIZE_T)(aTempStr->Length));
     (*pValue)->Buffer[aTempStr->Length / 2] = 0;
   }
   else
@@ -426,7 +426,7 @@ HRESULT CWindowsRegistry::ReadString(_In_ PUNICODE_STRING Name, _Out_ PUNICODE_S
     //copy key name
     (*pValue)->Buffer = (PWSTR)((*pValue) + 1);
     (*pValue)->Length = (*pValue)->MaximumLength = (USHORT)Size;
-    MemCopy((*pValue)->Buffer, lpInfo->Data, Size);
+    ::MxMemCopy((*pValue)->Buffer, lpInfo->Data, Size);
     (*pValue)->Buffer[Size / 2] = 0;
   }
   //done
@@ -447,8 +447,8 @@ HRESULT CWindowsRegistry::ReadPassword(_In_z_ LPCWSTR szNameW, _Out_ CStringW &c
   {
     if (nBlobSize > 0)
     {
-      MemSet(&sInput, 0, sizeof(sInput));
-      MemSet(&sOutput, 0, sizeof(sOutput));
+      ::MxMemSet(&sInput, 0, sizeof(sInput));
+      ::MxMemSet(&sOutput, 0, sizeof(sOutput));
       sInput.pbData = cBlob.Get();
       sInput.cbData = (DWORD)nBlobSize;
       if (::CryptUnprotectData(&sInput, NULL, NULL, NULL, NULL, CRYPTPROTECT_UI_FORBIDDEN, &sOutput) != FALSE)
@@ -462,7 +462,7 @@ HRESULT CWindowsRegistry::ReadPassword(_In_z_ LPCWSTR szNameW, _Out_ CStringW &c
         {
           hRes = MX_E_InvalidData;
         }
-        MemSet(sOutput.pbData, '*', (SIZE_T)(sOutput.cbData));
+        ::MxMemSet(sOutput.pbData, '*', (SIZE_T)(sOutput.cbData));
         ::LocalFree((HLOCAL)(sOutput.pbData));
       }
       else
@@ -608,7 +608,7 @@ HRESULT CWindowsRegistry::ReadMultiString(_In_ PUNICODE_STRING Name,
       //copy value
       TempStr->Buffer = (PWSTR)(TempStr + 1);
       TempStr->Length = TempStr->MaximumLength = (USHORT)nSize * 2;
-      MemCopy(TempStr->Buffer, szStartW, nSize * 2);
+      ::MxMemCopy(TempStr->Buffer, szStartW, nSize * 2);
       TempStr->Buffer[TempStr->Length / 2] = 0;
       //add to list
       if (aStrValuesList.AddElement(TempStr) == FALSE)
@@ -708,7 +708,7 @@ HRESULT CWindowsRegistry::ReadBlob(_In_ PUNICODE_STRING Name, _Out_ TAutoFreePtr
     cBlob.Attach((LPBYTE)MX_MALLOC((SIZE_T)(lpInfo->DataLength)));
     if (!cBlob)
       return E_OUTOFMEMORY;
-    MemCopy(cBlob.Get(), lpInfo->Data, (SIZE_T)(lpInfo->DataLength));
+    ::MxMemCopy(cBlob.Get(), lpInfo->Data, (SIZE_T)(lpInfo->DataLength));
   }
   nBlobSize = (SIZE_T)(lpInfo->DataLength);
   //done
@@ -798,7 +798,7 @@ HRESULT CWindowsRegistry::ReadAny(_In_ PUNICODE_STRING Name, _Out_ DWORD &dwType
     cData.Attach((LPBYTE)MX_MALLOC((SIZE_T)(lpInfo->DataLength)));
     if (!cData)
       return E_OUTOFMEMORY;
-    MemCopy(cData.Get(), lpInfo->Data, (SIZE_T)(lpInfo->DataLength));
+    ::MxMemCopy(cData.Get(), lpInfo->Data, (SIZE_T)(lpInfo->DataLength));
   }
   nDataSize = (SIZE_T)(lpInfo->DataLength);
   //done
@@ -862,10 +862,10 @@ HRESULT CWindowsRegistry::WriteMultiString(_In_z_ LPCWSTR szNameW, _In_ SIZE_T n
   for (i=nLen=0; i<nValuesCount; i++)
   {
     nThisLen = (StrLenW(lpszValuesW[i]) + 1) * sizeof(WCHAR);
-    MemCopy(cBuf.Get()+nLen, lpszValuesW[i], nThisLen);
+    ::MxMemCopy(cBuf.Get()+nLen, lpszValuesW[i], nThisLen);
     nLen += nThisLen;
   }
-  MemSet(cBuf.Get()+nLen, 0, 2);
+  ::MxMemSet(cBuf.Get()+nLen, 0, 2);
   nLen += 2;
   //save value
   dwOsErr = ::RegSetValueExW(hKey, szNameW, 0, REG_MULTI_SZ, (const LPBYTE)cBuf.Get(), (DWORD)nLen);
@@ -907,8 +907,8 @@ HRESULT CWindowsRegistry::WritePassword(_In_z_ LPCWSTR szNameW, _In_z_ LPCWSTR s
   if (szPasswordW == NULL || *szPasswordW == 0)
     return WriteBlob(szNameW, NULL, 0);
 
-  MemSet(&sInput, 0, sizeof(sInput));
-  MemSet(&sOutput, 0, sizeof(sOutput));
+  ::MxMemSet(&sInput, 0, sizeof(sInput));
+  ::MxMemSet(&sOutput, 0, sizeof(sOutput));
   sInput.pbData = (LPBYTE)szPasswordW;
   sInput.cbData = (DWORD)StrLenW(szPasswordW) * 2;
   if (::CryptProtectData(&sInput, NULL, NULL, NULL, NULL, CRYPTPROTECT_LOCAL_MACHINE | CRYPTPROTECT_UI_FORBIDDEN,
@@ -1051,7 +1051,7 @@ HRESULT CWindowsRegistry::EnumerateKeys(_In_ DWORD dwIndex, _Out_ PUNICODE_STRIN
   //copy key name
   (*pKeyName)->Buffer = (PWSTR)((*pKeyName) + 1);
   (*pKeyName)->Length = (*pKeyName)->MaximumLength = (USHORT)Size;
-  MemCopy((*pKeyName)->Buffer, aBuffer.Get()->Name, Size);
+  ::MxMemCopy((*pKeyName)->Buffer, aBuffer.Get()->Name, Size);
   (*pKeyName)->Buffer[Size / 2] = 0;
   //done
   return S_OK;
@@ -1130,7 +1130,7 @@ HRESULT CWindowsRegistry::EnumerateValues(_In_ DWORD dwIndex, _Out_ PUNICODE_STR
   //copy value name
   (*pValueName)->Buffer = (PWSTR)((*pValueName) + 1);
   (*pValueName)->Length = (*pValueName)->MaximumLength = (USHORT)Size;
-  MemCopy((*pValueName)->Buffer, aBuffer.Get()->Name, Size);
+  ::MxMemCopy((*pValueName)->Buffer, aBuffer.Get()->Name, Size);
   (*pValueName)->Buffer[Size / 2] = 0;
   //done
   return S_OK;
@@ -1146,7 +1146,7 @@ static NTSTATUS OpenBaseKey(_In_ HKEY hKey, _In_ DWORD dwAccess, _Out_ PHANDLE l
   static const MX_UNICODE_STRING usUser = { 28, 30, L"\\REGISTRY\\USER" };
   MX_OBJECT_ATTRIBUTES sObjAttr;
 
-  MX::MemSet(&sObjAttr, 0, sizeof(sObjAttr));
+  ::MxMemSet(&sObjAttr, 0, sizeof(sObjAttr));
   sObjAttr.Length = (ULONG)sizeof(sObjAttr);
   sObjAttr.Attributes = OBJ_CASE_INSENSITIVE;
   if (hKey == HKEY_LOCAL_MACHINE)
@@ -1184,7 +1184,7 @@ static HRESULT RecursiveDeleteKey(_In_ HKEY hKey, _In_opt_ PMX_UNICODE_STRING Su
   //prepare
   if (SubKey != NULL)
   {
-    MX::MemSet(&sObjAttr, 0, sizeof(sObjAttr));
+    ::MxMemSet(&sObjAttr, 0, sizeof(sObjAttr));
     sObjAttr.Length = (ULONG)sizeof(sObjAttr);
     sObjAttr.RootDirectory = hKey;
     sObjAttr.Attributes = OBJ_CASE_INSENSITIVE;

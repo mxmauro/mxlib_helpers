@@ -133,7 +133,7 @@ HRESULT CMemoryPackage::OpenPackage(_In_ LPCVOID lpData, _In_ SIZE_T nDataSize, 
       else if (nAvailable > 0)
       {
         ullValue = 0ui64;
-        MemCopy(aByteValues, p, nAvailable);
+        ::MxMemCopy(aByteValues, p, nAvailable);
         p += nAvailable;
       }
       else
@@ -427,7 +427,7 @@ HRESULT CFileStream::Read(_Out_writes_bytes_(nRead) LPVOID lpDest, _In_ SIZE_T n
         else
         {
           ullValue = 0ui64;
-          MX::MemCopy(aByteValues, sCompressedData.lpNext, nAvailable);
+          ::MxMemCopy(aByteValues, sCompressedData.lpNext, nAvailable);
           sCompressedData.lpNext += nAvailable;
         }
         ullValue ^= nCurrHash;

@@ -277,7 +277,7 @@ loop:
     uliTemp.HighPart = sFindDataW.ftCreationTime.dwHighDateTime;
     if (uliTemp.QuadPart < uliLowerTime.QuadPart)
     {
-      MX::MemCopy(szLowerFileNameW, sFindDataW.cFileName, sizeof(sFindDataW.cFileName));
+      ::MxMemCopy(szLowerFileNameW, sFindDataW.cFileName, sizeof(sFindDataW.cFileName));
       uliLowerTime.QuadPart = uliTemp.QuadPart;
     }
     dwCount++;

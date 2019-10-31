@@ -309,11 +309,11 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
     SERVICE_FAILURE_ACTIONSW sServFailActW;
     SC_ACTION aServActions[1];
 
-    MemSet(&sServFailActW, 0, sizeof(sServFailActW));
+    ::MxMemSet(&sServFailActW, 0, sizeof(sServFailActW));
     sServFailActW.dwResetPeriod = INFINITE;
     sServFailActW.cActions = 1;
     sServFailActW.lpsaActions = aServActions;
-    MemSet(aServActions, 0, sizeof(aServActions));
+    ::MxMemSet(aServActions, 0, sizeof(aServActions));
     if (lpCreateInfo->sFailureControl.bAutoRestart != FALSE)
     {
       aServActions[0].Type = SC_ACTION_RESTART;
@@ -325,7 +325,7 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
       {
         SERVICE_FAILURE_ACTIONS_FLAG sServFailActFlagW;
 
-        MemSet(&sServFailActFlagW, 0, sizeof(sServFailActFlagW));
+        ::MxMemSet(&sServFailActFlagW, 0, sizeof(sServFailActFlagW));
         sServFailActFlagW.fFailureActionsOnNonCrashFailures = FALSE;
         if (::ChangeServiceConfig2W(hServ, SERVICE_CONFIG_FAILURE_ACTIONS_FLAG, &sServFailActFlagW) == FALSE)
         {
@@ -345,7 +345,7 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
   {
     SERVICE_DESCRIPTIONW sServDescW;
 
-    MemSet(&sServDescW, 0, sizeof(sServDescW));
+    ::MxMemSet(&sServDescW, 0, sizeof(sServDescW));
     sServDescW.lpDescription = (lpCreateInfo->szDescriptionW != NULL) ? lpCreateInfo->szDescriptionW : L"";
     if (::ChangeServiceConfig2W(hServ, SERVICE_CONFIG_DESCRIPTION, &sServDescW) == FALSE)
     {
@@ -407,7 +407,7 @@ HRESULT CServiceManager::Start(_In_ DWORD dwTimeoutMs)
   dwOldCheckPoint = 0;
   while (1)
   {
-    MemSet(&sSvcStatus, 0, sizeof(sSvcStatus));
+    ::MxMemSet(&sSvcStatus, 0, sizeof(sSvcStatus));
     if (::QueryServiceStatus(hServ, &sSvcStatus) == FALSE)
       return MX_HRESULT_FROM_LASTERROR();
     if (sSvcStatus.dwCurrentState == SERVICE_RUNNING)
@@ -442,7 +442,7 @@ HRESULT CServiceManager::Stop(_In_opt_ DWORD dwTimeoutMs)
   if (hServ == NULL)
     return MX_E_NotReady;
   //check if service is already stopped
-  MemSet(&sSvcStatus, 0, sizeof(sSvcStatus));
+  ::MxMemSet(&sSvcStatus, 0, sizeof(sSvcStatus));
   if (::QueryServiceStatus(hServ, &sSvcStatus) != FALSE)
   {
     if (sSvcStatus.dwCurrentState == SERVICE_STOPPED)
@@ -455,7 +455,7 @@ HRESULT CServiceManager::Stop(_In_opt_ DWORD dwTimeoutMs)
     return MX_HRESULT_FROM_LASTERROR();
 waitForStop:
   //wait until operation is complete
-  MemSet(&sSvcStatus, 0, sizeof(sSvcStatus));
+  ::MxMemSet(&sSvcStatus, 0, sizeof(sSvcStatus));
   ::Sleep(100);
   while (::QueryServiceStatus(hServ, &sSvcStatus) != FALSE)
   {
@@ -507,7 +507,7 @@ HRESULT CServiceManager::Delete(_In_opt_ BOOL bDoStop, _In_opt_ DWORD dwStopTime
 
 HRESULT CServiceManager::QueryStatus(_Out_ SERVICE_STATUS &sSvcStatus)
 {
-  MemSet(&sSvcStatus, 0, sizeof(sSvcStatus));
+  ::MxMemSet(&sSvcStatus, 0, sizeof(sSvcStatus));
   if (hServ == NULL)
     return MX_E_NotReady;
   return (::QueryServiceStatus(hServ, &sSvcStatus) != FALSE) ? S_OK : MX_HRESULT_FROM_LASTERROR();

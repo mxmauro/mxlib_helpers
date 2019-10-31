@@ -81,7 +81,7 @@ HRESULT ResolveChildProcessFileName(_Inout_ CStringW &cStrFullNameW, _In_ LPCWST
     {
       RTL_OSVERSIONINFOW sOviW;
 
-      MemSet(&sOviW, 0, sizeof(sOviW));
+      ::MxMemSet(&sOviW, 0, sizeof(sOviW));
       sOviW.dwOSVersionInfoSize = (DWORD)sizeof(sOviW);
       ::MxRtlGetVersion(&sOviW);
       if (sOviW.dwMajorVersion >= 6)
@@ -355,7 +355,7 @@ HRESULT GetTokenMembershipType(_In_ HANDLE hToken, _Out_ eTokenGetMembershipType
     TOKEN_ELEVATION sTokElev;
     TOKEN_ELEVATION_TYPE sTokElevType;
 
-    MemSet(&sTokElev, 0, sizeof(sTokElev));
+    ::MxMemSet(&sTokElev, 0, sizeof(sTokElev));
     if (::GetTokenInformation(hTokenToCheck, TokenElevation, &sTokElev, (DWORD)sizeof(sTokElev), &dw) != FALSE &&
         sTokElev.TokenIsElevated != 0)
     {
@@ -364,7 +364,7 @@ HRESULT GetTokenMembershipType(_In_ HANDLE hToken, _Out_ eTokenGetMembershipType
       goto done;
     }
     //if we are not elevated, lookup for the linked token (if exists) and check if it belongs to administrators group
-    MemSet(&sTokElevType, 0, sizeof(sTokElevType));
+    ::MxMemSet(&sTokElevType, 0, sizeof(sTokElevType));
     if (::GetTokenInformation(hToken, TokenElevationType, &sTokElevType, (DWORD)sizeof(sTokElevType), &dw) != FALSE &&
         sTokElevType == TokenElevationTypeLimited)
     {
@@ -427,7 +427,7 @@ HRESULT EnablePrivilege(_In_z_ LPCWSTR szPrivilegeW)
   hRes = S_OK;
   if (::OpenProcessToken(::GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken) != FALSE)
   {
-    MemSet(&sPriv, 0, sizeof(sPriv));
+    ::MxMemSet(&sPriv, 0, sizeof(sPriv));
     if (::LookupPrivilegeValueW(NULL, szPrivilegeW, &(sPriv.Privileges[0].Luid)) != FALSE)
     {
       sPriv.PrivilegeCount = 1;

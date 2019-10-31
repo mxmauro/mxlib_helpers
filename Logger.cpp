@@ -309,7 +309,7 @@ static VOID RemoveOldFiles()
           if (i >= 8 && MX::StrCompareW(sFindDataW.cFileName+nBaseNameLen+9, L".log", TRUE) == 0)
           {
             //get file date from name
-            MX::MemSet(&sSt, 0, sizeof(sSt));
+            ::MxMemSet(&sSt, 0, sizeof(sSt));
             sSt.wYear = (WORD)(sFindDataW.cFileName[nBaseNameLen+1] - L'0') * 1000 +
                         (WORD)(sFindDataW.cFileName[nBaseNameLen+2] - L'0') * 100 +
                         (WORD)(sFindDataW.cFileName[nBaseNameLen+3] - L'0') * 10 +
@@ -434,7 +434,7 @@ static HRESULT OpenLog()
   }
 
   //memory status
-  MX::MemSet(&sMemStatusEx, 0, sizeof(sMemStatusEx));
+  ::MxMemSet(&sMemStatusEx, 0, sizeof(sMemStatusEx));
   sMemStatusEx.dwLength = (DWORD)sizeof(sMemStatusEx);
   ::GlobalMemoryStatusEx(&sMemStatusEx);
   if (sMemStatusEx.ullTotalPhys >= 1024ui64*1024ui64*1024ui64)

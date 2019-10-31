@@ -186,7 +186,7 @@ HRESULT CPEParser::InitializeFromProcessHandle(_In_opt_ HANDLE _hProc, _In_opt_ 
     }
     else
     {
-      if (TryMemCopy(&qwTemp, lpPeb + 0x10, sizeof(qwTemp)) != sizeof(qwTemp))
+      if (::MxTryMemCopy(&qwTemp, lpPeb + 0x10, sizeof(qwTemp)) != sizeof(qwTemp))
       {
         Finalize();
         return MX_E_ReadFault;
@@ -207,7 +207,7 @@ HRESULT CPEParser::InitializeFromProcessHandle(_In_opt_ HANDLE _hProc, _In_opt_ 
     }
     else
     {
-      if (TryMemCopy(&dwTemp, lpPeb + 0x08, sizeof(dwTemp)) != sizeof(dwTemp))
+      if (::MxTryMemCopy(&dwTemp, lpPeb + 0x08, sizeof(dwTemp)) != sizeof(dwTemp))
       {
         Finalize();
         return MX_E_ReadFault;
@@ -355,7 +355,7 @@ BOOL CPEParser::ReadRaw(_Out_writes_(nBytes) LPVOID lpDest, _In_ LPCVOID lpSrc, 
         nToReadThisRound = sFileCache.nLength - nOffsetInCache;
 
       //copy data
-      MemCopy(lpDest, sFileCache.aBuffer + nOffsetInCache, nToReadThisRound);
+      ::MxMemCopy(lpDest, sFileCache.aBuffer + nOffsetInCache, nToReadThisRound);
 
       //advance offset
       lpDest = (LPBYTE)lpDest + nToReadThisRound;
@@ -365,7 +365,7 @@ BOOL CPEParser::ReadRaw(_Out_writes_(nBytes) LPVOID lpDest, _In_ LPCVOID lpSrc, 
   }
   else
   {
-    if (TryMemCopy(lpDest, lpSrc, nBytes) != nBytes)
+    if (::MxTryMemCopy(lpDest, lpSrc, nBytes) != nBytes)
       return FALSE;
   }
   return TRUE;
@@ -410,8 +410,8 @@ VOID CPEParser::ClearVars()
   nDataSize = 0;
   bImageIsMapped = FALSE;
 
-  MemSet(&sDosHdr, 0, sizeof(sDosHdr));
-  MemSet(&uNtHdr, 0, sizeof(uNtHdr));
+  ::MxMemSet(&sDosHdr, 0, sizeof(sDosHdr));
+  ::MxMemSet(&uNtHdr, 0, sizeof(uNtHdr));
 
   nSectionsCount = 0;
   cFileImgSect.Reset();
@@ -784,7 +784,7 @@ restart:
           return E_OUTOFMEMORY;
         lpNewEntry->dwOrdinal = dwOrdinal;
         lpNewEntry->lpAddress = lpFuncAddress;
-        MemCopy(lpNewEntry->szNameA, (LPCSTR)cStrFuncNameA, cStrFuncNameA.GetLength());
+        ::MxMemCopy(lpNewEntry->szNameA, (LPCSTR)cStrFuncNameA, cStrFuncNameA.GetLength());
         lpNewEntry->szNameA[cStrFuncNameA.GetLength()] = 0;
 
         //add to list
@@ -845,7 +845,7 @@ restart:
           return E_OUTOFMEMORY;
         lpNewEntry->dwOrdinal = dwOrdinal;
         lpNewEntry->lpAddress = lpFuncAddress;
-        MemCopy(lpNewEntry->szNameA, (LPCSTR)cStrFuncNameA, cStrFuncNameA.GetLength());
+        ::MxMemCopy(lpNewEntry->szNameA, (LPCSTR)cStrFuncNameA, cStrFuncNameA.GetLength());
         lpNewEntry->szNameA[cStrFuncNameA.GetLength()] = 0;
 
         //add to list
@@ -990,7 +990,7 @@ HRESULT CPEParser::DoParseExportTable(_In_ PIMAGE_EXPORT_DIRECTORY lpExportDir, 
     lpNewEntry->dwOrdinal = dw + sExportDir.Base;
     lpNewEntry->dwAddressRVA = dwFuncAddress;
     lpNewEntry->lpAddress = lpFuncAddress;
-    MemCopy(lpNewEntry->szNameA, (LPCSTR)cStrFuncNameA, cStrFuncNameA.GetLength());
+    ::MxMemCopy(lpNewEntry->szNameA, (LPCSTR)cStrFuncNameA, cStrFuncNameA.GetLength());
     lpNewEntry->szNameA[cStrFuncNameA.GetLength()] = 0;
     if (cStrForwardsToA.IsEmpty() != FALSE)
     {
@@ -999,7 +999,7 @@ HRESULT CPEParser::DoParseExportTable(_In_ PIMAGE_EXPORT_DIRECTORY lpExportDir, 
     else
     {
       lpNewEntry->szForwardsToA = lpNewEntry->szNameA + cStrFuncNameA.GetLength() + 1;
-      MemCopy(lpNewEntry->szForwardsToA, (LPCSTR)cStrForwardsToA, cStrForwardsToA.GetLength());
+      ::MxMemCopy(lpNewEntry->szForwardsToA, (LPCSTR)cStrForwardsToA, cStrForwardsToA.GetLength());
       lpNewEntry->szForwardsToA[cStrForwardsToA.GetLength()] = 0;
     }
     //add to list
@@ -1195,7 +1195,7 @@ HRESULT CPEParser::LookupResourceEntry(_In_ PIMAGE_RESOURCE_DIRECTORY lpRootDir,
 
         if (ReadRaw(szTempBufW, lpPtr, (SIZE_T)wThisRound * sizeof(WCHAR)) == FALSE)
           return MX_E_ReadFault;
-        nCmpResult = MemCompare(szCopyOfKeyW, szTempBufW, (SIZE_T)wThisRound);
+        nCmpResult = ::MxMemCompare(szCopyOfKeyW, szTempBufW, (SIZE_T)wThisRound);
         if (nCmpResult != 0)
           break;
         lpPtr += (SIZE_T)wThisRound * sizeof(WCHAR);

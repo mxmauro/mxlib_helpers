@@ -48,10 +48,10 @@ HRESULT CSid::Set(_In_ PSID lpSid)
   if (::IsValidSid(lpSid) == FALSE)
     return E_INVALIDARG;
   dwLength = ::GetLengthSid(lpSid);
-  cSid.Attach((LPBYTE)MemAlloc((SIZE_T)dwLength));
+  cSid.Attach((LPBYTE)::MxMemAlloc((SIZE_T)dwLength));
   if (!cSid)
     return E_OUTOFMEMORY;
-  MemCopy(cSid.Get(), lpSid, (SIZE_T)dwLength);
+  ::MxMemCopy(cSid.Get(), lpSid, (SIZE_T)dwLength);
   return S_OK;
 }
 
@@ -72,13 +72,13 @@ HRESULT CSid::Set(_In_z_ LPCWSTR szAccountNameOrSidStringW)
     if (::ConvertStringSidToSidW(szAccountNameOrSidStringW, &lpSid) == FALSE)
       return MX_HRESULT_FROM_LASTERROR();
     dwLength = ::GetLengthSid(lpSid);
-    cSid.Attach((LPBYTE)MemAlloc((SIZE_T)dwLength));
+    cSid.Attach((LPBYTE)::MxMemAlloc((SIZE_T)dwLength));
     if (!cSid)
     {
       ::LocalFree(lpSid);
       return E_OUTOFMEMORY;
     }
-    MemCopy(cSid.Get(), lpSid, (SIZE_T)dwLength);
+    ::MxMemCopy(cSid.Get(), lpSid, (SIZE_T)dwLength);
     ::LocalFree(lpSid);
   }
   else
@@ -92,24 +92,24 @@ HRESULT CSid::Set(_In_z_ LPCWSTR szAccountNameOrSidStringW)
     dwUserSidLen = dwReferencedDomainLen = 0;
     ::LookupAccountNameW(NULL, szAccountNameOrSidStringW, NULL, &dwUserSidLen, NULL, &dwReferencedDomainLen,
                          &nSidNameUse);
-    lpUserSid = (PSID)MemAlloc((SIZE_T)dwUserSidLen);
+    lpUserSid = (PSID)::MxMemAlloc((SIZE_T)dwUserSidLen);
     if (lpUserSid == NULL)
       return E_OUTOFMEMORY;
-    szReferencedDomainW = (LPWSTR)MemAlloc((SIZE_T)dwReferencedDomainLen * sizeof(WCHAR));
+    szReferencedDomainW = (LPWSTR)::MxMemAlloc((SIZE_T)dwReferencedDomainLen * sizeof(WCHAR));
     if (szReferencedDomainW == NULL)
     {
-      MemFree(lpUserSid);
+      ::MxMemFree(lpUserSid);
       return E_OUTOFMEMORY;
     }
     if (::LookupAccountNameW(NULL, szAccountNameOrSidStringW, lpUserSid, &dwUserSidLen, szReferencedDomainW,
                              &dwReferencedDomainLen, &nSidNameUse) == FALSE)
     {
       hRes = MX_HRESULT_FROM_LASTERROR();
-      MemFree(szReferencedDomainW);
-      MemFree(lpUserSid);
+      ::MxMemFree(szReferencedDomainW);
+      ::MxMemFree(lpUserSid);
       return hRes;
     }
-    MemFree(szReferencedDomainW);
+    ::MxMemFree(szReferencedDomainW);
     cSid.Attach((LPBYTE)lpUserSid);
   }
   return S_OK;
@@ -125,7 +125,7 @@ BOOL CSid::operator==(_In_ PSID lpSid) const
     dw = ::GetLengthSid(lpSid);
     if (dw != ::GetLengthSid(_sid))
       return FALSE;
-    return (MemCompare(lpSid, _sid, (SIZE_T)dw) == 0) ? TRUE : FALSE;
+    return (::MxMemCompare(lpSid, _sid, (SIZE_T)dw) == 0) ? TRUE : FALSE;
   }
   return ((!lpSid) && (!cSid)) ? TRUE : FALSE;
 }
@@ -146,7 +146,7 @@ HRESULT CSid::FromToken(_In_ HANDLE hToken)
       return hRes;
   }
   //----
-  cTokenInfo.Attach((PTOKEN_USER)MemAlloc((DWORD)dwLength));
+  cTokenInfo.Attach((PTOKEN_USER)::MxMemAlloc((DWORD)dwLength));
   if (!cTokenInfo)
     return E_OUTOFMEMORY;
   if (::GetTokenInformation(hToken, TokenUser, cTokenInfo.Get(), dwLength, &dwLength) == FALSE)
@@ -284,7 +284,7 @@ HRESULT CSid::SetCurrentUserSid()
     }
   }
 
-  cTokenInfo.Attach((PTOKEN_USER)MemAlloc((DWORD)dwLength));
+  cTokenInfo.Attach((PTOKEN_USER)::MxMemAlloc((DWORD)dwLength));
   if (cTokenInfo)
   {
     if (::GetTokenInformation(hToken, TokenUser, cTokenInfo.Get(), dwLength, &dwLength) == FALSE)
