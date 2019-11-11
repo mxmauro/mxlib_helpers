@@ -167,6 +167,16 @@ HRESULT GetProgramFilesFolderPath(_Out_ CStringW &cStrDestW)
   return _GetKnownFolderFolderPath(CSIDL_PROGRAM_FILES, __FOLDERID_ProgramFiles, TRUE, cStrDestW);
 }
 
+#if defined(_M_X64)
+HRESULT GetProgramFilesX86FolderPath(_Out_ CStringW &cStrDestW)
+{
+  static const GUID __FOLDERID_ProgramFilesX86 = {
+    0x7C5A40EF, 0xA0FB, 0x4BFC, { 0x87, 0x4A, 0xC0, 0xF2, 0xE0, 0xB9, 0xFA, 0x8E }
+  };
+  return _GetKnownFolderFolderPath(CSIDL_PROGRAM_FILESX86, __FOLDERID_ProgramFilesX86, TRUE, cStrDestW);
+}
+#endif //_M_X64
+
 HRESULT GetWindowsPath(_Out_ CStringW &cStrDestW)
 {
   DWORD dwSize, dwLen;
@@ -240,6 +250,16 @@ HRESULT GetWindowsSystemPath(_Out_ CStringW &cStrDestW)
   NormalizePath(cStrDestW);
   return S_OK;
 }
+
+#if defined(_M_X64)
+HRESULT GetWindowsSysWow64Path(_Out_ CStringW &cStrDestW)
+{
+  static const GUID __FOLDERID_SystemX86 = {
+    0xD65231B0, 0xB2F1, 0x4857, { 0xA4, 0xCE, 0xA8, 0xE7, 0xC6, 0xEA, 0x7D, 0x27 }
+  };
+  return _GetKnownFolderFolderPath(CSIDL_SYSTEMX86, __FOLDERID_SystemX86, TRUE, cStrDestW);
+}
+#endif //_M_X64
 
 HRESULT _GetTempPath(_Out_ CStringW &cStrDestW)
 {

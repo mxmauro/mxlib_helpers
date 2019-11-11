@@ -55,9 +55,16 @@ HRESULT GetAppDataFolderPath(_Out_ CStringW &cStrDestW);
 
 HRESULT GetCommonAppDataFolderPath(_Out_ CStringW &cStrDestW);
 HRESULT GetProgramFilesFolderPath(_Out_ CStringW &cStrDestW);
+#if defined(_M_X64)
+HRESULT GetProgramFilesX86FolderPath(_Out_ CStringW &cStrDestW);
+#endif //_M_X64
 
 HRESULT GetWindowsPath(_Out_ CStringW &cStrDestW);
 HRESULT GetWindowsSystemPath(_Out_ CStringW &cStrDestW);
+#if defined(_M_X64)
+HRESULT GetWindowsSysWow64Path(_Out_ CStringW &cStrDestW);
+#endif //_M_X64
+
 HRESULT _GetTempPath(_Out_ CStringW &cStrDestW);
 
 HRESULT CreateDirectoryRecursive(_In_ LPCWSTR szFolderNameW);
