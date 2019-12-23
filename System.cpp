@@ -45,7 +45,6 @@ typedef NET_API_STATUS (WINAPI *lpfnNetLocalGroupEnum)(_In_opt_ LPCWSTR serverna
 typedef NET_API_STATUS (WINAPI *lpfnNetApiBufferFree)(_Frees_ptr_opt_ LPVOID Buffer);
 
 
-static LONG volatile nInitialized = 0;
 static lpfnNetUserEnum fnNetUserEnum = NULL;
 static lpfnNetLocalGroupEnum fnNetLocalGroupEnum = NULL;
 static lpfnNetApiBufferFree fnNetApiBufferFree = NULL;
@@ -564,6 +563,8 @@ done:
 
 static VOID InitializeApis()
 {
+  static LONG volatile nInitialized = 0;
+
   if (_InterlockedCompareExchange(&nInitialized, 2, 0) == 0)
   {
     HINSTANCE _hNetApi32Dll;
