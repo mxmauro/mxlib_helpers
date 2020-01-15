@@ -27,7 +27,7 @@
 
 //-----------------------------------------------------------
 
-static const MX_UNICODE_STRING usEmpty = { 0, 0, L"" };
+static const MX_UNICODE_STRING usEmpty = { 0, 0, (PWSTR)L"" };
 
 //-----------------------------------------------------------
 
@@ -38,7 +38,7 @@ static HRESULT RecursiveDeleteKey(_In_ HKEY hKey, _In_opt_ PMX_UNICODE_STRING Su
 
 namespace MX {
 
-CWindowsRegistry::CWindowsRegistry() : CBaseMemObj()
+CWindowsRegistry::CWindowsRegistry() : CBaseMemObj(), CNonCopyableObj()
 {
   hKey = NULL;
   return;
@@ -1142,8 +1142,8 @@ HRESULT CWindowsRegistry::EnumerateValues(_In_ DWORD dwIndex, _Out_ PUNICODE_STR
 
 static NTSTATUS OpenBaseKey(_In_ HKEY hKey, _In_ DWORD dwAccess, _Out_ PHANDLE lphBaseKey)
 {
-  static const MX_UNICODE_STRING usMachine = { 34, 36, L"\\REGISTRY\\MACHINE" };
-  static const MX_UNICODE_STRING usUser = { 28, 30, L"\\REGISTRY\\USER" };
+  static const MX_UNICODE_STRING usMachine = { 34, 36, (PWSTR)L"\\REGISTRY\\MACHINE" };
+  static const MX_UNICODE_STRING usUser = { 28, 30, (PWSTR)L"\\REGISTRY\\USER" };
   MX_OBJECT_ATTRIBUTES sObjAttr;
 
   ::MxMemSet(&sObjAttr, 0, sizeof(sObjAttr));

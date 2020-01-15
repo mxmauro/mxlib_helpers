@@ -42,7 +42,7 @@
 
 namespace MX {
 
-CPEParser::CPEParser()
+CPEParser::CPEParser() : CBaseMemObj(), CNonCopyableObj()
 {
   ClearVars();
   return;

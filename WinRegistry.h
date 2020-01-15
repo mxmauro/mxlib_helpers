@@ -32,7 +32,7 @@
 
 namespace MX {
 
-class CWindowsRegistry : public virtual CBaseMemObj
+class CWindowsRegistry : public virtual CBaseMemObj, public CNonCopyableObj
 {
 public:
   CWindowsRegistry();

@@ -30,7 +30,7 @@
 
 namespace MX {
 
-class CRegistryChangeMonitor : public CBaseMemObj
+class CRegistryChangeMonitor : public CBaseMemObj, public CNonCopyableObj
 {
 public:
   typedef Callback<VOID(_In_ LPVOID lpUserParam)> OnRegistryChangedCallback;

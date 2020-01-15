@@ -33,7 +33,6 @@ namespace Internals {
 
 class CFileStream : public CStream
 {
-  MX_DISABLE_COPY_CONSTRUCTOR(CFileStream);
 private:
   CFileStream();
 
@@ -70,7 +69,7 @@ private:
 
 namespace MX {
 
-CMemoryPackage::CMemoryPackage() : CBaseMemObj()
+CMemoryPackage::CMemoryPackage() : CBaseMemObj(), CNonCopyableObj()
 {
   return;
 }

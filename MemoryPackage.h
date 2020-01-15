@@ -29,9 +29,8 @@
 
 namespace MX {
 
-class CMemoryPackage : public virtual CBaseMemObj
+class CMemoryPackage : public virtual CBaseMemObj, public CNonCopyableObj
 {
-  MX_DISABLE_COPY_CONSTRUCTOR(CMemoryPackage);
 public:
   CMemoryPackage();
   ~CMemoryPackage();

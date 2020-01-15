@@ -34,7 +34,7 @@
 
 namespace MX {
 
-class CPEParser : public CBaseMemObj
+class CPEParser : public CBaseMemObj, public CNonCopyableObj
 {
 public:
   typedef struct tagEXPORTED_FUNCTION {

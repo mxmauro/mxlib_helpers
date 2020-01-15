@@ -27,7 +27,7 @@
 
 namespace MX {
 
-CLightJSonBuilder::CLightJSonBuilder() : CBaseMemObj()
+CLightJSonBuilder::CLightJSonBuilder() : CBaseMemObj(), CNonCopyableObj()
 {
   bIsFirstItem = TRUE;
   return;

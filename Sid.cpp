@@ -23,7 +23,7 @@
 
 namespace MX {
 
-CSid::CSid()
+CSid::CSid() : CBaseMemObj(), CNonCopyableObj()
 {
   return;
 }

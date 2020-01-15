@@ -28,7 +28,7 @@
 
 namespace MX {
 
-class CFileVersionInfo : public CBaseMemObj
+class CFileVersionInfo : public CBaseMemObj, public CNonCopyableObj
 {
 public:
   CFileVersionInfo();

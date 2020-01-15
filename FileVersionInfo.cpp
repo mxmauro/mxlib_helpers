@@ -32,7 +32,7 @@ static VS_FIXEDFILEINFO sNoFixedInfo = { 0 };
 
 namespace MX {
 
-CFileVersionInfo::CFileVersionInfo() : CBaseMemObj()
+CFileVersionInfo::CFileVersionInfo() : CBaseMemObj(), CNonCopyableObj()
 {
   lpFfi = &sNoFixedInfo;
   lpTranslationBlock = NULL;

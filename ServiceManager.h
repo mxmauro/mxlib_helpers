@@ -27,7 +27,7 @@
 
 namespace MX {
 
-class CServiceManager : public virtual CBaseMemObj
+class CServiceManager : public virtual CBaseMemObj, public CNonCopyableObj
 {
 public:
   typedef enum {

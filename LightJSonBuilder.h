@@ -30,7 +30,7 @@
 
 namespace MX {
 
-class CLightJSonBuilder : public CBaseMemObj
+class CLightJSonBuilder : public CBaseMemObj, public CNonCopyableObj
 {
 public:
   CLightJSonBuilder();

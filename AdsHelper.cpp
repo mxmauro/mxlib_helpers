@@ -32,7 +32,7 @@
 
 namespace MX {
 
-CAdsHelper::CAdsHelper() : CBaseMemObj()
+CAdsHelper::CAdsHelper() : CBaseMemObj(), CNonCopyableObj()
 {
   hResComInit = S_FALSE;
   hCancelEvent = NULL;

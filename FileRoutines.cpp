@@ -1217,7 +1217,7 @@ static HRESULT _GetKnownFolderFolderPath(_In_ int csIdl, _In_ const GUID &sGuid,
       LPVOID fn;
       LONG nNtStatus;
 
-      usDllName.Buffer = L"shell32.dll";
+      usDllName.Buffer = (PWSTR)L"shell32.dll";
       usDllName.Length = usDllName.MaximumLength = 22;
       nNtStatus = ::MxLdrLoadDll(NULL, &flags, &usDllName, (PVOID*)&_hShell32Dll);
       if (nNtStatus < 0)
@@ -1244,7 +1244,7 @@ static HRESULT _GetKnownFolderFolderPath(_In_ int csIdl, _In_ const GUID &sGuid,
       LPVOID fn;
       LONG nNtStatus;
 
-      usDllName.Buffer = L"ole32.dll";
+      usDllName.Buffer = (PWSTR)L"ole32.dll";
       usDllName.Length = usDllName.MaximumLength = 18;
       nNtStatus = ::MxLdrLoadDll(NULL, &flags, &usDllName, (PVOID*)&_hOle32Dll);
       if (nNtStatus < 0)

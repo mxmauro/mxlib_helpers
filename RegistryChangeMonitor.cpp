@@ -25,7 +25,7 @@
 
 namespace MX {
 
-CRegistryChangeMonitor::CRegistryChangeMonitor() : CBaseMemObj()
+CRegistryChangeMonitor::CRegistryChangeMonitor() : CBaseMemObj(), CNonCopyableObj()
 {
   hEvent = NULL;
   hRootKey = NULL;

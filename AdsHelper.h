@@ -32,7 +32,7 @@
 
 namespace MX {
 
-class CAdsHelper : public CBaseMemObj
+class CAdsHelper : public CBaseMemObj, public CNonCopyableObj
 {
 public:
   CAdsHelper();

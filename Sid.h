@@ -30,9 +30,8 @@
 
 namespace MX {
 
-class CSid : public virtual CBaseMemObj
+class CSid : public virtual CBaseMemObj, public CNonCopyableObj
 {
-  MX_DISABLE_COPY_CONSTRUCTOR(CSid);
 public:
   CSid();
   ~CSid();

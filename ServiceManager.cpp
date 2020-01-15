@@ -72,7 +72,7 @@ private:
 
 namespace MX {
 
-CServiceManager::CServiceManager() : CBaseMemObj()
+CServiceManager::CServiceManager() : CBaseMemObj(), CNonCopyableObj()
 {
   hServMgr = hServ = NULL;
   return;
@@ -280,9 +280,9 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
   {
     SERVICE_REQUIRED_PRIVILEGES_INFOW sReqPrivInfoW;
 
-    sReqPrivInfoW.pmszRequiredPrivileges = (lpCreateInfo->szRequiredPrivilegesW != NULL &&
-                                            *(lpCreateInfo->szRequiredPrivilegesW) != 0)
-                                           ? (LPWSTR)(lpCreateInfo->szRequiredPrivilegesW) : L"";
+    sReqPrivInfoW.pmszRequiredPrivileges = (LPWSTR)((lpCreateInfo->szRequiredPrivilegesW != NULL &&
+                                                     lpCreateInfo->szRequiredPrivilegesW[0] != 0)
+                                                    ? (lpCreateInfo->szRequiredPrivilegesW) : L"");
     if (::ChangeServiceConfig2W(hServ, SERVICE_CONFIG_REQUIRED_PRIVILEGES_INFO, &sReqPrivInfoW) == FALSE)
     {
       hRes = MX_HRESULT_FROM_LASTERROR();
@@ -346,7 +346,7 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
     SERVICE_DESCRIPTIONW sServDescW;
 
     ::MxMemSet(&sServDescW, 0, sizeof(sServDescW));
-    sServDescW.lpDescription = (lpCreateInfo->szDescriptionW != NULL) ? lpCreateInfo->szDescriptionW : L"";
+    sServDescW.lpDescription = (LPWSTR)((lpCreateInfo->szDescriptionW != NULL) ? (lpCreateInfo->szDescriptionW) : L"");
     if (::ChangeServiceConfig2W(hServ, SERVICE_CONFIG_DESCRIPTION, &sServDescW) == FALSE)
     {
       hRes = MX_HRESULT_FROM_LASTERROR();
