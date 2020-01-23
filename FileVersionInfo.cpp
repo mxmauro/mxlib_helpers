@@ -73,6 +73,18 @@ HRESULT CFileVersionInfo::InitializeFromProcessHandle(_In_opt_ HANDLE hProc)
   return hRes;
 }
 
+HRESULT CFileVersionInfo::InitializeFromMemory(_In_ LPCVOID lpBaseAddress, _In_ SIZE_T nImageSize,
+                                               _In_ BOOL bImageIsMapped)
+{
+  CPEParser cPeParser;
+  HRESULT hRes;
+
+  hRes = cPeParser.InitializeFromMemory(lpBaseAddress, nImageSize, bImageIsMapped, MX_PEPARSER_FLAG_ParseResources);
+  if (SUCCEEDED(hRes))
+    hRes = AnalyzeVersionInfo(&cPeParser);
+  return hRes;
+}
+
 WORD CFileVersionInfo::GetLanguage(_In_opt_ SIZE_T nIndex) const
 {
   return (nIndex < nTranslationBlocksCount) ? lpTranslationBlock[nIndex].wLang : 0;

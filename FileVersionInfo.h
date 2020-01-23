@@ -36,6 +36,7 @@ public:
   HRESULT InitializeFromFileName(_In_z_ LPCWSTR szFileNameW);
   HRESULT InitializeFromFileHandle(_In_ HANDLE hFile);
   HRESULT InitializeFromProcessHandle(_In_opt_ HANDLE hProc);
+  HRESULT InitializeFromMemory(_In_ LPCVOID lpBaseAddress, _In_ SIZE_T nImageSize, _In_ BOOL bImageIsMapped);
 
   SIZE_T GetLanguagesCount() const
     {

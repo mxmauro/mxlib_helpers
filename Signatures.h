@@ -24,6 +24,8 @@
 #include <Strings\Strings.h>
 #include <SoftPub.h>
 
+#define MX_E_TRUST_FAILED_CVE_2020_0601     MAKE_HRESULT(1, MX_SCODE_FACILITY, 0x8001) //0x8F188001
+
 //-----------------------------------------------------------
 
 namespace MX {
