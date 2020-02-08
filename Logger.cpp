@@ -38,8 +38,7 @@
 #endif //_DEBUG
 
 #define LOGFLAG_Initialized                           0x0001
-#define LOGFLAG_OldFilesRemovalProcessed              0x0002
-#define LOGFLAG_LogFileOpenProcessed                  0x0004
+#define LOGFLAG_LogFileOpenProcessed                  0x0002
 
 //-----------------------------------------------------------
 
@@ -50,14 +49,16 @@ static MX::CStringW cStrLogFileNameBaseW;
 static MX::CStringW cStrLogFolderW;
 static DWORD dwLogKeepDays = 0;
 static WCHAR szTempBufW[8192];
+static WORD wLastDate[3] = { 0 };
 
 //-----------------------------------------------------------
 
 static VOID EndLogger();
 static VOID RemoveOldFiles();
-static HRESULT OpenLog();
-static HRESULT InitLogCommon();
-static VOID WriteLogCommon(_In_ BOOL bAddError, _In_ HRESULT hResError, _In_z_ LPCWSTR szFormatW, _In_ va_list argptr);
+static HRESULT OpenLog(_In_ LPSYSTEMTIME lpSystemTime);
+static HRESULT InitLogCommon(_Out_ LPSYSTEMTIME lpSystemTime);
+static VOID WriteLogCommon(_In_ BOOL bAddError, _In_ HRESULT hResError, _In_ LPSYSTEMTIME lpSystemTime,
+                           _In_z_ LPCWSTR szFormatW, _In_ va_list argptr);
 
 //-----------------------------------------------------------
 
@@ -158,18 +159,19 @@ HRESULT Initialize(_In_z_ LPCWSTR szModuleNameW, _In_z_ LPCWSTR szRegistryKeyW, 
 HRESULT Log(_Printf_format_string_ LPCWSTR szFormatW, ...)
 {
   CFastLock cLock(&nMutex);
+  SYSTEMTIME sSt;
   va_list argptr;
   HRESULT hRes;
 
   if (szFormatW == NULL)
     return E_POINTER;
   //initialize logger on first access
-  hRes = InitLogCommon();
+  hRes = InitLogCommon(&sSt);
   if (FAILED(hRes))
     return hRes;
   //write log
   va_start(argptr, szFormatW);
-  WriteLogCommon(FALSE, S_OK, szFormatW, argptr);
+  WriteLogCommon(FALSE, S_OK, &sSt, szFormatW, argptr);
   va_end(argptr);
   //done
   return S_OK;
@@ -177,21 +179,22 @@ HRESULT Log(_Printf_format_string_ LPCWSTR szFormatW, ...)
 
 HRESULT LogIfError(_In_ HRESULT hResError, _Printf_format_string_ LPCWSTR szFormatW, ...)
 {
-  CFastLock cLock(&nMutex);
-  va_list argptr;
-  HRESULT hRes;
-
   if (FAILED(hResError))
   {
+    CFastLock cLock(&nMutex);
+    SYSTEMTIME sSt;
+    va_list argptr;
+    HRESULT hRes;
+
     if (szFormatW == NULL)
       return E_POINTER;
     //initialize logger on first access
-    hRes = InitLogCommon();
+    hRes = InitLogCommon(&sSt);
     if (FAILED(hRes))
       return hRes;
     //write log
     va_start(argptr, szFormatW);
-    WriteLogCommon(TRUE, hResError, szFormatW, argptr);
+    WriteLogCommon(TRUE, hResError, &sSt, szFormatW, argptr);
     va_end(argptr);
   }
   //done
@@ -201,18 +204,19 @@ HRESULT LogIfError(_In_ HRESULT hResError, _Printf_format_string_ LPCWSTR szForm
 HRESULT LogAlways(_In_ HRESULT hResError, _Printf_format_string_ LPCWSTR szFormatW, ...)
 {
   CFastLock cLock(&nMutex);
+  SYSTEMTIME sSt;
   va_list argptr;
   HRESULT hRes;
 
   if (szFormatW == NULL)
     return E_POINTER;
   //initialize logger on first access
-  hRes = InitLogCommon();
+  hRes = InitLogCommon(&sSt);
   if (FAILED(hRes))
     return hRes;
   //write log
   va_start(argptr, szFormatW);
-  WriteLogCommon(TRUE, hResError, szFormatW, argptr);
+  WriteLogCommon(TRUE, hResError, &sSt, szFormatW, argptr);
   va_end(argptr);
   //done
   return S_OK;
@@ -221,6 +225,7 @@ HRESULT LogAlways(_In_ HRESULT hResError, _Printf_format_string_ LPCWSTR szForma
 HRESULT LogRaw(_In_z_ LPCWSTR szTextW)
 {
   CFastLock cLock(&nMutex);
+  SYSTEMTIME sSt;
   DWORD dwLen, dwWritten;
   HRESULT hRes;
 
@@ -230,7 +235,7 @@ HRESULT LogRaw(_In_z_ LPCWSTR szTextW)
   if (dwLen == 0)
     return S_OK;
   //initialize logger on first access
-  hRes = InitLogCommon();
+  hRes = InitLogCommon(&sSt);
   if (FAILED(hRes))
     return hRes;
   //write log
@@ -344,20 +349,18 @@ static VOID RemoveOldFiles()
   return;
 }
 
-static HRESULT OpenLog()
+static HRESULT OpenLog(_In_ LPSYSTEMTIME lpSystemTime)
 {
   MX::CStringW cStrTempW, cStrOpSystemW;
   MX::CFileVersionInfo cVersionInfo;
   WCHAR szBufW[256];
   DWORD dw, dwWritten;
-  SYSTEMTIME sSt;
   MEMORYSTATUSEX sMemStatusEx;
 
   MX::FileRoutines::CreateDirectoryRecursive((LPCWSTR)cStrLogFolderW);
   //open/create log file
-  ::GetSystemTime(&sSt);
   if (cStrTempW.Format(L"%s%s-%04u%02u%02u.log", (LPCWSTR)cStrLogFolderW, (LPCWSTR)cStrLogFileNameBaseW,
-                       sSt.wYear, sSt.wMonth, sSt.wDay) == FALSE)
+                       lpSystemTime->wYear, lpSystemTime->wMonth, lpSystemTime->wDay) == FALSE)
     return E_OUTOFMEMORY;
   cLogH.Attach(::CreateFileW((LPCWSTR)cStrTempW, FILE_APPEND_DATA, FILE_SHARE_READ, NULL, OPEN_ALWAYS,
                              FILE_ATTRIBUTE_NORMAL, NULL));
@@ -374,8 +377,8 @@ static HRESULT OpenLog()
                 82*2, &dwWritten, NULL);
   }
   //write header
-  if (cStrTempW.Format(L"Log start: %04u.%02u.%02u @ %02u:%02u:%02u\r\n", sSt.wYear, sSt.wMonth, sSt.wDay,
-                       sSt.wHour, sSt.wMinute, sSt.wSecond) != FALSE)
+  if (cStrTempW.Format(L"Log start: %04u.%02u.%02u @ %02u:%02u:%02u\r\n", lpSystemTime->wYear, lpSystemTime->wMonth,
+                       lpSystemTime->wDay, lpSystemTime->wHour, lpSystemTime->wMinute, lpSystemTime->wSecond) != FALSE)
   {
     ::WriteFile(cLogH, (LPCWSTR)cStrTempW, (DWORD)(cStrTempW.GetLength() * sizeof(WCHAR)), &dwWritten, NULL);
   }
@@ -471,57 +474,68 @@ static HRESULT OpenLog()
   return S_OK;
 }
 
-static HRESULT InitLogCommon()
+static HRESULT InitLogCommon(_Out_ LPSYSTEMTIME lpSystemTime)
 {
   HRESULT hRes;
 
+  MX_ASSERT(lpSystemTime);
+  ::GetSystemTime(lpSystemTime);
+
+  if ((!cLogH) || lpSystemTime->wYear != wLastDate[0] || lpSystemTime->wMonth != wLastDate[1] ||
+                  lpSystemTime->wDay != wLastDate[2])
+  {
+    wLastDate[0] = lpSystemTime->wYear;
+    wLastDate[1] = lpSystemTime->wMonth;
+    wLastDate[2] = lpSystemTime->wDay;
+
+    cLogH.Close();
+
+    _InterlockedAnd(&nInitializedFlags, ~LOGFLAG_LogFileOpenProcessed);
+  }
+
   if (!cLogH)
   {
-    if ((_InterlockedOr(&nInitializedFlags, LOGFLAG_OldFilesRemovalProcessed) & LOGFLAG_OldFilesRemovalProcessed) == 0)
-    {
-      RemoveOldFiles();
-    }
-    //----
-    if ((_InterlockedOr(&nInitializedFlags, LOGFLAG_LogFileOpenProcessed) & LOGFLAG_LogFileOpenProcessed) == 0)
-      hRes = OpenLog();
-    else
-      hRes = E_FAIL;
+    if ((_InterlockedOr(&nInitializedFlags, LOGFLAG_LogFileOpenProcessed) & LOGFLAG_LogFileOpenProcessed) != 0)
+      return E_FAIL;
+
+    RemoveOldFiles();
+    hRes = OpenLog(lpSystemTime);
     if (FAILED(hRes))
       return hRes;
   }
   return S_OK;
 }
 
-static VOID WriteLogCommon(_In_ BOOL bAddError, _In_ HRESULT hResError, _In_z_ LPCWSTR szFormatW, _In_ va_list argptr)
+static VOID WriteLogCommon(_In_ BOOL bAddError, _In_ HRESULT hResError, _In_ LPSYSTEMTIME lpSystemTime,
+                           _In_z_ LPCWSTR szFormatW, _In_ va_list argptr)
 {
   DWORD dwWritten;
-  SYSTEMTIME sSt;
   int count[2];
   SIZE_T nTotal;
 
-  ::GetSystemTime(&sSt);
   if (bAddError == FALSE)
   {
-    count[0] = _snwprintf_s(szTempBufW, _countof(szTempBufW), _TRUNCATE, L"#%4lu) [%02lu:%02lu:%02lu.%03lu] ",
-                            ::GetCurrentProcessId(), (ULONG)sSt.wHour, (ULONG)sSt.wMinute, (ULONG)sSt.wSecond,
-                            (ULONG)sSt.wMilliseconds);
+    count[0] = _snwprintf_s(szTempBufW, _countof(szTempBufW), _TRUNCATE, L"#%4lu) [%02u:%02u:%02u.%03u] ",
+                            ::GetCurrentProcessId(), lpSystemTime->wHour, lpSystemTime->wMinute, lpSystemTime->wSecond,
+                            lpSystemTime->wMilliseconds);
   }
   else
   {
-    count[0] = _snwprintf_s(szTempBufW, MX_ARRAYLEN(szTempBufW), _TRUNCATE, L"#%4lu) [%02lu:%02lu:%02lu.%03lu] "
-                            L"Error 0x%08X: ", ::GetCurrentProcessId(), (ULONG)sSt.wHour, (ULONG)sSt.wMinute,
-                            (ULONG)sSt.wSecond, (ULONG)sSt.wMilliseconds, hResError);
+    count[0] = _snwprintf_s(szTempBufW, MX_ARRAYLEN(szTempBufW), _TRUNCATE, L"#%4lu) [%02u:%02u:%02u.%03u] "
+                            L"Error 0x%08X: ", ::GetCurrentProcessId(), lpSystemTime->wHour, lpSystemTime->wMinute,
+                            lpSystemTime->wSecond, lpSystemTime->wMilliseconds, hResError);
   }
   if (count[0] < 0)
     count[0] = 0;
-  count[1] = _vsnwprintf_s(szTempBufW+count[0], MX_ARRAYLEN(szTempBufW)-(SIZE_T)count[0], _TRUNCATE, szFormatW, argptr);
+  count[1] = _vsnwprintf_s(szTempBufW+count[0], MX_ARRAYLEN(szTempBufW) - (SIZE_T)count[0], _TRUNCATE,
+                           szFormatW, argptr);
   nTotal = (SIZE_T)count[0] + (SIZE_T)((count[1] >= 0) ? count[1] : 0);
   if (nTotal > MX_ARRAYLEN(szTempBufW)-3)
     nTotal = MX_ARRAYLEN(szTempBufW)-3;
   szTempBufW[nTotal] = L'\r';
-  szTempBufW[nTotal+1] = L'\n';
-  szTempBufW[nTotal+2] = 0;
-  ::WriteFile(cLogH, szTempBufW, (DWORD)(nTotal+2) * 2, &dwWritten, NULL);
+  szTempBufW[nTotal + 1] = L'\n';
+  szTempBufW[nTotal + 2] = 0;
+  ::WriteFile(cLogH, szTempBufW, (DWORD)(nTotal + 2) * 2, &dwWritten, NULL);
 #ifdef DEBUGOUTPUT_LOG
   ::OutputDebugStringW(szTempBufW);
 #endif //DEBUGOUTPUT_LOG
