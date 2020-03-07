@@ -44,7 +44,7 @@ namespace Console {
 
 VOID Initialize(_In_ BOOL bAppIsInteractive);
 
-VOID Print(_In_ eColor nColor, _In_ LPCWSTR szFormatW, ...);
+VOID Print(_In_ Console::eColor nColor, _In_ LPCWSTR szFormatW, ...);
 VOID PrintError(_In_ HRESULT hRes);
 
 }; //namespace Console

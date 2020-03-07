@@ -47,16 +47,16 @@ namespace MX {
 
 namespace Process {
 
-HRESULT ResolveChildProcessFileName(_Inout_ CStringW &cStrFullNameW, _In_ LPCWSTR szApplicationNameW,
+HRESULT ResolveChildProcessFileName(_Out_ CStringW &cStrFullNameW, _In_ LPCWSTR szApplicationNameW,
                                     _In_ LPCWSTR szCommandLineW);
 
 HRESULT QueryEnvironmentVariable(_In_z_ LPCWSTR szVarNameW, _Inout_ CStringW &cStrDestW);
 
 HRESULT _ExpandEnvironmentStrings(_Inout_ CStringW &cStrW);
 
-HRESULT GetProcessMembershipType(_Out_ eTokenGetMembershipType &nType);
-HRESULT GetThreadMembershipType(_Out_ eTokenGetMembershipType &nType);
-HRESULT GetTokenMembershipType(_In_ HANDLE hToken, _Out_ eTokenGetMembershipType &nType);
+HRESULT GetProcessMembershipType(_Out_ Process::eTokenGetMembershipType &nType);
+HRESULT GetThreadMembershipType(_Out_ Process::eTokenGetMembershipType &nType);
+HRESULT GetTokenMembershipType(_In_ HANDLE hToken, _Out_ Process::eTokenGetMembershipType &nType);
 
 HRESULT EnablePrivilege(_In_z_ LPCWSTR szPrivilegeW);
 

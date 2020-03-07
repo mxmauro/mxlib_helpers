@@ -155,7 +155,7 @@ HRESULT CSid::FromToken(_In_ HANDLE hToken)
   return Set(cTokenInfo->User.Sid);
 }
 
-HRESULT CSid::FromProcess(_In_ HANDLE hProc)
+HRESULT CSid::FromProcess(_In_opt_ HANDLE hProc)
 {
   HANDLE hToken;
   HRESULT hRes;
@@ -173,7 +173,7 @@ HRESULT CSid::FromProcess(_In_ HANDLE hProc)
   return hRes;
 }
 
-HRESULT CSid::FromThread(_In_ HANDLE hThread)
+HRESULT CSid::FromThread(_In_opt_ HANDLE hThread)
 {
   HANDLE hToken;
   HRESULT hRes;

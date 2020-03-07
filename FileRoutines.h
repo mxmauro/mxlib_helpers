@@ -68,10 +68,13 @@ HRESULT GetWindowsSysWow64Path(_Out_ CStringW &cStrDestW);
 HRESULT _GetTempPath(_Out_ CStringW &cStrDestW);
 
 HRESULT CreateDirectoryRecursive(_In_ LPCWSTR szFolderNameW);
-HRESULT RemoveDirectoryRecursive(_In_ LPCWSTR szFolderNameW, _In_opt_ eDelayedDelete nDD=DontTryDeleteOnReboot);
+HRESULT RemoveDirectoryRecursive(_In_ LPCWSTR szFolderNameW,
+                                 _In_opt_ FileRoutines::eDelayedDelete nDD = FileRoutines::DontTryDeleteOnReboot);
 
-HRESULT _DeleteFile(_In_ LPCWSTR szFileNameW, _In_opt_ eDelayedDelete nDD=DontTryDeleteOnReboot);
-HRESULT DeleteDirectoryFiles(_In_ LPCWSTR szFolderNameW, _In_opt_ eDelayedDelete nDD=DontTryDeleteOnReboot);
+HRESULT _DeleteFile(_In_ LPCWSTR szFileNameW,
+                    _In_opt_ FileRoutines::eDelayedDelete nDD = FileRoutines::DontTryDeleteOnReboot);
+HRESULT DeleteDirectoryFiles(_In_ LPCWSTR szFolderNameW,
+                             _In_opt_ FileRoutines::eDelayedDelete nDD = FileRoutines::DontTryDeleteOnReboot);
 
 VOID NormalizePath(_Inout_ CStringW &cStrPathW);
 

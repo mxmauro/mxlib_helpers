@@ -104,7 +104,7 @@ BOOL HandleCrashDump(_In_z_ LPCWSTR szModuleNameW)
     }
     else
     {
-      *sW++;
+      sW++;
     }
   }
 
@@ -179,6 +179,8 @@ BOOL HandleCrashDump(_In_z_ LPCWSTR szModuleNameW)
 static BOOL GetParamValue(_Inout_ LPCWSTR &sW, _Out_ LPVOID *lplpValue, _In_ WCHAR chEndingW)
 {
   SIZE_T nCounter, nValue;
+
+  *lplpValue = NULL;
 
   if (sW[0] != L'0' || sW[1] != L'x')
     return FALSE;

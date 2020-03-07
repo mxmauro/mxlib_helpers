@@ -513,7 +513,7 @@ HRESULT CServiceManager::QueryStatus(_Out_ SERVICE_STATUS &sSvcStatus)
   return (::QueryServiceStatus(hServ, &sSvcStatus) != FALSE) ? S_OK : MX_HRESULT_FROM_LASTERROR();
 }
 
-HRESULT CServiceManager::ChangeStartMode(_In_ eStartMode nStartMode)
+HRESULT CServiceManager::ChangeStartMode(_In_ CServiceManager::eStartMode nStartMode)
 {
   DWORD dwStartType;
 

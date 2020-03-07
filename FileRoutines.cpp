@@ -84,7 +84,7 @@ namespace MX {
 
 namespace FileRoutines {
 
-HRESULT GetAppFileName(_Inout_ CStringW &cStrDestW)
+HRESULT GetAppFileName(_Out_ CStringW &cStrDestW)
 {
   DWORD dwSize, dwLen;
   HRESULT hRes;
@@ -110,7 +110,7 @@ HRESULT GetAppFileName(_Inout_ CStringW &cStrDestW)
   return ConvertToLongPath(cStrDestW);
 }
 
-HRESULT GetAppFolderPath(_Inout_ CStringW &cStrDestW)
+HRESULT GetAppFolderPath(_Out_ CStringW &cStrDestW)
 {
   HRESULT hRes;
 
@@ -133,7 +133,7 @@ VOID SetAppDataFolder(_In_z_ LPCWSTR szSubFolderW)
   return;
 }
 
-HRESULT GetAppDataFolderPath(_Inout_ CStringW &cStrDestW)
+HRESULT GetAppDataFolderPath(_Out_ CStringW &cStrDestW)
 {
   HRESULT hRes;
 
@@ -392,7 +392,7 @@ HRESULT CreateDirectoryRecursive(_In_ LPCWSTR szFolderNameW)
   return S_OK;
 }
 
-HRESULT RemoveDirectoryRecursive(_In_ LPCWSTR szFolderNameW, _In_opt_ eDelayedDelete nDD)
+HRESULT RemoveDirectoryRecursive(_In_ LPCWSTR szFolderNameW, _In_opt_ FileRoutines::eDelayedDelete nDD)
 {
   CStringW cStrTempW;
   LARGE_INTEGER liTime;

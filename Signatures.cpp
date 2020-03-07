@@ -757,6 +757,7 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_
               CATALOG_INFO sCi;
               DRIVER_VER_INFO sDrvVerInfo;
 
+              ::MxMemSet(&sCi, 0, sizeof(sCi));
               if (fnCryptCATCatalogInfoFromContext(hCatInfo, &sCi, 0) != FALSE)
               {
                 ::MxMemSet(&sDrvVerInfo, 0, sizeof(sDrvVerInfo));
@@ -1001,7 +1002,7 @@ static BOOL IsWinVistaPlus()
   if (nIsWinVistaPlusLocal < 0)
   {
     nIsWinVistaPlusLocal = ::IsWindowsVistaOrGreater() ? 1 : 0;
-    _InterlockedCompareExchange(&nIsWinVistaPlusLocal, nIsWinVistaPlusLocal, -1);
+    _InterlockedCompareExchange(&nIsWinVistaPlus, nIsWinVistaPlusLocal, -1);
   }
   return (nIsWinVistaPlusLocal == 1) ? TRUE : FALSE;
 }

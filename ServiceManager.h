@@ -65,7 +65,7 @@ public:
   CServiceManager();
   ~CServiceManager();
 
-  HRESULT OpenManager(_In_ BOOL bFullAccess, _In_opt_z_ LPCWSTR szServerW=NULL);
+  HRESULT OpenManager(_In_ BOOL bFullAccess, _In_opt_z_ LPCWSTR szServerW = NULL);
   VOID CloseManager();
 
   //NOTE: If service already exists, it's configuration will be updated
@@ -74,9 +74,9 @@ public:
   VOID Close();
 
   HRESULT Start(_In_ DWORD dwTimeoutMs);
-  HRESULT Stop(_In_opt_ DWORD dwTimeoutMs=INFINITE);
+  HRESULT Stop(_In_opt_ DWORD dwTimeoutMs = INFINITE);
 
-  HRESULT Delete(_In_opt_ BOOL bDoStop=TRUE, _In_opt_ DWORD dwStopTimeoutMs=INFINITE);
+  HRESULT Delete(_In_opt_ BOOL bDoStop = TRUE, _In_opt_ DWORD dwStopTimeoutMs = INFINITE);
 
   HRESULT QueryStatus(_Out_ SERVICE_STATUS &sSvcStatus);
 
@@ -85,7 +85,7 @@ public:
     return hServ;
     };
 
-  HRESULT ChangeStartMode(_In_ eStartMode nStartMode);
+  HRESULT ChangeStartMode(_In_ CServiceManager::eStartMode nStartMode);
 
 private:
   SC_HANDLE hServMgr, hServ;

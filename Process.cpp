@@ -46,7 +46,7 @@ namespace MX {
 
 namespace Process {
 
-HRESULT ResolveChildProcessFileName(_Inout_ CStringW &cStrFullNameW, _In_ LPCWSTR szApplicationNameW,
+HRESULT ResolveChildProcessFileName(_Out_ CStringW &cStrFullNameW, _In_ LPCWSTR szApplicationNameW,
                                     _In_ LPCWSTR szCommandLineW)
 {
   HRESULT hRes;
@@ -290,7 +290,7 @@ HRESULT _ExpandEnvironmentStrings(_Inout_ CStringW &cStrW)
   return S_OK;
 }
 
-HRESULT GetProcessMembershipType(_Out_ eTokenGetMembershipType &nType)
+HRESULT GetProcessMembershipType(_Out_ Process::eTokenGetMembershipType &nType)
 {
   HANDLE hToken;
   HRESULT hRes;
@@ -308,7 +308,7 @@ HRESULT GetProcessMembershipType(_Out_ eTokenGetMembershipType &nType)
   return hRes;
 }
 
-HRESULT GetThreadMembershipType(_Out_ eTokenGetMembershipType &nType)
+HRESULT GetThreadMembershipType(_Out_ Process::eTokenGetMembershipType &nType)
 {
   HANDLE hToken;
   HRESULT hRes;
@@ -326,7 +326,7 @@ HRESULT GetThreadMembershipType(_Out_ eTokenGetMembershipType &nType)
   return hRes;
 }
 
-HRESULT GetTokenMembershipType(_In_ HANDLE hToken, _Out_ eTokenGetMembershipType &nType)
+HRESULT GetTokenMembershipType(_In_ HANDLE hToken, _Out_ Process::eTokenGetMembershipType &nType)
 {
   static const MY_SID sLocalSystemSID = {
     SID_REVISION, 1, { SECURITY_NT_AUTHORITY }, { SECURITY_LOCAL_SYSTEM_RID }
@@ -340,7 +340,10 @@ HRESULT GetTokenMembershipType(_In_ HANDLE hToken, _Out_ eTokenGetMembershipType
   HRESULT hRes;
 
   if (::DuplicateToken(hToken, SecurityIdentification, &hTokenToCheck) == FALSE)
+  {
+    nType = Process::TokenMembershipTypeLimitedUser;
     return MX_HRESULT_FROM_LASTERROR();
+  }
   //check if system account
   b = FALSE;
   if (::CheckTokenMembership(hTokenToCheck, (PSID)&sLocalSystemSID, &b) != FALSE && b != FALSE)
@@ -540,7 +543,7 @@ static BOOL IsWinVistaPlus()
   if (nIsWinVistaPlusLocal < 0)
   {
     nIsWinVistaPlusLocal = ::IsWindowsVistaOrGreater() ? 1 : 0;
-    _InterlockedCompareExchange(&nIsWinVistaPlusLocal, nIsWinVistaPlusLocal, -1);
+    _InterlockedCompareExchange(&nIsWinVistaPlus, nIsWinVistaPlusLocal, -1);
   }
   return (nIsWinVistaPlusLocal == 1) ? TRUE : FALSE;
 }

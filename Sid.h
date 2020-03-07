@@ -44,8 +44,8 @@ public:
   BOOL operator==(_In_ PSID lpSid) const;
 
   HRESULT FromToken(_In_ HANDLE hToken);
-  HRESULT FromProcess(_In_ HANDLE hProc);
-  HRESULT FromThread(_In_ HANDLE hThread);
+  HRESULT FromProcess(_In_opt_ HANDLE hProc);
+  HRESULT FromThread(_In_opt_ HANDLE hThread);
   HRESULT FromProcessId(_In_ DWORD dwPid);
   HRESULT FromThreadId(_In_ DWORD dwTid);
 
