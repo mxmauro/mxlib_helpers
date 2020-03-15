@@ -21,8 +21,7 @@
 #include "FileRoutines.h"
 #include "System.h"
 #include <Strings\Strings.h>
-#include <Crypto\DigestAlgorithmSHAx.h>
-#include <Crypto\DigestAlgorithmMDx.h>
+#include <Crypto\MessageDigest.h>
 #include <appmodel.h>
 #include <WinTrust.h>
 #include <mscat.h>
@@ -908,8 +907,7 @@ HRESULT GetCertificateSerialNumber(_In_ PCCERT_CONTEXT lpCertCtx, _Out_ LPBYTE *
 HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _In_opt_ HANDLE hFile, _Out_ LPHASHES lpHashes)
 {
   CWindowsHandle cFileH;
-  CDigestAlgorithmSecureHash cHashSha256, cHashSha1;
-  CDigestAlgorithmMessageDigest cHashMd5;
+  CMessageDigest cHashSha256, cHashSha1, cHashMd5;
   HRESULT hRes;
 
   if (lpHashes != NULL)
@@ -927,11 +925,13 @@ HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _In_opt_ HANDLE hFile, _Out_
     hFile = cFileH.Get();
   }
 
-  hRes = cHashSha256.BeginDigest(CDigestAlgorithmSecureHash::AlgorithmSHA256);
+  hRes = cHashSha256.BeginDigest(CMessageDigest::AlgorithmSHA256);
   if (SUCCEEDED(hRes))
-    hRes = cHashSha1.BeginDigest(CDigestAlgorithmSecureHash::AlgorithmSHA1);
-  if (SUCCEEDED(hRes))
-    hRes = cHashMd5.BeginDigest(CDigestAlgorithmMessageDigest::AlgorithmMD5);
+  {
+    hRes = cHashSha1.BeginDigest(CMessageDigest::AlgorithmSHA1);
+    if (SUCCEEDED(hRes))
+      hRes = cHashMd5.BeginDigest(CMessageDigest::AlgorithmMD5);
+  }
 
   if (SUCCEEDED(hRes))
   {
