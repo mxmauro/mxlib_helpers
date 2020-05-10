@@ -90,19 +90,27 @@ BOOL WildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR szPa
   return FALSE;
 }
 
-BOOL String2Guid(_Out_ GUID &sGuid, _In_z_ LPCSTR szGuidA)
+BOOL String2Guid(_Out_ GUID &sGuid, _In_ LPCSTR szGuidA, _In_ SIZE_T nGuidLength)
 {
   DWORD i, dwVal;
 
-  ::MxMemSet(&sGuid, 0, sizeof(sGuid));
-  if (szGuidA == NULL)
+  if (nGuidLength == 0)
+    nGuidLength = MX::StrLenA(szGuidA);
+
+  if ((nGuidLength != 36 && nGuidLength != 38) || szGuidA == NULL)
   {
 err_badformat:
     ::MxMemSet(&sGuid, 0, sizeof(sGuid));
     return FALSE;
   }
-  if (*szGuidA == '{')
+  if (nGuidLength == 38)
+  {
+    if (szGuidA[0] != '{' || szGuidA[37] != '}')
+      goto err_badformat;
     szGuidA++;
+  }
+
+  ::MxMemSet(&sGuid, 0, sizeof(sGuid));
   for (i = 0; i < 36; i++, szGuidA++)
   {
     switch (i)
@@ -116,29 +124,29 @@ err_badformat:
         break;
 
       case 14: //1-5
-        if (*szGuidA < '1' || *szGuidA > '5')
+        if ((*szGuidA) < '1' || (*szGuidA) > '5')
           goto err_badformat;
         dwVal = (DWORD)(*szGuidA - '0');
         goto set_value;
 
       case 19: //8-A
-        if (*szGuidA >= '8' && *szGuidA <= '9')
-          dwVal = (DWORD)(*szGuidA - '0');
-        else if (*szGuidA >= 'A' && *szGuidA <= 'B')
-          dwVal = (DWORD)(*szGuidA - 'A') + 10;
-        else if (*szGuidA >= 'a' && *szGuidA <= 'b')
-          dwVal = (DWORD)(*szGuidA - 'a') + 10;
+        if ((*szGuidA) >= '8' && (*szGuidA) <= '9')
+          dwVal = (DWORD)((*szGuidA) - '0');
+        else if ((*szGuidA) >= 'A' && (*szGuidA) <= 'B')
+          dwVal = (DWORD)((*szGuidA) - 'A') + 10;
+        else if ((*szGuidA) >= 'a' && (*szGuidA) <= 'b')
+          dwVal = (DWORD)((*szGuidA) - 'a') + 10;
         else
           goto err_badformat;
         goto set_value;
 
       default:
-        if (*szGuidA >= '0' && *szGuidA <= '9')
-          dwVal = (DWORD)(*szGuidA - '0');
-        else if (*szGuidA >= 'A' && *szGuidA <= 'F')
-          dwVal = (DWORD)(*szGuidA - 'A') + 10;
-        else if (*szGuidA >= 'a' && *szGuidA <= 'f')
-          dwVal = (DWORD)(*szGuidA - 'a') + 10;
+        if ((*szGuidA) >= '0' && (*szGuidA) <= '9')
+          dwVal = (DWORD)((*szGuidA) - '0');
+        else if ((*szGuidA) >= 'A' && (*szGuidA) <= 'F')
+          dwVal = (DWORD)((*szGuidA) - 'A') + 10;
+        else if ((*szGuidA) >= 'a' && (*szGuidA) <= 'f')
+          dwVal = (DWORD)((*szGuidA) - 'a') + 10;
         else
           goto err_badformat;
 
@@ -158,38 +166,48 @@ set_value:
         break;
     }
   }
-  if (*szGuidA == '}')
-    szGuidA++;
-  if (*szGuidA != 0)
-    goto err_badformat;
+
   //done
   return TRUE;
 }
 
-BOOL String2Guid(_Out_ GUID &sGuid, _In_z_ LPCWSTR szGuidW)
+BOOL String2Guid(_Out_ GUID &sGuid, _In_ LPCWSTR szGuidW, _In_ SIZE_T nGuidLength)
 {
-  CHAR szBufA[64];
+  CHAR szBufA[36];
   SIZE_T i;
 
+  if (nGuidLength == 0)
+    nGuidLength = MX::StrLenW(szGuidW);
   ::MxMemSet(&sGuid, 0, sizeof(sGuid));
-  for (i = 0; i < MX_ARRAYLEN(szBufA) - 1 && szGuidW[i] != 0; i++)
+
+  if ((nGuidLength != 36 && nGuidLength != 38) || szGuidW == NULL)
   {
-    if ((szGuidW[i] >= L'0' && szGuidW[i] <= L'9') ||
-      (szGuidW[i] >= L'A' && szGuidW[i] <= L'F') ||
-      (szGuidW[i] >= L'a' && szGuidW[i] <= L'f') ||
-        szGuidW[i] == L'{' || szGuidW[i] == L'}' || szGuidW[i] == L'-')
+err_badformat:
+    ::MxMemSet(&sGuid, 0, sizeof(sGuid));
+    return FALSE;
+  }
+  if (nGuidLength == 38)
+  {
+    if (szGuidW[0] != L'{' || szGuidW[37] != L'}')
+      goto err_badformat;
+    szGuidW++;
+  }
+
+  for (i = 0; i < 36; i++, szGuidW++)
+  {
+    if (((*szGuidW) >= L'0' && (*szGuidW) <= L'9') ||
+        ((*szGuidW) >= L'A' && (*szGuidW) <= L'F') ||
+        ((*szGuidW) >= L'a' && (*szGuidW) <= L'f') || (*szGuidW) == L'-')
     {
-      szBufA[i] = (char)(BYTE)(USHORT)szGuidW[i];
+      szBufA[i] = (CHAR)(BYTE)(USHORT)(*szGuidW);
     }
     else
     {
       return FALSE;
     }
   }
-  if (i >= MX_ARRAYLEN(szBufA) - 1)
-    return FALSE;
-  szBufA[i] = 0;
-  return String2Guid(sGuid, szBufA);
+
+  return String2Guid(sGuid, szBufA, 36);
 }
 
 HRESULT ExecuteApp(_In_z_ LPCWSTR szCmdLineW, _In_ DWORD dwAfterSeconds)

@@ -31,8 +31,8 @@ namespace Misc {
 
 BOOL WildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR szPatternW, _In_ SIZE_T nPatternLen);
 
-BOOL String2Guid(_Out_ GUID &sGuid, _In_z_ LPCSTR szGuidA);
-BOOL String2Guid(_Out_ GUID &sGuid, _In_z_ LPCWSTR szGuidW);
+BOOL String2Guid(_Out_ GUID &sGuid, _In_ LPCSTR szGuidA, _In_ SIZE_T nGuidLength = (SIZE_T)-1);
+BOOL String2Guid(_Out_ GUID &sGuid, _In_ LPCWSTR szGuidW, _In_ SIZE_T nGuidLength = (SIZE_T)-1);
 
 HRESULT ExecuteApp(_In_z_ LPCWSTR szCmdLineW, _In_ DWORD dwAfterSeconds = 5);
 HRESULT SelfDeleteApp(_In_ DWORD dwAfterSeconds = 5);
