@@ -329,13 +329,12 @@ BOOL CPEParser::ReadRaw(_Out_writes_(nBytes) LPVOID lpDest, _In_ LPCVOID lpSrc, 
       {
         //cache is invalid, refresh
         DWORD dwRead;
-        ULARGE_INTEGER uliOffset;
+        LARGE_INTEGER liOffset;
 
         //read from file
-        uliOffset.QuadPart = (ULONGLONG)nOffset;
+        liOffset.QuadPart = (LONGLONG)(ULONGLONG)nOffset;
 
-        if (::SetFilePointer(hFile, (LONG)(uliOffset.LowPart), (PLONG)&(uliOffset.HighPart),
-                             FILE_BEGIN) == INVALID_SET_FILE_POINTER ||
+        if (::SetFilePointerEx(hFile, liOffset, NULL, FILE_BEGIN) == FALSE ||
             ::ReadFile(hFile, sFileCache.aBuffer, (DWORD)sizeof(sFileCache.aBuffer), &dwRead, NULL) == FALSE ||
             dwRead == 0)
         {
