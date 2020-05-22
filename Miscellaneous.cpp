@@ -94,7 +94,7 @@ BOOL String2Guid(_Out_ GUID &sGuid, _In_ LPCSTR szGuidA, _In_ SIZE_T nGuidLength
 {
   DWORD i, dwVal;
 
-  if (nGuidLength == 0)
+  if (nGuidLength == (SIZE_T)-1)
     nGuidLength = MX::StrLenA(szGuidA);
 
   if ((nGuidLength != 36 && nGuidLength != 38) || szGuidA == NULL)
@@ -176,7 +176,7 @@ BOOL String2Guid(_Out_ GUID &sGuid, _In_ LPCWSTR szGuidW, _In_ SIZE_T nGuidLengt
   CHAR szBufA[36];
   SIZE_T i;
 
-  if (nGuidLength == 0)
+  if (nGuidLength == (SIZE_T)-1)
     nGuidLength = MX::StrLenW(szGuidW);
   ::MxMemSet(&sGuid, 0, sizeof(sGuid));
 
