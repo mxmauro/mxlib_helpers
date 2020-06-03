@@ -428,7 +428,7 @@ BOOL CLightJSonBuilder::AddObjectObject(_In_z_ LPCSTR szNameA, _In_ CLightJSonBu
 BOOL CLightJSonBuilder::AddArrayBoolean(_In_ BOOL bValue)
 {
   MX_ASSERT(aNestedTypes.GetCount() > 0);
-  MX_ASSERT(aNestedTypes.GetElementAt(aNestedTypes.GetCount() - 1) == _IS_OBJECT);
+  MX_ASSERT(aNestedTypes.GetElementAt(aNestedTypes.GetCount() - 1) == _IS_ARRAY);
 
   //insert separator
   if (bIsFirstItem == FALSE)
@@ -458,7 +458,7 @@ BOOL CLightJSonBuilder::AddArrayBoolean(_In_ BOOL bValue)
 BOOL CLightJSonBuilder::AddArrayString(_In_ LPCSTR szValueA, _In_opt_ SIZE_T nValueLen)
 {
   MX_ASSERT(aNestedTypes.GetCount() > 0);
-  MX_ASSERT(aNestedTypes.GetElementAt(aNestedTypes.GetCount() - 1) == _IS_OBJECT);
+  MX_ASSERT(aNestedTypes.GetElementAt(aNestedTypes.GetCount() - 1) == _IS_ARRAY);
 
   if (nValueLen == (SIZE_T)-1)
     nValueLen = StrLenA(szValueA);
@@ -502,7 +502,7 @@ BOOL CLightJSonBuilder::AddArrayFormattedString(_Printf_format_string_ LPCSTR sz
 BOOL CLightJSonBuilder::AddArrayString(_In_ LPCWSTR szValueW, _In_opt_ SIZE_T nValueLen)
 {
   MX_ASSERT(aNestedTypes.GetCount() > 0);
-  MX_ASSERT(aNestedTypes.GetElementAt(aNestedTypes.GetCount() - 1) == _IS_OBJECT);
+  MX_ASSERT(aNestedTypes.GetElementAt(aNestedTypes.GetCount() - 1) == _IS_ARRAY);
 
   if (nValueLen == (SIZE_T)-1)
     nValueLen = StrLenW(szValueW);
