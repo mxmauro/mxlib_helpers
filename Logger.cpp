@@ -40,6 +40,8 @@
 #define LOGFLAG_Initialized                           0x0001
 #define LOGFLAG_LogFileOpenProcessed                  0x0002
 
+#define USE_FILE_CREATION_TIMESTAMP
+
 //-----------------------------------------------------------
 
 static LONG volatile nMutex = 0;
@@ -271,21 +273,22 @@ static VOID EndLogger()
 
 static VOID RemoveOldFiles()
 {
-  FILETIME sFt;
-  SYSTEMTIME sSt;
   ULONGLONG nDueTime, nTimeToSub, nFileTime;
   WIN32_FIND_DATAW sFindDataW;
   HANDLE hFindFile;
   MX::CStringW cStrTempW;
+  FILETIME sFt;
   SIZE_T i, nBaseNameLen;
 
   if (dwLogKeepDays == 0)
     return;
+
   //calculate due time
   ::GetSystemTimeAsFileTime(&sFt);
   nDueTime = ((ULONGLONG)(sFt.dwHighDateTime) << 32) | (ULONGLONG)(sFt.dwLowDateTime);
   nTimeToSub = MX_MILLISECONDS_TO_100NS((ULONGLONG)dwLogKeepDays * 86400000ui64);
   nDueTime = (nDueTime > nTimeToSub) ? (nDueTime - nTimeToSub) : 0ui64;
+
   //scan folder
   if (cStrTempW.Copy((LPCWSTR)cStrLogFolderW) == FALSE ||
       cStrTempW.ConcatN(L"*", 1) == FALSE)
@@ -303,41 +306,56 @@ static VOID RemoveOldFiles()
         if (MX::StrNCompareW((LPCWSTR)cStrLogFileNameBaseW, sFindDataW.cFileName, nBaseNameLen, TRUE) == 0 &&
             sFindDataW.cFileName[nBaseNameLen] == L'-')
         {
-          for (i=0; i<8; i++)
+#ifdef USE_FILE_CREATION_TIMESTAMP
+
+          nFileTime = ((ULONGLONG)(sFindDataW.ftCreationTime.dwHighDateTime) << 32) |
+                       (ULONGLONG)(sFindDataW.ftCreationTime.dwLowDateTime);
+
+#else //USE_FILE_CREATION_TIMESTAMP
+
+          SYSTEMTIME sSt;
+          SIZE_T i;
+
+          nFileTime = ULONG64_MAX;
+
+          for (i = 0; i < 8; i++)
           {
-            if (sFindDataW.cFileName[nBaseNameLen+i+1] < L'0' ||
-                sFindDataW.cFileName[nBaseNameLen+i+1] > L'9')
+            if (sFindDataW.cFileName[nBaseNameLen + i + 1] < L'0' ||
+                sFindDataW.cFileName[nBaseNameLen + i + 1] > L'9')
             {
               break;
             }
           }
-          if (i >= 8 && MX::StrCompareW(sFindDataW.cFileName+nBaseNameLen+9, L".log", TRUE) == 0)
+          if (i >= 8 && MX::StrCompareW(sFindDataW.cFileName + nBaseNameLen + 9, L".log", TRUE) == 0)
           {
             //get file date from name
             ::MxMemSet(&sSt, 0, sizeof(sSt));
-            sSt.wYear = (WORD)(sFindDataW.cFileName[nBaseNameLen+1] - L'0') * 1000 +
-                        (WORD)(sFindDataW.cFileName[nBaseNameLen+2] - L'0') * 100 +
-                        (WORD)(sFindDataW.cFileName[nBaseNameLen+3] - L'0') * 10 +
-                        (WORD)(sFindDataW.cFileName[nBaseNameLen+4] - L'0');
-            sSt.wMonth = (WORD)(sFindDataW.cFileName[nBaseNameLen+5] - L'0') * 10 +
-                         (WORD)(sFindDataW.cFileName[nBaseNameLen+6] - L'0');
-            sSt.wDay = (WORD)(sFindDataW.cFileName[nBaseNameLen+7] - L'0') * 10 +
-                       (WORD)(sFindDataW.cFileName[nBaseNameLen+8] - L'0');
+            sSt.wYear = (WORD)(sFindDataW.cFileName[nBaseNameLen + 1] - L'0') * 1000 +
+                        (WORD)(sFindDataW.cFileName[nBaseNameLen + 2] - L'0') * 100 +
+                        (WORD)(sFindDataW.cFileName[nBaseNameLen + 3] - L'0') * 10 +
+                        (WORD)(sFindDataW.cFileName[nBaseNameLen + 4] - L'0');
+            sSt.wMonth = (WORD)(sFindDataW.cFileName[nBaseNameLen + 5] - L'0') * 10 +
+                         (WORD)(sFindDataW.cFileName[nBaseNameLen + 6] - L'0');
+            sSt.wDay = (WORD)(sFindDataW.cFileName[nBaseNameLen + 7] - L'0') * 10 +
+                       (WORD)(sFindDataW.cFileName[nBaseNameLen + 8] - L'0');
             if (sSt.wDay >= 1 && sSt.wDay <= 31 && sSt.wMonth >= 1 && sSt.wMonth <= 12)
             {
               if (::SystemTimeToFileTime(&sSt, &sFt) != FALSE)
               {
                 nFileTime = ((ULONGLONG)(sFt.dwHighDateTime) << 32) | (ULONGLONG)(sFt.dwLowDateTime);
-                //too old?
-                if (nFileTime < nDueTime)
-                {
-                  if (cStrTempW.Copy((LPCWSTR)cStrLogFolderW) != FALSE &&
-                      cStrTempW.Concat(sFindDataW.cFileName) != FALSE)
-                  {
-                    MX::FileRoutines::_DeleteFile((LPCWSTR)cStrTempW);
-                  }
-                }
               }
+            }
+          }
+
+#endif //USE_FILE_CREATION_TIMESTAMP
+
+          //too old?
+          if (nFileTime <= nDueTime)
+          {
+            if (cStrTempW.Copy((LPCWSTR)cStrLogFolderW) != FALSE &&
+                cStrTempW.Concat(sFindDataW.cFileName) != FALSE)
+            {
+              MX::FileRoutines::_DeleteFile((LPCWSTR)cStrTempW);
             }
           }
         }
@@ -358,6 +376,7 @@ static HRESULT OpenLog(_In_ LPSYSTEMTIME lpSystemTime)
   MEMORYSTATUSEX sMemStatusEx;
 
   MX::FileRoutines::CreateDirectoryRecursive((LPCWSTR)cStrLogFolderW);
+
   //open/create log file
   if (cStrTempW.Format(L"%s%s-%04u%02u%02u.log", (LPCWSTR)cStrLogFolderW, (LPCWSTR)cStrLogFileNameBaseW,
                        lpSystemTime->wYear, lpSystemTime->wMonth, lpSystemTime->wDay) == FALSE)
@@ -366,6 +385,7 @@ static HRESULT OpenLog(_In_ LPSYSTEMTIME lpSystemTime)
                              FILE_ATTRIBUTE_NORMAL, NULL));
   if (!cLogH)
     return MX_HRESULT_FROM_LASTERROR();
+
   //if new file, write BOM else write separator
   if (MX_HRESULT_FROM_LASTERROR() != MX_E_AlreadyExists)
   {
@@ -376,6 +396,7 @@ static HRESULT OpenLog(_In_ LPSYSTEMTIME lpSystemTime)
     ::WriteFile(cLogH, L"--------------------------------------------------------------------------------\r\n",
                 82*2, &dwWritten, NULL);
   }
+
   //write header
   if (cStrTempW.Format(L"Log start: %04u.%02u.%02u @ %02u:%02u:%02u\r\n", lpSystemTime->wYear, lpSystemTime->wMonth,
                        lpSystemTime->wDay, lpSystemTime->wHour, lpSystemTime->wMinute, lpSystemTime->wSecond) != FALSE)
@@ -470,6 +491,7 @@ static HRESULT OpenLog(_In_ LPSYSTEMTIME lpSystemTime)
                  sMemStatusEx.ullTotalPhys, sMemStatusEx.dwMemoryLoad);
   }
   ::WriteFile(cLogH, szBufW, (DWORD)(MX::StrLenW(szBufW) * sizeof(WCHAR)), &dwWritten, NULL);
+
   //done
   return S_OK;
 }
