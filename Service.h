@@ -22,6 +22,7 @@
 
 #include <Defines.h>
 #include <Callbacks.h>
+#include <Dbt.h>
 
 //-----------------------------------------------------------
 
@@ -32,6 +33,7 @@ namespace Service {
 typedef Callback<HRESULT (_In_ HANDLE hShutdownEvent, _In_ int argc, _In_ WCHAR* argv[],
                           _In_ BOOL bIsInteractiveApp)> OnStartCallback;
 typedef Callback<HRESULT ()> OnStopCallback;
+typedef Callback<VOID (_In_ DWORD dwEventType, _In_ PDEV_BROADCAST_HDR lpDevBroadcastHdr)> OnDeviceChangeCallback;
 
 }; //namespace Service
 
@@ -44,7 +46,7 @@ namespace MX {
 namespace Service {
 
 HRESULT Run(_In_opt_z_ LPCWSTR szServiceNameW, _In_ OnStartCallback cStartCallback, _In_ OnStopCallback cStopCallback,
-            _In_ int argc, _In_ WCHAR* argv[]);
+            _In_opt_ OnDeviceChangeCallback cDeviceChangeCallback, _In_ int argc, _In_ WCHAR* argv[]);
 
 VOID SignalStarting();
 VOID SignalStopping();

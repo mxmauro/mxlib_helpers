@@ -224,7 +224,7 @@ HRESULT CMemoryPackage::OpenPackage(_In_ LPCVOID lpData, _In_ SIZE_T nDataSize, 
   if (SUCCEEDED(hRes))
   {
     nCount = aFileItemsList.GetCount();
-    for (i=0; i<nCount; i++)
+    for (i = 0; i < nCount; i++)
     {
       p = (i+1 < nCount) ? (aFileItemsList[i+1]->lpCompressedData) : ((LPBYTE)lpData + nDataSize);
       if (p < aFileItemsList[i]->lpCompressedData)

@@ -23,6 +23,7 @@
 #include <AutoPtr.h>
 #include <AutoHandle.h>
 #include <Debug.h>
+#include <Threads.h>
 #include "SingleInstance.h"
 
 //-----------------------------------------------------------
@@ -35,20 +36,29 @@ static SERVICE_STATUS sServiceStatus = {
 static MX::CStringW cStrServiceNameW;
 static MX::Service::OnStartCallback cStartCallback = MX::NullCallback();
 static MX::Service::OnStopCallback cStopCallback = MX::NullCallback();
+static MX::Service::OnDeviceChangeCallback cDeviceChangeCallback = MX::NullCallback();
 static BOOL bRunningAsConsole = FALSE;
 static int nArgumentsCount = 0;
 static WCHAR** lpArguments = NULL;
 static BOOL bDisableStop = FALSE;
+static MX::CWorkerThread cConsoleDeviceChangeListenerThread;
 
 //-----------------------------------------------------------
 
 static BOOL WINAPI _ConsoleHandlerRoutine(_In_ DWORD dwCtrlType);
 static VOID WINAPI _ServiceMain(_In_ DWORD dwArgc, _In_ LPWSTR *pszArgv);
-static VOID WINAPI _ServiceCtrlHandler(_In_ DWORD dwCtrl);
+static DWORD WINAPI _ServiceCtrlHandlerEx(_In_ DWORD dwControl, _In_ DWORD dwEventType, _In_ LPVOID lpEventData,
+                                          _In_ LPVOID lpContext);
 static HRESULT _SetServiceStatus(_In_ DWORD dwCurrentState, _In_opt_ HRESULT hResExitCode=S_OK,
                                  _In_opt_ DWORD dwWaitHint=0, _In_opt_ HRESULT hResServiceSpecificExitCode=S_OK);
 static HRESULT _UpdateServiceStatus();
 static HRESULT IsInteractiveRunningApp();
+
+static HRESULT CreateConsoleDeviceChangeListener();
+static VOID DestroyConsoleDeviceChangeListener();
+static VOID ConsoleDeviceChangeListenerThreadProc(_In_ MX::CWorkerThread *lpWrkThread, _In_opt_ LPVOID lpParam);
+static LRESULT WINAPI ConsoleDeviceChangeListenerWinProc(_In_ HWND hWnd, _In_ UINT message, _In_ WPARAM wParam,
+                                                         _In_ LPARAM lParam);
 
 //-----------------------------------------------------------
 
@@ -57,7 +67,7 @@ namespace MX {
 namespace Service {
 
 HRESULT Run(_In_opt_z_ LPCWSTR szServiceNameW, _In_ OnStartCallback _cStartCallback, _In_ OnStopCallback _cStopCallback,
-            _In_ int argc, _In_ WCHAR* argv[])
+            _In_opt_ OnDeviceChangeCallback _cDeviceChangeCallback, _In_ int argc, _In_ WCHAR* argv[])
 {
   SERVICE_TABLE_ENTRYW aServiceTableW[2];
   HRESULT hRes;
@@ -67,6 +77,7 @@ HRESULT Run(_In_opt_z_ LPCWSTR szServiceNameW, _In_ OnStartCallback _cStartCallb
 
   if (szServiceNameW == NULL)
     szServiceNameW = L"";
+
   //check for single instance
   if (*szServiceNameW != NULL)
   {
@@ -76,23 +87,29 @@ HRESULT Run(_In_opt_z_ LPCWSTR szServiceNameW, _In_ OnStartCallback _cStartCallb
     if (hRes == S_FALSE)
       return MX_E_AlreadyInitialized;
   }
+
   //check for interactive or service process
   hRes = IsInteractiveRunningApp();
   if (FAILED(hRes))
     return hRes;
   bRunningAsConsole = (hRes == S_OK) ? TRUE : FALSE;
+
   //setup internal info
   nArgumentsCount = argc;
   lpArguments = argv;
   if (cStrServiceNameW.Copy(szServiceNameW) == FALSE)
     return E_OUTOFMEMORY;
+
   //set callbacks
   cStartCallback = _cStartCallback;
   cStopCallback = _cStopCallback;
+  cDeviceChangeCallback = _cDeviceChangeCallback;
+
   //create shutdown event
   hRes = cShutdownEv.Create(TRUE, FALSE);
   if (FAILED(hRes))
     return hRes;
+
   //run
   if (bRunningAsConsole == FALSE)
   {
@@ -103,18 +120,46 @@ HRESULT Run(_In_opt_z_ LPCWSTR szServiceNameW, _In_ OnStartCallback _cStartCallb
   }
   else
   {
+    BOOL bCallStop = FALSE;
+
     //setup console handler
     if (::SetConsoleCtrlHandler(_ConsoleHandlerRoutine, TRUE) == FALSE)
       return MX_HRESULT_FROM_LASTERROR();
+
     //send start callback
     hRes = cStartCallback(cShutdownEv.Get(), nArgumentsCount, lpArguments, TRUE);
     if (SUCCEEDED(hRes))
     {
-      //wait until termination event
-      cShutdownEv.Wait(INFINITE);
-      //send stop callback
-      hRes = cStopCallback();
+      bCallStop = TRUE;
+
+      if (cDeviceChangeCallback)
+      {
+        hRes = CreateConsoleDeviceChangeListener();
+      }
     }
+
+    //wait until termination event
+    if (SUCCEEDED(hRes))
+    {
+      cShutdownEv.Wait(INFINITE);
+    }
+
+    //shutdown console device change listener if running
+    DestroyConsoleDeviceChangeListener();
+
+    //send stop callback
+    if (bCallStop != FALSE)
+    {
+      if (SUCCEEDED(hRes))
+      {
+        hRes = cStopCallback();
+      }
+      else
+      {
+        cStopCallback();
+      }
+    }
+
     //remove console handler
     ::SetConsoleCtrlHandler(_ConsoleHandlerRoutine, FALSE);
   }
@@ -183,12 +228,12 @@ static VOID WINAPI _ServiceMain(_In_ DWORD dwArgc, _In_ LPWSTR *pszArgv)
 {
   HRESULT hRes, hResServiceExitCode;
 
-  hServiceStatus = ::RegisterServiceCtrlHandlerW((LPCWSTR)cStrServiceNameW, _ServiceCtrlHandler);
+  hServiceStatus = ::RegisterServiceCtrlHandlerExW((LPCWSTR)cStrServiceNameW, &_ServiceCtrlHandlerEx, NULL);
   if (hServiceStatus == NULL)
     return;
   sServiceStatus.dwControlsAccepted = 0;
   _SetServiceStatus(SERVICE_START_PENDING, ERROR_SUCCESS, 5000);
-  //----
+
   hRes = cShutdownEv.Create(TRUE, FALSE);
   if (SUCCEEDED(hRes))
   {
@@ -196,41 +241,83 @@ static VOID WINAPI _ServiceMain(_In_ DWORD dwArgc, _In_ LPWSTR *pszArgv)
     //send start callback
     hRes = cStartCallback(cShutdownEv.Get(), nArgumentsCount, lpArguments, FALSE);
   }
+
   if (SUCCEEDED(hRes))
   {
-    //wait until termination event
-    sServiceStatus.dwControlsAccepted = SERVICE_ACCEPT_SHUTDOWN;
-    if (bDisableStop == FALSE)
-      sServiceStatus.dwControlsAccepted |= SERVICE_ACCEPT_STOP;
-    _SetServiceStatus(SERVICE_RUNNING);
-    cShutdownEv.Wait(INFINITE);
-    _SetServiceStatus(SERVICE_STOP_PENDING, ERROR_SUCCESS, 5000);
-    //send top callback
-    hResServiceExitCode = cStopCallback();
-    hRes = S_OK;
+    HDEVNOTIFY hDevNotify = NULL;
+
+    if (cDeviceChangeCallback)
+    {
+      DEV_BROADCAST_DEVICEINTERFACE sNotificationFilter = { 0 };
+
+      sNotificationFilter.dbcc_size = (DWORD)sizeof(sNotificationFilter);
+      sNotificationFilter.dbcc_devicetype = DBT_DEVTYP_DEVICEINTERFACE;
+      hDevNotify = ::RegisterDeviceNotificationW(hServiceStatus, &sNotificationFilter, DEVICE_NOTIFY_SERVICE_HANDLE |
+                                                 DEVICE_NOTIFY_ALL_INTERFACE_CLASSES);
+      if (hDevNotify == NULL)
+        hRes = MX_HRESULT_FROM_LASTERROR();
+    }
+
+    if (SUCCEEDED(hRes))
+    {
+      //wait until termination event
+      sServiceStatus.dwControlsAccepted = SERVICE_ACCEPT_SHUTDOWN;
+      if (bDisableStop == FALSE)
+        sServiceStatus.dwControlsAccepted |= SERVICE_ACCEPT_STOP;
+      _SetServiceStatus(SERVICE_RUNNING);
+
+      cShutdownEv.Wait(INFINITE);
+      _SetServiceStatus(SERVICE_STOP_PENDING, ERROR_SUCCESS, 5000);
+
+      if (hDevNotify != NULL)
+      {
+        ::UnregisterDeviceNotification(hDevNotify);
+        hDevNotify = NULL;
+      }
+    }
+
+    //send stop callback
+    if (SUCCEEDED(hRes))
+    {
+      hResServiceExitCode = cStopCallback();
+    }
+    else
+    {
+      cStopCallback();
+      hResServiceExitCode = hRes;
+    }
   }
   else
   {
     hResServiceExitCode = hRes;
   }
+
   _SetServiceStatus(SERVICE_STOPPED, hRes, 0, hResServiceExitCode);
   return;
 }
 
-static VOID WINAPI _ServiceCtrlHandler(_In_ DWORD dwCtrl)
+static DWORD WINAPI _ServiceCtrlHandlerEx(_In_ DWORD dwControl, _In_ DWORD dwEventType, _In_ LPVOID lpEventData,
+                                          _In_ LPVOID lpContext)
 {
-  switch (dwCtrl)
+  switch (dwControl)
   {
     case SERVICE_CONTROL_STOP:
     case SERVICE_CONTROL_SHUTDOWN:
       cShutdownEv.Set();
-      break;
+      return NO_ERROR;
 
     case SERVICE_CONTROL_INTERROGATE:
       ::SetServiceStatus(hServiceStatus, &sServiceStatus);
-      break;
+      return NO_ERROR;
+
+    case SERVICE_CONTROL_DEVICEEVENT:
+      if (dwEventType == DBT_DEVICEARRIVAL || dwEventType == DBT_DEVICEREMOVECOMPLETE)
+      {
+        cDeviceChangeCallback(dwEventType, (PDEV_BROADCAST_HDR)lpEventData);
+      }
+      return NO_ERROR;
   }
-  return;
+  return ERROR_CALL_NOT_IMPLEMENTED;
 }
 
 static HRESULT _SetServiceStatus(_In_ DWORD dwCurrentState, _In_opt_ HRESULT hResExitCode, _In_opt_ DWORD dwWaitHint,
@@ -250,6 +337,7 @@ static HRESULT _SetServiceStatus(_In_ DWORD dwCurrentState, _In_opt_ HRESULT hRe
     case SERVICE_PAUSE_PENDING:
       sServiceStatus.dwCheckPoint = dwCheckPoint++;
       break;
+
     default:
       dwCheckPoint = 1;
       sServiceStatus.dwCheckPoint = 0;
@@ -276,18 +364,20 @@ static HRESULT IsInteractiveRunningApp()
   PSID lpInteractiveSid, lpServiceSid;
   HRESULT hRes;
 
+  if (::OpenProcessToken(::GetCurrentProcess(), TOKEN_QUERY, &cProcToken) == FALSE)
+    return MX_HRESULT_FROM_LASTERROR();
+
   dwTokenGroupLength = 128;
   cTokenGroups.Attach((PTOKEN_GROUPS)MX_MALLOC(dwTokenGroupLength));
   if (!cTokenGroups)
     return E_OUTOFMEMORY;
-  if (::OpenProcessToken(::GetCurrentProcess(), TOKEN_QUERY, &cProcToken) == FALSE)
-    return MX_HRESULT_FROM_LASTERROR();
   if (::GetTokenInformation(cProcToken, TokenGroups, cTokenGroups.Get(), dwTokenGroupLength,
                             &dwTokenGroupLength) == FALSE)
   {
     hRes = MX_HRESULT_FROM_LASTERROR();
     if (hRes != HRESULT_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER))
       return hRes;
+
     cTokenGroups.Attach((PTOKEN_GROUPS)MX_MALLOC(dwTokenGroupLength));
     if (!cTokenGroups)
       return E_OUTOFMEMORY;
@@ -295,6 +385,7 @@ static HRESULT IsInteractiveRunningApp()
                               &dwTokenGroupLength) == FALSE)
       return MX_HRESULT_FROM_LASTERROR();
   }
+
   if (::AllocateAndInitializeSid(&sSia, 1, SECURITY_INTERACTIVE_RID, 0, 0, 0, 0, 0, 0, 0, &lpInteractiveSid) == FALSE)
     return MX_HRESULT_FROM_LASTERROR();
   if (::AllocateAndInitializeSid(&sSia, 1, SECURITY_SERVICE_RID, 0, 0, 0, 0, 0, 0, 0, &lpServiceSid) == FALSE)
@@ -303,6 +394,7 @@ static HRESULT IsInteractiveRunningApp()
     ::FreeSid(lpInteractiveSid);
     return hRes;
   }
+
   hRes = S_FALSE; //assume a service process by default
   for (dw=0; dw<cTokenGroups->GroupCount; dw++)
   {
@@ -314,7 +406,81 @@ static HRESULT IsInteractiveRunningApp()
     if (::EqualSid(cTokenGroups->Groups[dw].Sid, lpServiceSid) != FALSE)
       break;
   }
+
+  //done
   ::FreeSid(lpInteractiveSid);
   ::FreeSid(lpServiceSid);
   return hRes;
+}
+
+static HRESULT CreateConsoleDeviceChangeListener()
+{
+  if (cConsoleDeviceChangeListenerThread.SetRoutine(&ConsoleDeviceChangeListenerThreadProc) == FALSE ||
+      cConsoleDeviceChangeListenerThread.Start() == FALSE)
+  {
+    return E_OUTOFMEMORY;
+  }
+
+  //done
+  return S_OK;
+}
+
+static VOID DestroyConsoleDeviceChangeListener()
+{
+  DWORD dwTid;
+
+  dwTid = cConsoleDeviceChangeListenerThread.GetThreadId();
+  if (dwTid != 0)
+    ::PostThreadMessageW(dwTid, WM_QUIT, 0, 0);
+  cConsoleDeviceChangeListenerThread.Stop();
+  return;
+}
+
+static VOID ConsoleDeviceChangeListenerThreadProc(_In_ MX::CWorkerThread *lpWrkThread, _In_opt_ LPVOID lpParam)
+{
+  WNDCLASS sWndClassW = { 0 };
+  DEV_BROADCAST_DEVICEINTERFACE_W sNotifyFilterW = { 0 };
+  HWND hWnd;
+  HDEVNOTIFY hDevNotify;
+  MSG sMsg;
+
+  sWndClassW.lpfnWndProc = &ConsoleDeviceChangeListenerWinProc;
+  sWndClassW.hInstance = ::GetModuleHandleW(NULL);
+  sWndClassW.lpszClassName = L"TrapmineDC";
+  ::RegisterClassW(&sWndClassW);
+
+  hWnd = ::CreateWindowExW(0, sWndClassW.lpszClassName, NULL, 0, 0, 0, 0, 0, HWND_MESSAGE, NULL, NULL, NULL);
+  if (hWnd != NULL)
+  {
+    sNotifyFilterW.dbcc_size = (DWORD)sizeof(sNotifyFilterW);
+    sNotifyFilterW.dbcc_devicetype = DBT_DEVTYP_DEVICEINTERFACE;
+    hDevNotify = ::RegisterDeviceNotificationW(hWnd, &sNotifyFilterW,
+                                               DEVICE_NOTIFY_WINDOW_HANDLE | DEVICE_NOTIFY_ALL_INTERFACE_CLASSES);
+    if (hDevNotify != NULL)
+    {
+      while (cConsoleDeviceChangeListenerThread.CheckForAbort() == FALSE && ::GetMessageW(&sMsg, NULL, 0, 0) != 0)
+      {
+        ::TranslateMessage(&sMsg);
+        ::DispatchMessageW(&sMsg);
+      }
+
+      ::UnregisterDeviceNotification(hDevNotify);
+    }
+    ::DestroyWindow(hWnd);
+  }
+
+  //done
+  return;
+}
+
+static LRESULT WINAPI ConsoleDeviceChangeListenerWinProc(_In_ HWND hWnd, _In_ UINT message, _In_ WPARAM wParam,
+                                                         _In_ LPARAM lParam)
+{
+  if (message == WM_DEVICECHANGE && (wParam == DBT_DEVICEARRIVAL || wParam == DBT_DEVICEREMOVECOMPLETE))
+  {
+    if (cConsoleDeviceChangeListenerThread.CheckForAbort() == FALSE)
+      cDeviceChangeCallback((DWORD)wParam, (PDEV_BROADCAST_HDR)lParam);
+    return TRUE;
+  }
+  return ::DefWindowProcW(hWnd, message, wParam, lParam);
 }

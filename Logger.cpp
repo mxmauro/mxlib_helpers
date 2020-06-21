@@ -101,9 +101,11 @@ HRESULT Initialize(_In_z_ LPCWSTR szModuleNameW, _In_z_ LPCWSTR szRegistryKeyW, 
   {
     return E_INVALIDARG;
   }
+
   //copy base module name
   if (cStrLogFileNameBaseW.Copy(szModuleNameW) == FALSE)
     return E_OUTOFMEMORY;
+
   //setup log folder
   hRes = FileRoutines::GetAppDataFolderPath(cStrLogFolderW);
   if (SUCCEEDED(hRes))
@@ -111,6 +113,7 @@ HRESULT Initialize(_In_z_ LPCWSTR szModuleNameW, _In_z_ LPCWSTR szRegistryKeyW, 
     if (cStrLogFolderW.ConcatN(L"Logs\\", 5) == FALSE)
       hRes = E_OUTOFMEMORY;
   }
+
   //get settings from registry
   if (SUCCEEDED(hRes))
   {
@@ -140,12 +143,14 @@ HRESULT Initialize(_In_z_ LPCWSTR szModuleNameW, _In_z_ LPCWSTR szRegistryKeyW, 
       hRes = S_OK;
     }
   }
+
   //register finalizer
   if (SUCCEEDED(hRes))
   {
     hRes = RegisterFinalizer(&EndLogger, 1);
   }
-  //done
+
+  //failure?
   if (FAILED(hRes))
   {
     cStrLogFolderW.Empty();
@@ -153,6 +158,10 @@ HRESULT Initialize(_In_z_ LPCWSTR szModuleNameW, _In_z_ LPCWSTR szRegistryKeyW, 
     dwLogKeepDays = 0;
     return hRes;
   }
+
+  //delete old files
+  RemoveOldFiles();
+
   //done
   _InterlockedOr(&nInitializedFlags, LOGFLAG_Initialized);
   return hRes;
@@ -167,14 +176,17 @@ HRESULT Log(_Printf_format_string_ LPCWSTR szFormatW, ...)
 
   if (szFormatW == NULL)
     return E_POINTER;
+
   //initialize logger on first access
   hRes = InitLogCommon(&sSt);
   if (FAILED(hRes))
     return hRes;
+
   //write log
   va_start(argptr, szFormatW);
   WriteLogCommon(FALSE, S_OK, &sSt, szFormatW, argptr);
   va_end(argptr);
+
   //done
   return S_OK;
 }
@@ -190,6 +202,7 @@ HRESULT LogIfError(_In_ HRESULT hResError, _Printf_format_string_ LPCWSTR szForm
 
     if (szFormatW == NULL)
       return E_POINTER;
+
     //initialize logger on first access
     hRes = InitLogCommon(&sSt);
     if (FAILED(hRes))
@@ -199,6 +212,7 @@ HRESULT LogIfError(_In_ HRESULT hResError, _Printf_format_string_ LPCWSTR szForm
     WriteLogCommon(TRUE, hResError, &sSt, szFormatW, argptr);
     va_end(argptr);
   }
+
   //done
   return S_OK;
 }
@@ -212,14 +226,17 @@ HRESULT LogAlways(_In_ HRESULT hResError, _Printf_format_string_ LPCWSTR szForma
 
   if (szFormatW == NULL)
     return E_POINTER;
+
   //initialize logger on first access
   hRes = InitLogCommon(&sSt);
   if (FAILED(hRes))
     return hRes;
+
   //write log
   va_start(argptr, szFormatW);
   WriteLogCommon(TRUE, hResError, &sSt, szFormatW, argptr);
   va_end(argptr);
+
   //done
   return S_OK;
 }
@@ -236,10 +253,12 @@ HRESULT LogRaw(_In_z_ LPCWSTR szTextW)
     dwLen--;
   if (dwLen == 0)
     return S_OK;
+
   //initialize logger on first access
   hRes = InitLogCommon(&sSt);
   if (FAILED(hRes))
     return hRes;
+
   //write log
   ::WriteFile(cLogH, szTextW, dwLen * 2, &dwWritten, NULL);
   ::WriteFile(cLogH, L"\r\n", 4, &dwWritten, NULL);
@@ -278,7 +297,7 @@ static VOID RemoveOldFiles()
   HANDLE hFindFile;
   MX::CStringW cStrTempW;
   FILETIME sFt;
-  SIZE_T i, nBaseNameLen;
+  SIZE_T nBaseNameLen;
 
   if (dwLogKeepDays == 0)
     return;
