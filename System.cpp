@@ -57,7 +57,8 @@ static VOID InitializeApis();
 
 namespace MX {
 
-namespace System {
+namespace System
+{
 
 HRESULT GetOpSystemInfo(_Out_ CStringW &cStrOpSystemW)
 {
@@ -306,6 +307,33 @@ try_other_method:
     cStrNameW.Refresh();
   else
     cStrNameW.Empty();
+  return hRes;
+}
+
+HRESULT LoadAppDll(_In_z_ LPCWSTR szLibraryNameW, _Out_ HINSTANCE *lphInst)
+{
+  CStringW cStrFileNameW;
+  HRESULT hRes;
+
+  *lphInst = NULL;
+
+  hRes = FileRoutines::GetAppFolderPath(cStrFileNameW);
+  if (SUCCEEDED(hRes))
+  {
+    if (cStrFileNameW.Concat(szLibraryNameW) != FALSE)
+    {
+      HINSTANCE hDll = ::LoadLibraryW((LPCWSTR)cStrFileNameW);
+      if (hDll != NULL)
+        *lphInst = hDll;
+      else
+        hRes = MX_HRESULT_FROM_LASTERROR();
+    }
+    else
+    {
+      hRes = E_OUTOFMEMORY;
+    }
+  }
+  //done
   return hRes;
 }
 

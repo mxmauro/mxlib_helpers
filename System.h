@@ -34,6 +34,7 @@ HRESULT GetOpSystemInfo(_Out_ CStringW &cStrOpSystemW);
 
 HRESULT _GetComputerNameEx(_In_ COMPUTER_NAME_FORMAT NameType, _Out_ CStringW &cStrNameW);
 
+HRESULT LoadAppDll(_In_z_ LPCWSTR szLibraryNameW, _Out_ HINSTANCE *lphInst);
 HRESULT LoadSystem32Dll(_In_z_ LPCWSTR szLibraryNameW, _Out_ HINSTANCE *lphInst);
 
 VOID RegisterAppInRestartManager();
