@@ -141,14 +141,14 @@ BOOL HandleCrashDump(_In_z_ LPCWSTR szModuleNameW)
     fnMiniDumpWriteDump = (lpfnMiniDumpWriteDump)::GetProcAddress(hDbgHelpDll, "MiniDumpWriteDump");
     if (fnMiniDumpWriteDump != NULL)
     {
-      HANDLE hFile;
+      MX::CWindowsHandle cFileH;
 
       MX::FileRoutines::CreateDirectoryRecursive((LPCWSTR)cStrBaseFileNameW);
 
       CleanupDumpFolder((LPCWSTR)cStrBaseFileNameW);
 
-      hFile = CreateDumpFile((LPCWSTR)cStrBaseFileNameW);
-      if (hFile != INVALID_HANDLE_VALUE)
+      cFileH.Attach(CreateDumpFile((LPCWSTR)cStrBaseFileNameW));
+      if (cFileH)
       {
         MINIDUMP_EXCEPTION_INFORMATION sMiniDumpExceptionInfo;
 
@@ -156,10 +156,9 @@ BOOL HandleCrashDump(_In_z_ LPCWSTR szModuleNameW)
         sMiniDumpExceptionInfo.ExceptionPointers = sLocalCrashInfo.ExceptionInfo;
         sMiniDumpExceptionInfo.ClientPointers = TRUE;
 
-        fnMiniDumpWriteDump(hProc, ::GetProcessId(hProc), hFile, (MINIDUMP_TYPE)(MiniDumpWithFullMemory |
+        fnMiniDumpWriteDump(hProc, ::GetProcessId(hProc), cFileH, (MINIDUMP_TYPE)(MiniDumpWithFullMemory |
                             MiniDumpWithFullMemoryInfo | MiniDumpWithHandleData | MiniDumpWithUnloadedModules |
                             MiniDumpWithThreadInfo), &sMiniDumpExceptionInfo, NULL, NULL);
-        ::CloseHandle(hFile);
       }
     }
     ::FreeLibrary(hDbgHelpDll);
