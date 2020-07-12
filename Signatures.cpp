@@ -496,7 +496,7 @@ HRESULT Initialize()
 }
 
 HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_opt_ HANDLE hProcess,
-                       _Out_ PCERT_CONTEXT *lplpCertCtx, _Out_ PFILETIME lpTimeStamp)
+                       _In_opt_ HANDLE hCancelEvent, _Out_ PCERT_CONTEXT *lplpCertCtx, _Out_ PFILETIME lpTimeStamp)
 {
   static const WCHAR strW_AppxMetadata_CodeIntegrity_cat[] = {
     X_WCHAR_ENC(L'A',  0), X_WCHAR_ENC(L'p',  1), X_WCHAR_ENC(L'p',  2), X_WCHAR_ENC(L'x',  3),
@@ -535,6 +535,9 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_
     hFile = cFileH.Get();
   }
 
+  if (hCancelEvent != NULL && ::WaitForSingleObject(hCancelEvent, 0) == WAIT_OBJECT_0)
+    return MX_E_Cancelled;
+
   //if we reach here, cache is not valid or does not contains the certificate
   if (hProcess != NULL && fnGetPackageFullName != NULL)
   {
@@ -542,20 +545,16 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_
     UINT32 dwLen;
 
     if (cStrPackageFullPathW.EnsureBuffer(1024 + 4) == FALSE)
-    {
-      hRes = E_OUTOFMEMORY;
-      goto done;
-    }
+      return E_OUTOFMEMORY;
+
     dwLen = 1024;
     hRes = MX_HRESULT_FROM_WIN32(fnGetPackageFullName(hProcess, &dwLen, (LPWSTR)cStrPackageFullPathW));
     if (hRes == HRESULT_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER))
     {
-      if (cStrPackageFullPathW.EnsureBuffer((SIZE_T)dwLen + 4) == FALSE)
-      {
+      if (cStrPackageFullPathW.EnsureBuffer((SIZE_T)dwLen + 4) != FALSE)
+        hRes = MX_HRESULT_FROM_WIN32(fnGetPackageFullName(hProcess, &dwLen, (LPWSTR)cStrPackageFullPathW));
+      else
         hRes = E_OUTOFMEMORY;
-        goto done;
-      }
-      hRes = MX_HRESULT_FROM_WIN32(fnGetPackageFullName(hProcess, &dwLen, (LPWSTR)cStrPackageFullPathW));
     }
     if (SUCCEEDED(hRes))
     {
@@ -632,12 +631,18 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_
     }
   }
 
+  if (hCancelEvent != NULL && ::WaitForSingleObject(hCancelEvent, 0) == WAIT_OBJECT_0)
+    return MX_E_Cancelled;
+
   //verify PE's signature
   if (::SetFilePointer(hFile, 0, NULL, FILE_BEGIN) != INVALID_SET_FILE_POINTER)
   {
     hRes = DoTrustVerification(szPeFileNameW, hFile, &sWVTPolicyGuid, NULL, lplpCertCtx, lpTimeStamp);
     if (hRes == E_OUTOFMEMORY)
-      goto done;
+      return hRes;
+
+    if (hCancelEvent != NULL && ::WaitForSingleObject(hCancelEvent, 0) == WAIT_OBJECT_0)
+      return MX_E_Cancelled;
   }
   else
   {
@@ -657,6 +662,12 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_
     {
       for (nPass = 1; nPass <= 2; nPass++)
       {
+        if (hCancelEvent != NULL && ::WaitForSingleObject(hCancelEvent, 0) == WAIT_OBJECT_0)
+        {
+          hRes = MX_E_Cancelled;
+          break;
+        }
+
         hRes = S_OK;
         if (nPass == 1)
         {
@@ -904,9 +915,10 @@ HRESULT GetCertificateSerialNumber(_In_ PCCERT_CONTEXT lpCertCtx, _Out_ LPBYTE *
   return S_OK;
 }
 
-HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _In_opt_ HANDLE hFile, _Out_ LPHASHES lpHashes)
+HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _In_opt_ HANDLE hFile, _In_opt_ HANDLE hCancelEvent,
+                        _Out_ LPHASHES lpHashes)
 {
-  CWindowsHandle cFileH;
+  CWindowsHandle cFileH, cReadCompletedEventH;
   CMessageDigest cHashSha256, cHashSha1, cHashMd5;
   HRESULT hRes;
 
@@ -916,6 +928,10 @@ HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _In_opt_ HANDLE hFile, _Out_
     return E_POINTER;
   if (*szFileNameW == 0)
     return E_INVALIDARG;
+
+  cReadCompletedEventH.Attach(::CreateEventW(NULL, FALSE, FALSE, NULL));
+  if (!cReadCompletedEventH)
+    return MX_HRESULT_FROM_LASTERROR();
 
   if (hFile == NULL)
   {
@@ -935,37 +951,88 @@ HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _In_opt_ HANDLE hFile, _Out_
 
   if (SUCCEEDED(hRes))
   {
-    if (::SetFilePointer(hFile, 0, NULL, FILE_BEGIN) == INVALID_SET_FILE_POINTER)
-      hRes = MX_HRESULT_FROM_LASTERROR();
-  }
-  if (SUCCEEDED(hRes))
-  {
     BYTE aBlock[8192];
-    DWORD dwRead;
+    DWORD dwCancelCheckCounter;
+    MX_IO_STATUS_BLOCK sIoStatus;
+    ULARGE_INTEGER uliOffset;
+    HANDLE hEvents[2];
+    NTSTATUS nNtStatus;
 
+    hEvents[0] = cReadCompletedEventH.Get();
+    hEvents[1] = hCancelEvent;
+
+    dwCancelCheckCounter = 0;
+    uliOffset.QuadPart = 0ui64;
     do
     {
-      dwRead = 0;
-      if (::ReadFile(hFile, aBlock, (DWORD)sizeof(aBlock), &dwRead, NULL) == FALSE)
+      if ((++dwCancelCheckCounter) >= 16)
       {
-        hRes = MX_HRESULT_FROM_LASTERROR();
+        dwCancelCheckCounter = 0;
+        if (::WaitForSingleObject(hCancelEvent, 0) == WAIT_OBJECT_0)
+        {
+          hRes = MX_E_Cancelled;
+          break;
+        }
+      }
+
+      ::MxMemSet(&sIoStatus, 0, sizeof(sIoStatus));
+      nNtStatus = ::MxNtReadFile(hFile, hEvents[0], NULL, NULL, &sIoStatus, aBlock, (ULONG)sizeof(aBlock),
+                                 (PLARGE_INTEGER)&uliOffset, NULL);
+      if (nNtStatus == STATUS_PENDING)
+      {
+        if (hCancelEvent != NULL)
+        {
+          nNtStatus = ::MxNtWaitForMultipleObjects(2, hEvents, 1/*WaitAnyObject*/, FALSE, NULL);
+          if (nNtStatus == STATUS_WAIT_0)
+          {
+            nNtStatus = sIoStatus.Status;
+          }
+          else if (nNtStatus == STATUS_WAIT_0 + 1)
+          {
+            hRes = MX_E_Cancelled;
+            break;
+          }
+          else if (NT_SUCCESS(nNtStatus))
+          {
+            hRes = E_FAIL;
+            break;
+          }
+        }
+        else
+        {
+          nNtStatus = ::MxNtWaitForSingleObject(hEvents[0], FALSE, NULL);
+          if (NT_SUCCESS(nNtStatus))
+            nNtStatus = sIoStatus.Status;
+        }
+      }
+      if (nNtStatus == STATUS_END_OF_FILE)
+      {
+        hRes = MX_E_EndOfFileReached;
         break;
       }
-      if (dwRead > 0)
+      if (!NT_SUCCESS(nNtStatus))
       {
-        hRes = cHashSha256.DigestStream(aBlock, dwRead);
+        hRes = MX_HRESULT_FROM_WIN32(::MxRtlNtStatusToDosError(nNtStatus));
+        break;
+      }
+
+      if (sIoStatus.Information > 0)
+      {
+        uliOffset.QuadPart += (ULONGLONG)(sIoStatus.Information);
+
+        hRes = cHashSha256.DigestStream(aBlock, (DWORD)(sIoStatus.Information));
         if (SUCCEEDED(hRes))
         {
-          hRes = cHashSha1.DigestStream(aBlock, dwRead);
+          hRes = cHashSha1.DigestStream(aBlock, (DWORD)(sIoStatus.Information));
           if (SUCCEEDED(hRes))
-            hRes = cHashMd5.DigestStream(aBlock, dwRead);
+            hRes = cHashMd5.DigestStream(aBlock, (DWORD)(sIoStatus.Information));
         }
         if (FAILED(hRes))
           break;
       }
     }
-    while (dwRead > 0);
-    if (hRes == HRESULT_FROM_WIN32(ERROR_HANDLE_EOF))
+    while (sIoStatus.Information > 0);
+    if (hRes == MX_E_EndOfFileReached)
       hRes = S_OK;
 
     if (SUCCEEDED(hRes))
