@@ -328,15 +328,23 @@ BOOL CPEParser::ReadRaw(_Out_writes_(nBytes) LPVOID lpDest, _In_ LPCVOID lpSrc, 
       if (nOffset < sFileCache.nOffset || nOffset >= sFileCache.nOffset + sFileCache.nLength)
       {
         //cache is invalid, refresh
-        DWORD dwRead;
+        MX_IO_STATUS_BLOCK sIoStatus;
         LARGE_INTEGER liOffset;
+        LONG nNtStatus;
 
-        //read from file
         liOffset.QuadPart = (LONGLONG)(ULONGLONG)nOffset;
 
-        if (::SetFilePointerEx(hFile, liOffset, NULL, FILE_BEGIN) == FALSE ||
-            ::ReadFile(hFile, sFileCache.aBuffer, (DWORD)sizeof(sFileCache.aBuffer), &dwRead, NULL) == FALSE ||
-            dwRead == 0)
+        //read from file
+        ::MxMemSet(&sIoStatus, 0, sizeof(sIoStatus));
+        nNtStatus = ::MxNtReadFile(hFile, NULL, NULL, NULL, &sIoStatus, sFileCache.aBuffer,
+                                   (ULONG)sizeof(sFileCache.aBuffer), &liOffset, NULL);
+        if (nNtStatus == STATUS_PENDING)
+        {
+          nNtStatus = ::MxNtWaitForSingleObject(hFile, FALSE, NULL);
+          if (NT_SUCCESS(nNtStatus))
+            nNtStatus = sIoStatus.Status;
+        }
+        if (nNtStatus < 0 || sIoStatus.Information == 0)
         {
           sFileCache.nOffset = sFileCache.nLength = 0; //invalidate cache
           return FALSE;
@@ -344,7 +352,7 @@ BOOL CPEParser::ReadRaw(_Out_writes_(nBytes) LPVOID lpDest, _In_ LPCVOID lpSrc, 
 
         //update cache info
         sFileCache.nOffset = nOffset;
-        sFileCache.nLength = (SIZE_T)dwRead;
+        sFileCache.nLength = (SIZE_T)(sIoStatus.Information);
       }
 
       //here cache is valid, proceed with read
