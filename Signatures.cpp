@@ -38,8 +38,6 @@
 
 #define MAX_FILE_SIZE_FOR_CATALOG_CHECK  100ui64*1048576ui64
 
-#define MAX_CACHED_ITEMS                                8192
-
 #define X_CHAR_ENC(_x,_y)   (CHAR)((  (BYTE)(_x)) ^ (  (BYTE)_y+0xB3))
 #define X_WCHAR_ENC(_x,_y) (WCHAR)(((USHORT)(_x)) ^ ((USHORT)_y+0x2CE3))
 
@@ -538,7 +536,7 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_
   if (hCancelEvent != NULL && ::WaitForSingleObject(hCancelEvent, 0) == WAIT_OBJECT_0)
     return MX_E_Cancelled;
 
-  //if we reach here, cache is not valid or does not contains the certificate
+  //check if we are dealing with a package
   if (hProcess != NULL && fnGetPackageFullName != NULL)
   {
     TAutoFreePtr<PACKAGE_ID> aPackageId;
