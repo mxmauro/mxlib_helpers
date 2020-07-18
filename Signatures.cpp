@@ -988,6 +988,7 @@ HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _In_opt_ HANDLE hFile, _In_o
           else if (nNtStatus == STATUS_WAIT_0 + 1)
           {
             hRes = MX_E_Cancelled;
+            ::CancelIo(hFile);
             break;
           }
           else if (NT_SUCCESS(nNtStatus))
