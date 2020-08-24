@@ -311,7 +311,7 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
 
     ::MxMemSet(&sServFailActW, 0, sizeof(sServFailActW));
     sServFailActW.dwResetPeriod = INFINITE;
-    sServFailActW.cActions = 1;
+    sServFailActW.cActions = (lpCreateInfo->sFailureControl.bAutoRestart != FALSE) ? 1 : 0;
     sServFailActW.lpsaActions = aServActions;
     ::MxMemSet(aServActions, 0, sizeof(aServActions));
     if (lpCreateInfo->sFailureControl.bAutoRestart != FALSE)
