@@ -158,13 +158,13 @@ HRESULT CMemoryPackage::OpenPackage(_In_ LPCVOID lpData, _In_ SIZE_T nDataSize, 
       case 5:
       case 6:
       case 7:
-        dwFileSize |= (DWORD)aByteValues[nDataPos++] << ((nState-4) << 3);
+        dwFileSize |= (DWORD)aByteValues[nDataPos++] << ((nState - 4) << 3);
         nState++;
         break;
 
       case 8:
       case 9:
-        dwNameLength |= (DWORD)aByteValues[nDataPos++] << ((nState-8) << 3);
+        dwNameLength |= (DWORD)aByteValues[nDataPos++] << ((nState - 8) << 3);
         if ((++nState) == 10)
         {
           if (dwFileDataOffset > nDataSize || dwNameLength == 0 || dwNameLength >= 32768)
@@ -257,11 +257,11 @@ VOID CMemoryPackage::ClosePackage()
   return;
 }
 
-HRESULT CMemoryPackage::GetStream(_In_z_ LPCWSTR szFileNameW, __deref_out CStream **lplpStream)
+HRESULT CMemoryPackage::GetStream(_In_z_ LPCWSTR szFileNameW, _Deref_out_ CStream **lplpStream)
 {
   CStringW cStrFileNameW;
   MemoryPackage::Internals::CFileStream *lpFileStream;
-  FILEITEM sFileItem, *lpFileItem;
+  FILEITEM *lpFileItem;
   LPVOID lpPtr;
 
   if (lplpStream != NULL)
@@ -290,11 +290,9 @@ HRESULT CMemoryPackage::GetStream(_In_z_ LPCWSTR szFileNameW, __deref_out CStrea
         return E_OUTOFMEMORY;
     }
   }
-  //lcoate the item
-  sFileItem.szSearchNameW = (LPCWSTR)cStrFileNameW;
-  lpFileItem = &sFileItem;
+  //locate the item
 #pragma warning(suppress : 6387)
-  lpPtr = bsearch_s(&lpFileItem, aFileItemsList.GetBuffer(), aFileItemsList.GetCount(), sizeof(FILEITEM*),
+  lpPtr = bsearch_s((LPCWSTR)cStrFileNameW, aFileItemsList.GetBuffer(), aFileItemsList.GetCount(), sizeof(FILEITEM*),
                     reinterpret_cast<int(__cdecl*)(void*, const void*, const void*)>(&CMemoryPackage::FileItemSearch),
                     NULL);
   if (lpPtr == NULL)
@@ -313,14 +311,242 @@ HRESULT CMemoryPackage::GetStream(_In_z_ LPCWSTR szFileNameW, __deref_out CStrea
   return S_OK;
 }
 
-int CMemoryPackage::FileItemCompare(void *lpContext, const FILEITEM **lplpItem1, const FILEITEM **lplpItem2)
+HRESULT CMemoryPackage::GetFiles(_In_z_ LPCWSTR szFolderNameW, _Out_ TArrayListWithFree<LPCWSTR> &aFilesList)
 {
-  return StrCompareW((*lplpItem1)->szNameW, (*lplpItem2)->szNameW, TRUE);
+  MX::CStringW cStrTempW;
+  LPFILEITEM *lplpFileItem;
+  SIZE_T nFolderNameLen, nCount;
+
+  aFilesList.RemoveAllElements();
+
+  if (szFolderNameW == NULL)
+    return E_POINTER;
+  while (*szFolderNameW == L'/' || *szFolderNameW == L'\\')
+    szFolderNameW++;
+  nFolderNameLen = StrLenW(szFolderNameW);
+  while (nFolderNameLen > 0 &&
+         (szFolderNameW[nFolderNameLen - 1] == L'/' || szFolderNameW[nFolderNameLen - 1] == L'\\'))
+  {
+    nFolderNameLen--;
+  }
+
+  lplpFileItem = aFileItemsList.GetBuffer();
+  for (nCount = aFileItemsList.GetCount(); nCount > 0; lplpFileItem++, nCount--)
+  {
+    LPCWSTR szNameW;
+    BOOL bAlreadyOnList;
+
+    szNameW = (*lplpFileItem)->szNameW;
+
+    //if we are non-root, check folder
+    if (nFolderNameLen > 0)
+    {
+      LPCWSTR szFolderSpecW;
+      int comp;
+
+      szFolderSpecW = szFolderNameW;
+      comp = FileSpecCompare(&szFolderSpecW, &szNameW, nFolderNameLen);
+      if (comp != 0)
+        continue;
+      if (*szNameW != L'\\')
+        continue;
+      szNameW++;
+    }
+
+    //check if the remaining filename does not contains a slash
+    if (StrChrW(szNameW, L'\\') != NULL)
+      continue; //yes => it a file on a subdirectory, skip
+
+    //found a file to add
+    if (cStrTempW.Copy(szNameW) == FALSE)
+      return E_OUTOFMEMORY;
+    if (aFilesList.SortedInsert((LPCWSTR)cStrTempW, &CMemoryPackage::ListFilesInsert, NULL, TRUE,
+                                &bAlreadyOnList) != FALSE)
+    {
+      cStrTempW.Detach();
+    }
+    else
+    {
+      if (bAlreadyOnList == FALSE)
+        return E_OUTOFMEMORY;
+    }
+  }
+
+  //done
+  return S_OK;
 }
 
-int CMemoryPackage::FileItemSearch(void *lpContext, const FILEITEM **lplpItem1, const FILEITEM **lplpItem2)
+HRESULT CMemoryPackage::GetFolders(_In_z_ LPCWSTR szFolderNameW, _Out_ TArrayListWithFree<LPCWSTR> &aFoldersList)
 {
-  return StrCompareW((*lplpItem1)->szSearchNameW, (*lplpItem2)->szNameW, TRUE);
+  MX::CStringW cStrTempW;
+  LPFILEITEM *lplpFileItem;
+  SIZE_T nFolderNameLen, nCount;
+
+  aFoldersList.RemoveAllElements();
+
+  if (szFolderNameW == NULL)
+    return E_POINTER;
+  while (*szFolderNameW == L'/' || *szFolderNameW == L'\\')
+    szFolderNameW++;
+  nFolderNameLen = StrLenW(szFolderNameW);
+  while (nFolderNameLen > 0 &&
+         (szFolderNameW[nFolderNameLen - 1] == L'/' || szFolderNameW[nFolderNameLen - 1] == L'\\'))
+  {
+    nFolderNameLen--;
+  }
+
+  lplpFileItem = aFileItemsList.GetBuffer();
+  for (nCount = aFileItemsList.GetCount(); nCount > 0; lplpFileItem++, nCount--)
+  {
+    LPCWSTR szNameW, szNextSlashW;
+    SIZE_T nLen;
+    BOOL bAlreadyOnList;
+
+    szNameW = (*lplpFileItem)->szNameW;
+
+    //if we are non-root, check folder
+    if (nFolderNameLen > 0)
+    {
+      LPCWSTR szFolderSpecW;
+      int comp;
+
+      szFolderSpecW = szFolderNameW;
+      comp = FileSpecCompare(&szFolderSpecW, &szNameW, nFolderNameLen);
+      if (comp != 0)
+        continue;
+      if (*szNameW != L'\\')
+        continue;
+      szNameW++;
+    }
+
+    //check if the remaining filename does not contains a slash
+    szNextSlashW = StrChrW(szNameW, L'\\');
+    if (szNextSlashW == NULL)
+      continue; //no => it's a file!!!
+
+    //found a folder to add but we must also check if it was already added
+    nLen = (SIZE_T)(szNextSlashW - szNameW);
+
+    if (cStrTempW.CopyN(szNameW, nLen) == FALSE)
+      return E_OUTOFMEMORY;
+    if (aFoldersList.SortedInsert((LPCWSTR)cStrTempW, &CMemoryPackage::ListFilesInsert, NULL, TRUE,
+                                  &bAlreadyOnList) != FALSE)
+    {
+      cStrTempW.Detach();
+    }
+    else
+    {
+      if (bAlreadyOnList == FALSE)
+        return E_OUTOFMEMORY;
+    }
+  }
+
+  //done
+  return S_OK;
+}
+
+int CMemoryPackage::FileItemCompare(void *lpContext, const FILEITEM **lplpItem1, const FILEITEM **lplpItem2)
+{
+  LPCWSTR sW_1, sW_2;
+
+  sW_1 = (*lplpItem1)->szNameW;
+  sW_2 = (*lplpItem2)->szNameW;
+  return FileSpecCompare(&sW_1, &sW_2, (SIZE_T)-1);
+}
+
+int CMemoryPackage::FileItemSearch(void *lpContext, const LPCWSTR szSearchNameW, const FILEITEM **lplpItem)
+{
+  LPCWSTR sW_1, sW_2;
+
+  sW_1 = szSearchNameW;
+  sW_2 = (*lplpItem)->szNameW;
+  return FileSpecCompare(&sW_1, &sW_2, (SIZE_T)-1);
+}
+
+int CMemoryPackage::ListFilesInsert(_In_ LPVOID lpContext, _In_ LPCWSTR *lpszElem1, _In_ LPCWSTR *lpszElem2)
+{
+  return StrCompareW(*lpszElem1, *lpszElem2, TRUE);
+}
+
+int CMemoryPackage::FileSpecCompare(_In_ LPCWSTR *lpszStrW_1, _In_ LPCWSTR *lpszStrW_2, _In_ SIZE_T nLen)
+{
+  LPCWSTR sW_1, sW_2;
+  int comp;
+  SIZE_T nThisLen;
+
+  sW_1 = *lpszStrW_1;
+  sW_2 = *lpszStrW_2;
+
+restart:
+  //compare until next folder separator or EOS
+  for (nThisLen = 0;
+        nThisLen < nLen &&
+        sW_1[nThisLen] != 0 && sW_1[nThisLen] != L'/' && sW_1[nThisLen] != L'\\' &&
+        sW_2[nThisLen] != 0 && sW_2[nThisLen] != L'/' && sW_2[nThisLen] != L'\\';
+        nThisLen++);
+
+  if (nThisLen > 0)
+  {
+    comp = StrNCompareW(sW_1, sW_2, nThisLen, TRUE);
+    if (comp != 0)
+      return comp;
+
+    sW_1 += nThisLen;
+    sW_2 += nThisLen;
+    if (nLen != (SIZE_T)-1)
+      nLen -= nThisLen;
+  }
+
+  //if we reach the end of a counted string, stop
+  if (nLen == 0)
+  {
+    *lpszStrW_1 = sW_1;
+    *lpszStrW_2 = sW_2;
+    return 0;
+  }
+
+  //skip slashes if both strings are placed in the folder separator
+  if ((*sW_1 == L'/' || *sW_1 == L'\\') && (*sW_2 == L'/' || *sW_2 == L'\\'))
+  {
+    while ((*sW_1 == L'/' || *sW_1 == L'\\') && (*sW_2 == L'/' || *sW_2 == L'\\'))
+    {
+      sW_1++;
+      sW_2++;
+      if (nLen != (SIZE_T)-1)
+      {
+        if ((--nLen) == 0)
+        {
+          *lpszStrW_1 = sW_1;
+          *lpszStrW_2 = sW_2;
+          return 0;
+        }
+      }
+    }
+  }
+
+  //if one of the strings is a slash, then we have a mismatch
+  if (*sW_1 == L'/' || *sW_1 == L'\\' || *sW_2 == L'/' || *sW_2 == L'\\')
+  {
+    return (*sW_1 < *sW_2) ? -1 : 1;
+  }
+
+  //check if we reached the EOS of one or both strings
+  if (*sW_1 == 0)
+  {
+    if (*sW_2 == 0)
+    {
+      *lpszStrW_1 = sW_1;
+      *lpszStrW_2 = sW_2;
+      return 0;
+    }
+    return -1;
+  }
+  else if (*sW_2 == 0)
+  {
+    return 1;
+  }
+
+  goto restart;
 }
 
 }; //namespace MX
