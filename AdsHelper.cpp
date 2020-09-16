@@ -1401,7 +1401,7 @@ BOOL CAdsHelper::EscapeSlashes(_Inout_ CStringW &cStrW)
   return TRUE;
 }
 
-HRESULT CAdsHelper::AdsOpen(_In_z_ LPCWSTR szPathNameW, _In_ REFIID riid, __deref_out LPVOID *ppObject)
+HRESULT CAdsHelper::AdsOpen(_In_z_ LPCWSTR szPathNameW, _In_ REFIID riid, _Deref_out_ LPVOID *ppObject)
 {
   CStringW cStrTempPathW;
 

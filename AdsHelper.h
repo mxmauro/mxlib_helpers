@@ -65,7 +65,7 @@ public:
 
 private:
   static BOOL EscapeSlashes(_Inout_ CStringW &cStrW);
-  HRESULT AdsOpen(_In_z_ LPCWSTR szPathNameW, _In_ REFIID riid, __deref_out LPVOID *ppObject);
+  HRESULT AdsOpen(_In_z_ LPCWSTR szPathNameW, _In_ REFIID riid, _Deref_out_ LPVOID *ppObject);
   BOOL IsCancelled();
 
 private:
