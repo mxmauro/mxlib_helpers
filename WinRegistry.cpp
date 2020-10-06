@@ -1311,7 +1311,7 @@ static HRESULT GetSubKeyName(_In_ HANDLE hKey, _In_ ULONG Index, _Out_ PUNICODE_
       (*pKeyName)->Buffer = (PWSTR)(*pKeyName + 1);
       ::MxMemCopy((*pKeyName)->Buffer, lpKeyBasicInfo->Name, (SIZE_T)(lpKeyBasicInfo->NameLength));
       (*pKeyName)->Length = (*pKeyName)->MaximumLength = (USHORT)(lpKeyBasicInfo->NameLength);
-      (*pKeyName)->Buffer[(*pKeyName)->Length] = 0;
+      (*pKeyName)->Buffer[(*pKeyName)->Length / 2] = 0;
     }
     else
     {
@@ -1373,7 +1373,7 @@ static HRESULT GetValueName(_In_ HANDLE hKey, _In_ ULONG Index, _Out_ PUNICODE_S
       (*pValueName)->Buffer = (PWSTR)(*pValueName + 1);
       ::MxMemCopy((*pValueName)->Buffer, lpKeyValueBasicInfo->Name, (SIZE_T)(lpKeyValueBasicInfo->NameLength));
       (*pValueName)->Length = (*pValueName)->MaximumLength = (USHORT)(lpKeyValueBasicInfo->NameLength);
-      (*pValueName)->Buffer[(*pValueName)->Length] = 0;
+      (*pValueName)->Buffer[(*pValueName)->Length / 2] = 0;
     }
     else
     {
