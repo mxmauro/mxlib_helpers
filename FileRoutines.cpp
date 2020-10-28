@@ -127,6 +127,72 @@ HRESULT GetAppFolderPath(_Out_ CStringW &cStrDestW)
   return hRes;
 }
 
+HRESULT GetProcessFileName(_In_ DWORD dwPid, _Out_ CStringW &cStrDestW)
+{
+  HANDLE hProc;
+  HRESULT hRes;
+
+  hProc = ::OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, dwPid);
+  if (hProc == NULL)
+  {
+    hRes = GetProcessFileName(hProc, cStrDestW);
+    ::CloseHandle(hProc);
+  }
+  else
+  {
+    hRes = MX_HRESULT_FROM_LASTERROR();
+    cStrDestW.Empty();
+  }
+  //done
+  return hRes;
+}
+
+HRESULT GetProcessFileName(_In_ HANDLE hProc, _Out_ CStringW &cStrDestW)
+{
+  ULONG BufSize, RetLength;
+  NTSTATUS nNtStatus;
+  HRESULT hRes;
+
+  if (hProc == NULL || hProc == INVALID_HANDLE_VALUE)
+  {
+    cStrDestW.Empty();
+    return E_INVALIDARG;
+  }
+
+  BufSize = 128;
+  RetLength = 256;
+  for (;;)
+  {
+    if (RetLength > BufSize)
+      BufSize = RetLength;
+    else
+      BufSize = BufSize = 2;
+    if (cStrDestW.EnsureBuffer((SIZE_T)BufSize / 2) == FALSE)
+      return E_OUTOFMEMORY;
+
+    nNtStatus = ::MxNtQueryInformationProcess(hProc, MxProcessImageFileName, (LPWSTR)cStrDestW, BufSize, &RetLength);
+    if (nNtStatus != STATUS_BUFFER_TOO_SMALL && nNtStatus != STATUS_BUFFER_OVERFLOW)
+      break;
+  }
+  if (nNtStatus < 0)
+  {
+    cStrDestW.Empty();
+    return MX_HRESULT_FROM_WIN32(::MxRtlNtStatusToDosError(nNtStatus));
+  }
+
+  ((LPWSTR)cStrDestW)[RetLength / 2] = 0;
+  cStrDestW.Refresh();
+
+  hRes = ConvertToLongPath(cStrDestW);
+  if (SUCCEEDED(hRes))
+    hRes = ConvertToWin32(cStrDestW);
+
+  //done
+  if (FAILED(hRes))
+    cStrDestW.Empty();
+  return hRes;
+}
+
 VOID SetAppDataFolder(_In_z_ LPCWSTR szSubFolderW)
 {
   szAppDataSubFolderW = szSubFolderW;
