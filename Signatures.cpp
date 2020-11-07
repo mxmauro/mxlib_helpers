@@ -963,7 +963,7 @@ HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _In_opt_ HANDLE hFile, _In_o
     uliOffset.QuadPart = 0ui64;
     do
     {
-      if ((++dwCancelCheckCounter) >= 16)
+      if (hCancelEvent != NULL && (++dwCancelCheckCounter) >= 16)
       {
         dwCancelCheckCounter = 0;
         if (::WaitForSingleObject(hCancelEvent, 0) == WAIT_OBJECT_0)

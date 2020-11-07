@@ -82,7 +82,8 @@ static HRESULT _GetKnownFolderFolderPath(_In_ int csIdl, _In_ const GUID &sGuid,
 
 namespace MX {
 
-namespace FileRoutines {
+namespace FileRoutines
+{
 
 HRESULT GetAppFileName(_Out_ CStringW &cStrDestW)
 {
