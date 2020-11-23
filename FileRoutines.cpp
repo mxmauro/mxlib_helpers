@@ -134,7 +134,7 @@ HRESULT GetProcessFileName(_In_ DWORD dwPid, _Out_ CStringW &cStrDestW)
   HRESULT hRes;
 
   hProc = ::OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, dwPid);
-  if (hProc == NULL)
+  if (hProc != NULL)
   {
     hRes = GetProcessFileName(hProc, cStrDestW);
     ::CloseHandle(hProc);
@@ -150,7 +150,8 @@ HRESULT GetProcessFileName(_In_ DWORD dwPid, _Out_ CStringW &cStrDestW)
 
 HRESULT GetProcessFileName(_In_ HANDLE hProc, _Out_ CStringW &cStrDestW)
 {
-  ULONG BufSize, RetLength;
+  PMX_UNICODE_STRING FileName = NULL;
+  ULONG RetLength;
   NTSTATUS nNtStatus;
   HRESULT hRes;
 
@@ -160,38 +161,63 @@ HRESULT GetProcessFileName(_In_ HANDLE hProc, _Out_ CStringW &cStrDestW)
     return E_INVALIDARG;
   }
 
-  BufSize = 128;
-  RetLength = 256;
-  for (;;)
-  {
-    if (RetLength > BufSize)
-      BufSize = RetLength;
-    else
-      BufSize = BufSize = 2;
-    if (cStrDestW.EnsureBuffer((SIZE_T)BufSize / 2) == FALSE)
-      return E_OUTOFMEMORY;
+  FileName = (PMX_UNICODE_STRING)MX_MALLOC(sizeof(MX_UNICODE_STRING) + 256);
+  if (FileName == NULL)
+    return E_OUTOFMEMORY;
+  FileName->Buffer = (PWCH)(FileName + 1);
+  FileName->Length = 0;
+  FileName->MaximumLength = 256;
 
-    nNtStatus = ::MxNtQueryInformationProcess(hProc, MxProcessImageFileName, (LPWSTR)cStrDestW, BufSize, &RetLength);
-    if (nNtStatus != STATUS_BUFFER_TOO_SMALL && nNtStatus != STATUS_BUFFER_OVERFLOW)
-      break;
+  RetLength = 0;
+  nNtStatus = ::MxNtQueryInformationProcess(hProc, MxProcessImageFileName, FileName,
+                                            (ULONG)sizeof(MX_UNICODE_STRING) + 256, &RetLength);
+  if (nNtStatus == STATUS_BUFFER_TOO_SMALL || nNtStatus == STATUS_BUFFER_OVERFLOW)
+  {
+    MX_FREE(FileName);
+
+    if (RetLength >= sizeof(MX_UNICODE_STRING))
+    {
+      FileName = (PMX_UNICODE_STRING)MX_MALLOC((SIZE_T)RetLength);
+      if (FileName == NULL)
+        return E_OUTOFMEMORY;
+      FileName->Buffer = (PWCH)(FileName + 1);
+      FileName->Length = 0;
+      FileName->MaximumLength = (USHORT)(RetLength - (ULONG)sizeof(MX_UNICODE_STRING));
+      RetLength = 0;
+      nNtStatus = ::MxNtQueryInformationProcess(hProc, MxProcessImageFileName, FileName, RetLength, &RetLength);
+    }
+    else
+    {
+      nNtStatus = STATUS_BUFFER_OVERFLOW;
+    }
   }
+
   if (nNtStatus < 0)
   {
+    MX_FREE(FileName);
     cStrDestW.Empty();
     return MX_HRESULT_FROM_WIN32(::MxRtlNtStatusToDosError(nNtStatus));
   }
 
-  ((LPWSTR)cStrDestW)[RetLength / 2] = 0;
-  cStrDestW.Refresh();
+  if (cStrDestW.CopyN(FileName->Buffer, (SIZE_T)(FileName->Length / 2)) == FALSE)
+  {
+    MX_FREE(FileName);
+    return E_OUTOFMEMORY;
+  }
+  MX_FREE(FileName);
 
   hRes = ConvertToLongPath(cStrDestW);
   if (SUCCEEDED(hRes))
     hRes = ConvertToWin32(cStrDestW);
 
-  //done
-  if (FAILED(hRes))
+  if (hRes == E_OUTOFMEMORY)
+  {
     cStrDestW.Empty();
-  return hRes;
+    return hRes;
+  }
+
+  //done
+  return S_OK;
 }
 
 VOID SetAppDataFolder(_In_z_ LPCWSTR szSubFolderW)

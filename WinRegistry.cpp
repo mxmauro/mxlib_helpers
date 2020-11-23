@@ -36,8 +36,8 @@ static const MX_UNICODE_STRING usEmpty = { 0, 0, (PWSTR)L"" };
 static NTSTATUS OpenBaseKey(_In_ HKEY hKey, _In_ DWORD dwAccess, _Out_ PHANDLE lphBaseKey);
 static HRESULT RecursiveDeleteKey(_In_ HANDLE hKey, _In_opt_ PUNICODE_STRING SubKey);
 
-static HRESULT GetSubKeyName(_In_ HANDLE hKey, _In_ ULONG Index, _Out_ PUNICODE_STRING *pKeyName);
-static HRESULT GetValueName(_In_ HANDLE hKey, _In_ ULONG Index, _Out_ PUNICODE_STRING *pValueName);
+static NTSTATUS GetSubKeyName(_In_ HANDLE hKey, _In_ ULONG Index, _Out_ PUNICODE_STRING *pKeyName);
+static NTSTATUS GetValueName(_In_ HANDLE hKey, _In_ ULONG Index, _Out_ PUNICODE_STRING *pValueName);
 
 //-----------------------------------------------------------
 
@@ -1069,6 +1069,8 @@ HRESULT CWindowsRegistry::EnumerateKeys(_In_ DWORD dwIndex, _Inout_ CStringW &cS
 
 HRESULT CWindowsRegistry::EnumerateKeys(_In_ DWORD dwIndex, _Out_ PUNICODE_STRING *pKeyName)
 {
+  NTSTATUS nNtStatus;
+
   if (pKeyName == NULL)
     return E_POINTER;
   *pKeyName = NULL;
@@ -1076,7 +1078,8 @@ HRESULT CWindowsRegistry::EnumerateKeys(_In_ DWORD dwIndex, _Out_ PUNICODE_STRIN
   if (hKey == NULL)
     return MX_E_NotReady;
 
-  return GetSubKeyName(hKey, dwIndex, pKeyName);
+  nNtStatus = GetSubKeyName(hKey, dwIndex, pKeyName);
+  return NT_SUCCESS(nNtStatus) ? S_OK : HRESULT_FROM_WIN32(::MxRtlNtStatusToDosError(nNtStatus));
 }
 
 HRESULT CWindowsRegistry::EnumerateValues(_In_ DWORD dwIndex, _Inout_ CStringW &cStrValueNameW)
@@ -1114,6 +1117,8 @@ HRESULT CWindowsRegistry::EnumerateValues(_In_ DWORD dwIndex, _Inout_ CStringW &
 
 HRESULT CWindowsRegistry::EnumerateValues(_In_ DWORD dwIndex, _Out_ PUNICODE_STRING *pValueName)
 {
+  NTSTATUS nNtStatus;
+
   if (pValueName == NULL)
     return E_POINTER;
   *pValueName = NULL;
@@ -1121,7 +1126,8 @@ HRESULT CWindowsRegistry::EnumerateValues(_In_ DWORD dwIndex, _Out_ PUNICODE_STR
   if (hKey == NULL)
     return MX_E_NotReady;
 
-  return GetValueName(hKey, dwIndex, pValueName);
+  nNtStatus = GetValueName(hKey, dwIndex, pValueName);
+  return NT_SUCCESS(nNtStatus) ? S_OK : HRESULT_FROM_WIN32(::MxRtlNtStatusToDosError(nNtStatus));
 }
 
 }; //namespace MX
@@ -1258,17 +1264,16 @@ done:
   //done
   if (!NT_SUCCESS(nNtStatus))
   {
-    if (nNtStatus == STATUS_OBJECT_NAME_NOT_FOUND || nNtStatus == STATUS_OBJECT_PATH_NOT_FOUND ||
-        nNtStatus == STATUS_NO_MORE_ENTRIES)
+    if (nNtStatus != STATUS_OBJECT_NAME_NOT_FOUND && nNtStatus != STATUS_OBJECT_PATH_NOT_FOUND &&
+        nNtStatus != STATUS_NO_MORE_ENTRIES)
     {
-      return S_OK;
+      return HRESULT_FROM_WIN32(::MxRtlNtStatusToDosError(nNtStatus));
     }
-    return HRESULT_FROM_WIN32(::MxRtlNtStatusToDosError(nNtStatus));
   }
   return S_OK;
 }
 
-static HRESULT GetSubKeyName(_In_ HANDLE hKey, _In_ ULONG Index, _Out_ PUNICODE_STRING *pKeyName)
+static NTSTATUS GetSubKeyName(_In_ HANDLE hKey, _In_ ULONG Index, _Out_ PUNICODE_STRING *pKeyName)
 {
   PMX_KEY_BASIC_INFORMATION lpKeyBasicInfo = NULL;
   ULONG KeyBasicInfoLength, RetLength;
@@ -1323,12 +1328,10 @@ static HRESULT GetSubKeyName(_In_ HANDLE hKey, _In_ ULONG Index, _Out_ PUNICODE_
   MX_FREE(lpKeyBasicInfo);
 
   //done
-  if (!NT_SUCCESS(nNtStatus))
-    return HRESULT_FROM_WIN32(::MxRtlNtStatusToDosError(nNtStatus));
-  return S_OK;
+  return nNtStatus;
 }
 
-static HRESULT GetValueName(_In_ HANDLE hKey, _In_ ULONG Index, _Out_ PUNICODE_STRING *pValueName)
+static NTSTATUS GetValueName(_In_ HANDLE hKey, _In_ ULONG Index, _Out_ PUNICODE_STRING *pValueName)
 {
   PMX_KEY_VALUE_BASIC_INFORMATION lpKeyValueBasicInfo = NULL;
   ULONG KeyValueBasicInfoLength, RetLength;
@@ -1385,7 +1388,5 @@ static HRESULT GetValueName(_In_ HANDLE hKey, _In_ ULONG Index, _Out_ PUNICODE_S
   MX_FREE(lpKeyValueBasicInfo);
 
   //done
-  if (!NT_SUCCESS(nNtStatus))
-    return HRESULT_FROM_WIN32(::MxRtlNtStatusToDosError(nNtStatus));
-  return S_OK;
+  return nNtStatus;
 }
