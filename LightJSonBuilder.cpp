@@ -643,6 +643,26 @@ BOOL CLightJSonBuilder::AddArrayObject(_In_ CLightJSonBuilder &cSrc)
   return cStrJsonA.Concat((LPCSTR)cSrc);
 }
 
+BOOL CLightJSonBuilder::AddRaw(_In_ LPCSTR szStrA, _In_opt_ SIZE_T nStrLen)
+{
+  if (nStrLen == (SIZE_T)-1)
+    nStrLen = StrLenA(szStrA);
+  MX_ASSERT(szStrA != NULL || nStrLen == 0);
+
+  //insert text
+  return cStrJsonA.ConcatN(szStrA, nStrLen);
+}
+
+BOOL CLightJSonBuilder::AddRaw(_In_ LPCWSTR szStrW, _In_opt_ SIZE_T nStrLen)
+{
+  if (nStrLen == (SIZE_T)-1)
+    nStrLen = StrLenW(szStrW);
+  MX_ASSERT(szStrW != NULL || nStrLen == 0);
+
+  //insert text
+  return (SUCCEEDED(Utf8_Encode(cStrJsonA, szStrW, nStrLen, TRUE))) ? TRUE : FALSE;
+}
+
 BOOL CLightJSonBuilder::EscapeString(_Inout_ CStringA &cStrA, _In_ LPCSTR szValueA, _In_ SIZE_T nValueLen,
                                      _In_opt_ BOOL bAppend)
 {

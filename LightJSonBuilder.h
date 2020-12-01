@@ -70,6 +70,9 @@ public:
   BOOL AddArrayULongLong(_In_ ULONGLONG nValue, _In_opt_ BOOL bAsHexa = FALSE);
   BOOL AddArrayObject(_In_ CLightJSonBuilder &cSrc);
 
+  BOOL AddRaw(_In_ LPCSTR szStrA, _In_opt_ SIZE_T nStrLen = (SIZE_T)-1);
+  BOOL AddRaw(_In_ LPCWSTR szStrW, _In_opt_ SIZE_T nStrLen = (SIZE_T)-1);
+
   operator LPCSTR() const
     {
     MX_ASSERT(aNestedTypes.GetCount() == 0); //ensure is closed
