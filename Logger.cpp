@@ -556,15 +556,15 @@ static VOID WriteLogCommon(_In_ BOOL bAddError, _In_ HRESULT hResError, _In_ LPS
 
   if (bAddError == FALSE)
   {
-    count[0] = _snwprintf_s(szTempBufW, _countof(szTempBufW), _TRUNCATE, L"#%4lu) [%02u:%02u:%02u.%03u] ",
-                            ::GetCurrentProcessId(), lpSystemTime->wHour, lpSystemTime->wMinute, lpSystemTime->wSecond,
-                            lpSystemTime->wMilliseconds);
+    count[0] = _snwprintf_s(szTempBufW, _countof(szTempBufW), _TRUNCATE, L"#%4lu:%4lu) [%02u:%02u:%02u.%03u] ",
+                            ::GetCurrentProcessId(), ::GetCurrentThreadId(), lpSystemTime->wHour, lpSystemTime->wMinute,
+                            lpSystemTime->wSecond, lpSystemTime->wMilliseconds);
   }
   else
   {
-    count[0] = _snwprintf_s(szTempBufW, MX_ARRAYLEN(szTempBufW), _TRUNCATE, L"#%4lu) [%02u:%02u:%02u.%03u] "
-                            L"Error 0x%08X: ", ::GetCurrentProcessId(), lpSystemTime->wHour, lpSystemTime->wMinute,
-                            lpSystemTime->wSecond, lpSystemTime->wMilliseconds, hResError);
+    count[0] = _snwprintf_s(szTempBufW, MX_ARRAYLEN(szTempBufW), _TRUNCATE, L"#%4lu:%4lu) [%02u:%02u:%02u.%03u] "
+                            L"Error 0x%08X: ", ::GetCurrentProcessId(), ::GetCurrentThreadId(), lpSystemTime->wHour,
+                            lpSystemTime->wMinute, lpSystemTime->wSecond, lpSystemTime->wMilliseconds, hResError);
   }
   if (count[0] < 0)
     count[0] = 0;
