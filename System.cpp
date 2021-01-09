@@ -600,9 +600,9 @@ static VOID InitializeApis()
 
     if (SUCCEEDED(MX::System::LoadSystem32Dll(L"netapi32.dll", &_hNetApi32Dll)))
     {
-      _fnNetUserEnum = ::GetProcAddress(_hNetApi32Dll, "");
-      _fnNetLocalGroupEnum = ::GetProcAddress(_hNetApi32Dll, "");
-      _fnNetApiBufferFree = ::GetProcAddress(_hNetApi32Dll, "");
+      _fnNetUserEnum = ::GetProcAddress(_hNetApi32Dll, "NetUserEnum");
+      _fnNetLocalGroupEnum = ::GetProcAddress(_hNetApi32Dll, "NetLocalGroupEnum");
+      _fnNetApiBufferFree = ::GetProcAddress(_hNetApi32Dll, "NetApiBufferFree");
       if (_fnNetUserEnum != NULL && _fnNetLocalGroupEnum != NULL && _fnNetApiBufferFree != NULL)
       {
         fnNetUserEnum = (lpfnNetUserEnum)_fnNetUserEnum;
