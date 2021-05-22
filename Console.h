@@ -42,7 +42,7 @@ namespace MX {
 
 namespace Console {
 
-VOID Initialize(_In_ BOOL bAppIsInteractive);
+VOID Initialize();
 
 VOID Print(_In_ Console::eColor nColor, _In_ LPCWSTR szFormatW, ...);
 VOID PrintError(_In_ HRESULT hRes);

@@ -79,7 +79,7 @@ HRESULT Run(_In_opt_z_ LPCWSTR szServiceNameW, _In_ OnStartCallback _cStartCallb
     szServiceNameW = L"";
 
   //check for single instance
-  if (*szServiceNameW != NULL)
+  if (*szServiceNameW != 0)
   {
     hRes = MX::SingleInstanceCheck(szServiceNameW);
     if (FAILED(hRes))
@@ -127,7 +127,7 @@ HRESULT Run(_In_opt_z_ LPCWSTR szServiceNameW, _In_ OnStartCallback _cStartCallb
       return MX_HRESULT_FROM_LASTERROR();
 
     //send start callback
-    hRes = cStartCallback(cShutdownEv.Get(), nArgumentsCount, lpArguments, TRUE);
+    hRes = cStartCallback(nArgumentsCount, lpArguments);
     if (SUCCEEDED(hRes))
     {
       bCallStop = TRUE;
@@ -167,6 +167,12 @@ HRESULT Run(_In_opt_z_ LPCWSTR szServiceNameW, _In_ OnStartCallback _cStartCallb
   return hRes;
 }
 
+VOID SignalShutdown()
+{
+  cShutdownEv.Set();
+  return;
+}
+
 VOID SignalStarting()
 {
   if (bRunningAsConsole == FALSE)
@@ -177,7 +183,7 @@ VOID SignalStarting()
 VOID SignalStopping()
 {
   if (bRunningAsConsole == FALSE)
-    _SetServiceStatus(SERVICE_START_PENDING, ERROR_SUCCESS, 5000);
+    _SetServiceStatus(SERVICE_STOP_PENDING, ERROR_SUCCESS, 5000);
   return;
 }
 
@@ -201,6 +207,11 @@ VOID DisableStop()
     _UpdateServiceStatus();
   }
   return;
+}
+
+BOOL IsInteractive()
+{
+  return bRunningAsConsole;
 }
 
 }; //namespace Service
@@ -239,7 +250,7 @@ static VOID WINAPI _ServiceMain(_In_ DWORD dwArgc, _In_ LPWSTR *pszArgv)
   {
     _SetServiceStatus(SERVICE_START_PENDING, ERROR_SUCCESS, 5000);
     //send start callback
-    hRes = cStartCallback(cShutdownEv.Get(), nArgumentsCount, lpArguments, FALSE);
+    hRes = cStartCallback(nArgumentsCount, lpArguments);
   }
 
   if (SUCCEEDED(hRes))
