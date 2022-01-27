@@ -726,7 +726,7 @@ BOOL CLightJSonBuilder::EscapeString(_Inout_ CStringA &cStrA, _In_ LPCSTR szValu
           break;
 
         default:
-          if (cStrA.AppendFormat("\\u%04lu", (ULONG) * ((LPBYTE)szValueA)) == FALSE)
+          if (cStrA.AppendFormat("\\u%04lX", (ULONG)*((LPBYTE)szValueA)) == FALSE)
             return FALSE;
           break;
       }
@@ -789,7 +789,7 @@ BOOL CLightJSonBuilder::EscapeString(_Inout_ CStringA &cStrA, _In_ LPCWSTR szVal
       default:
         if (*szValueW < 32)
         {
-          if (cStrA.AppendFormat("\\u%04lu", (ULONG)*szValueW) == FALSE)
+          if (cStrA.AppendFormat("\\u%04lX", (ULONG)*szValueW) == FALSE)
             return FALSE;
         }
         else
