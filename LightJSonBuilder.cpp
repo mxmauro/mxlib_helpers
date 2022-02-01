@@ -76,9 +76,9 @@ BOOL CLightJSonBuilder::AddObject(_In_opt_z_ LPCSTR szNameA)
       return FALSE;
     if (cStrJsonA.Concat(szNameA) == FALSE)
       return FALSE;
-    return cStrJsonA.ConcatN("\": {", 4);
+    return cStrJsonA.ConcatN("\": { ", 5);
   }
-  return cStrJsonA.ConcatN("{", 1);
+  return cStrJsonA.ConcatN("{ ", 2);
 }
 
 BOOL CLightJSonBuilder::CloseObject()
@@ -129,9 +129,9 @@ BOOL CLightJSonBuilder::AddArray(_In_opt_z_ LPCSTR szNameA)
       return FALSE;
     if (cStrJsonA.Concat(szNameA) == FALSE)
       return FALSE;
-    return cStrJsonA.ConcatN("\": [", 4);
+    return cStrJsonA.ConcatN("\": [ ", 5);
   }
-  return cStrJsonA.ConcatN("[", 1);
+  return cStrJsonA.ConcatN("[ ", 2);
 }
 
 BOOL CLightJSonBuilder::CloseArray()
