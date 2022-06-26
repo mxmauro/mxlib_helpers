@@ -119,7 +119,6 @@ BOOL WildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR szPa
 // a/**/b     a/b, a/x/b, a/x/y/b but not x/a/b, a/b/x
 // a/**       a/x, a/y, a/x/y but not a, b/x
 // a\?b       a?b but not a, b, ab, axb, a/b
-
 BOOL GitWildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR szPatternW, _In_ SIZE_T nPatternLen)
 {
   SIZE_T nText1Backup = (SIZE_T)-1;
