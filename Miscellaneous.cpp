@@ -90,6 +90,180 @@ BOOL WildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR szPa
   return FALSE;
 }
 
+// NOTE: Based Robert-van-Engelen code
+//       https://github.com/Robert-van-Engelen/FastGlobbing
+//
+// Gitignore - style globbing applies the following rules to determine file and directory pathname matches :
+// *        matches anything except a /
+// ?        matches any one character except a /
+// [a-z]    matches one character in the selected range of characters
+// [^a-z]   matches one character not in the selected range of characters
+// [!a-z]   matches one character not in the selected range of characters
+// /        when used at the begin of a szPatternW, matches if pathname has no /
+// **/      matches zero or more directories
+// /**      when at the end of a szPatternW, matches everything after the /
+// \?       matches a ? (or any character specified after the backslash)
+//
+// Examples:
+// *          a, b, x/a, x/y/b
+// a          a, x/a, x/y/a but not b, x/b, a/a/b
+// /*         a, b but not x/a, x/b, x/y/a
+// /a         a but not x/a, x/y/a
+// a?b        axb, ayb but not a, b, ab, a/b
+// a[xy]b     axb, ayb but not a, b, azb
+// a[a-z]b    aab, abb, acb, azb but not a, b, a3b, aAb, aZb
+// a[^xy]b    aab, abb, acb, azb but not a, b, axb, ayb
+// a[^a-z]b   a3b, aAb, aZb but not a, b, aab, abb, acb, azb
+// a/*/b      a/x/b, a/y/b but not a/b, a/x/y/b
+// **/a       a, x/a, x/y/a but not b, x/b
+// a/**/b     a/b, a/x/b, a/x/y/b but not x/a/b, a/b/x
+// a/**       a/x, a/y, a/x/y but not a, b/x
+// a\?b       a?b but not a, b, ab, axb, a/b
+
+BOOL GitWildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR szPatternW, _In_ SIZE_T nPatternLen)
+{
+  SIZE_T nText1Backup = (SIZE_T)-1;
+  SIZE_T nPattern1Backup = (SIZE_T)-1;
+  SIZE_T nText2Backup = (SIZE_T)-1;
+  SIZE_T nPattern2Backup = (SIZE_T)-1;
+  SIZE_T nTextOfs = 0;
+  SIZE_T nPatternOfs = 0;
+
+  if (nTextLen == (SIZE_T)-1)
+    nTextLen = StrLenW(szTextW);
+  if (nPatternLen == (SIZE_T)-1)
+    nPatternLen = StrLenW(szPatternW);
+  if (nPatternLen == 1 && *szPatternW == L'*')
+    return TRUE; // speed-up
+
+  //if pattern does not contain a path, skip it
+  if (StrNChrW(szPatternW, L'\\', nPatternLen) == NULL)
+  {
+    LPCWSTR szSepW = StrNChrW(szTextW, L'\\', nPatternLen, TRUE);
+    if (szSepW != NULL)
+      nTextOfs = (SIZE_T)(szSepW - szTextW) + 1;
+  }
+
+  //main loop
+  while (nTextOfs < nTextLen)
+  {
+    if (nPatternOfs < nPatternLen)
+    {
+      switch (*szPatternW)
+      {
+        case '*':
+          // match anything except . after /
+          if (++nPatternOfs < nPatternLen && szPatternW[nPatternOfs] == L'*')
+          {
+            // trailing ** match everything after /
+            if (nPatternOfs >= nPatternLen)
+              return TRUE;
+
+            // ** followed by a / match zero or more directories
+            if (szPatternW[nPatternOfs] != L'\\')
+              return FALSE;
+
+            // new **-loop, discard *-loop
+            nText1Backup = (SIZE_T)-1;
+            nPattern1Backup = (SIZE_T)-1;
+            nText2Backup = nTextOfs;
+            nPattern2Backup = ++nPatternOfs;
+            continue;
+          }
+
+          // trailing * matches everything except /
+          nText1Backup = nTextOfs;
+          nPattern1Backup = nPatternOfs;
+          continue;
+
+        case '?':
+          // match any character except /
+          if (szTextW[nTextOfs] == L'\\')
+            break;
+          nTextOfs++;
+          nPatternOfs++;
+          continue;
+
+        case '[':
+          {
+          DWORD dwLastChr;
+          BOOL bMatched;
+          BOOL bReverse;
+
+          // match any character in [...] except /
+          if (szTextW[nTextOfs] == L'\\')
+            break;
+
+          // inverted character class
+          bReverse = (nPatternOfs + 1 < nPatternLen) &&
+                      (szPatternW[nPatternOfs + 1] == L'^' || szPatternW[nPatternOfs + 1] == L'!');
+          if (bReverse != FALSE)
+            nPatternOfs++;
+
+          // match character class
+          bMatched = FALSE;
+          for (dwLastChr = 0xFFFFFFFFUL;
+               ++nPatternOfs < nPatternLen && szPatternW[nPatternOfs] != L']';
+               dwLastChr = CharToUpperW(szPatternW[nPatternOfs]))
+          {
+            if ((dwLastChr < 0xFFFFFFFFUL &&
+                 szPatternW[nPatternOfs] == L'-' &&
+                 nPatternOfs + 1 < nPatternLen && szPatternW[nPatternOfs + 1] != L']')
+                ? (CharToUpperW(*szTextW) <= CharToUpperW(*++szPatternW) && (DWORD)CharToUpperW(*szTextW) >= dwLastChr)
+                : (CharToUpperW(*szTextW) == CharToUpperW(*szPatternW)))
+            {
+              bMatched = TRUE;
+            }
+            if (bMatched == bReverse)
+              break;
+          }
+          nTextOfs++;
+          if (nPatternOfs < nPatternLen)
+            nPatternOfs++;
+          }
+          continue;
+
+        //case '\\':
+        //  // literal match \-escaped character
+        //  szPatternW++;
+        //  // FALLTHROUGH
+
+        default:
+          // match the current non-NUL character
+          if (CharToUpperW(szPatternW[nPatternOfs]) != CharToUpperW(szTextW[nTextOfs]) &&
+              (!(szPatternW[nPatternOfs] == L'\\' && szTextW[nTextOfs] == L'\\')))
+          {
+            break;
+          }
+          // do not match a . with *, ? [] after /
+          nTextOfs++;
+          nPatternOfs++;
+          continue;
+      }
+    }
+    if (nPattern1Backup != (SIZE_T)-1 && szPatternW[nPattern1Backup] != L'\\')
+    {
+      // *-loop: backtrack to the last * but do not jump over /
+      nTextOfs = ++nText1Backup;
+      nPatternOfs = nPattern1Backup;
+      continue;
+    }
+    if (nPattern2Backup != (SIZE_T)-1)
+    {
+      // **-loop: backtrack to the last **
+      nTextOfs = ++nText2Backup;
+      nPatternOfs = nPattern2Backup;
+      continue;
+    }
+    return FALSE;
+  }
+  //ignore trailing stars
+  while (nPatternOfs < nPatternLen && szPatternW[nPatternOfs] == L'*')
+    nPatternOfs++;
+  //at end of text means success if nothing else is left to match
+  return (nPatternOfs >= nPatternLen) ? TRUE : FALSE;
+}
+
 BOOL String2Guid(_Out_ GUID &sGuid, _In_ LPCSTR szGuidA, _In_ SIZE_T nGuidLength)
 {
   DWORD i, dwVal;
