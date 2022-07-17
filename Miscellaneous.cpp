@@ -150,12 +150,12 @@ BOOL GitWildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR s
     {
       switch (*szPatternW)
       {
-        case '*':
+        case L'*':
           // match anything except . after /
           if (++nPatternOfs < nPatternLen && szPatternW[nPatternOfs] == L'*')
           {
             // trailing ** match everything after /
-            if (nPatternOfs >= nPatternLen)
+            if (++nPatternOfs >= nPatternLen)
               return TRUE;
 
             // ** followed by a / match zero or more directories
@@ -175,7 +175,7 @@ BOOL GitWildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR s
           nPattern1Backup = nPatternOfs;
           continue;
 
-        case '?':
+        case L'?':
           // match any character except /
           if (szTextW[nTextOfs] == L'\\')
             break;
@@ -183,7 +183,7 @@ BOOL GitWildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR s
           nPatternOfs++;
           continue;
 
-        case '[':
+        case L'[':
           {
           DWORD dwLastChr;
           BOOL bMatched;
@@ -213,19 +213,20 @@ BOOL GitWildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR s
             {
               bMatched = TRUE;
             }
-            if (bMatched == bReverse)
-              break;
           }
+          if (bMatched == bReverse)
+            break;
           nTextOfs++;
           if (nPatternOfs < nPatternLen)
             nPatternOfs++;
           }
           continue;
 
-        //case '\\':
+        //case L'\\':
         //  // literal match \-escaped character
-        //  szPatternW++;
-        //  // FALLTHROUGH
+        //  if (nPatternOfs + 1 < nPatternLen)
+        //    nPatternOfs++;
+        //  //fallthrough
 
         default:
           // match the current non-NUL character
