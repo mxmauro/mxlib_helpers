@@ -138,7 +138,7 @@ BOOL GitWildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR s
   //if pattern does not contain a path, skip it
   if (StrNChrW(szPatternW, L'\\', nPatternLen) == NULL)
   {
-    LPCWSTR szSepW = StrNChrW(szTextW, L'\\', nPatternLen, TRUE);
+    LPCWSTR szSepW = StrNChrW(szTextW, L'\\', nTextLen, TRUE);
     if (szSepW != NULL)
       nTextOfs = (SIZE_T)(szSepW - szTextW) + 1;
   }
