@@ -148,7 +148,7 @@ BOOL GitWildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR s
   {
     if (nPatternOfs < nPatternLen)
     {
-      switch (*szPatternW)
+      switch (szPatternW[nPatternOfs])
       {
         case L'*':
           // match anything except . after /
@@ -208,8 +208,9 @@ BOOL GitWildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR s
             if ((dwLastChr < 0xFFFFFFFFUL &&
                  szPatternW[nPatternOfs] == L'-' &&
                  nPatternOfs + 1 < nPatternLen && szPatternW[nPatternOfs + 1] != L']')
-                ? (CharToUpperW(*szTextW) <= CharToUpperW(*++szPatternW) && (DWORD)CharToUpperW(*szTextW) >= dwLastChr)
-                : (CharToUpperW(*szTextW) == CharToUpperW(*szPatternW)))
+                ? (CharToUpperW(szTextW[nTextOfs]) <= CharToUpperW(szPatternW[++nPatternOfs]) &&
+                   (DWORD)CharToUpperW(szTextW[nTextOfs]) >= dwLastChr)
+                : (CharToUpperW(szTextW[nTextOfs]) == CharToUpperW(szPatternW[nPatternOfs])))
             {
               bMatched = TRUE;
             }
@@ -226,7 +227,7 @@ BOOL GitWildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR s
         //  // literal match \-escaped character
         //  if (nPatternOfs + 1 < nPatternLen)
         //    nPatternOfs++;
-        //  //fallthrough
+        //  //fall through
 
         default:
           // match the current non-NUL character
