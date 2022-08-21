@@ -86,28 +86,32 @@ BOOL HandleCrashDump(_In_z_ LPCWSTR szModuleNameW)
   if (sW == NULL || *sW == 0)
     return FALSE;
 
-  while (*sW != 0)
+  //skip spaces before
+  while (*sW != 0 && *((LPWORD)sW) <= 32)
+    sW++;
+
+  //inside quotes?
+  if (*sW == L'"')
   {
+    sW++;
+    //skip until the closing quotes
+    while (*sW != 0 && *sW != L'"')
+      sW++;
     if (*sW == L'"')
-    {
+      sW++; //skip the closing quote
+  }
+  else
+  {
+    //skip until the first blank space
+    while (*((LPWORD)sW) > 32)
       sW++;
-      while (*sW != 0 && *sW != L'"')
-        sW++;
-      if (*sW == L'"')
-        sW++;
-    }
-    else if (*sW == L' ')
-    {
-      while (*sW != 0 && *sW <= 32)
-        sW++;
-      break;
-    }
-    else
-    {
-      sW++;
-    }
   }
 
+  //skip spaces after
+  while (*sW != 0 && *((LPWORD)sW) <= 32)
+    sW++;
+
+  //check parameter
   if (StrNCompareW(sW, L"/crash:", 7) != 0)
     return FALSE; //not a crash handler
   sW += 7;

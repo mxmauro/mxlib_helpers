@@ -60,6 +60,7 @@ HRESULT ResolveChildProcessFileName(_Out_ CStringW &cStrFullNameW, _In_ LPCWSTR 
     LPCWSTR szNameStartW, szNameEndW;
     SIZE_T nTempBufLen = 1024;
 
+    //NOTE: Assume szCommandLineW is the full command line
     szNameStartW = szCommandLineW;
     if (*szCommandLineW == L'"')
     {
@@ -70,9 +71,10 @@ HRESULT ResolveChildProcessFileName(_Out_ CStringW &cStrFullNameW, _In_ LPCWSTR 
     else
     {
       szNameEndW = szNameStartW;
-      while (*szNameEndW != 0 && *szNameEndW != L' ' && *szNameEndW != L'\t')
+      while (*((LPWORD)szNameEndW) > 32)
         szNameEndW++;
     }
+
     //get the path list to check (based on https://msdn.microsoft.com/en-us/library/ms682425.aspx)
     //1. The directory from which the application loaded.
     hRes = FileRoutines::GetAppFolderPath(cStrSearchPathW);
