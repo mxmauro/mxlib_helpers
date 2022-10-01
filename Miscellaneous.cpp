@@ -166,7 +166,9 @@ BOOL GitWildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR s
             nText1Backup = (SIZE_T)-1;
             nPattern1Backup = (SIZE_T)-1;
             nText2Backup = nTextOfs;
-            nPattern2Backup = ++nPatternOfs;
+            nPattern2Backup = nPatternOfs;
+            if (szTextW[nTextOfs] == L'\\')
+              nPatternOfs++;
             continue;
           }
 
