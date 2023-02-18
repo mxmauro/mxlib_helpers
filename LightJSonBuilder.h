@@ -85,6 +85,16 @@ public:
     return cStrJsonA.GetLength();
     };
 
+  LPCSTR Detach()
+    {
+    LPCSTR sA;
+
+    MX_ASSERT(aNestedTypes.GetCount() == 0); //ensure is closed
+    sA = cStrJsonA.Detach();
+    Reset();
+    return sA;
+    };
+
   //NOTE: Assume value is in UTF-8 format
   static BOOL EscapeString(_Inout_ CStringA &cStrA, _In_ LPCSTR szValueA, _In_ SIZE_T nValueLen,
                            _In_opt_ BOOL bAppend = FALSE);
