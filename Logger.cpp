@@ -61,6 +61,7 @@ static HRESULT OpenLog(_In_ LPSYSTEMTIME lpSystemTime);
 static HRESULT InitLogCommon(_Out_ LPSYSTEMTIME lpSystemTime);
 static VOID WriteLogCommon(_In_ BOOL bAddError, _In_ HRESULT hResError, _In_ LPSYSTEMTIME lpSystemTime,
                            _In_z_ LPCWSTR szFormatW, _In_ va_list argptr);
+static BOOL GenerateLogFileName(_In_ LPSYSTEMTIME lpSystemTime, _Out_ MX::CStringW &cStrFileNameW);
 
 //-----------------------------------------------------------
 
@@ -397,8 +398,7 @@ static HRESULT OpenLog(_In_ LPSYSTEMTIME lpSystemTime)
   MX::FileRoutines::CreateDirectoryRecursive((LPCWSTR)cStrLogFolderW);
 
   //open/create log file
-  if (cStrTempW.Format(L"%s%s-%04u%02u%02u.log", (LPCWSTR)cStrLogFolderW, (LPCWSTR)cStrLogFileNameBaseW,
-                       lpSystemTime->wYear, lpSystemTime->wMonth, lpSystemTime->wDay) == FALSE)
+  if (GenerateLogFileName(lpSystemTime, cStrTempW) == FALSE)
     return E_OUTOFMEMORY;
   cLogH.Attach(::CreateFileW((LPCWSTR)cStrTempW, FILE_APPEND_DATA, FILE_SHARE_READ, NULL, OPEN_ALWAYS,
                              FILE_ATTRIBUTE_NORMAL, NULL));
@@ -582,4 +582,10 @@ static VOID WriteLogCommon(_In_ BOOL bAddError, _In_ HRESULT hResError, _In_ LPS
 #endif //DEBUGOUTPUT_LOG
   //done
   return;
+}
+
+static BOOL GenerateLogFileName(_In_ LPSYSTEMTIME lpSystemTime, _Out_ MX::CStringW &cStrFileNameW)
+{
+  return cStrFileNameW.Format(L"%s%s-%04u%02u%02u.log", (LPCWSTR)cStrLogFolderW, (LPCWSTR)cStrLogFileNameBaseW,
+                              lpSystemTime->wYear, lpSystemTime->wMonth, lpSystemTime->wDay);
 }
