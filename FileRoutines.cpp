@@ -171,7 +171,8 @@ HRESULT GetProcessFileName(_In_ HANDLE hProc, _Out_ CStringW &cStrDestW)
   RetLength = 0;
   nNtStatus = ::MxNtQueryInformationProcess(hProc, MxProcessImageFileName, FileName,
                                             (ULONG)sizeof(MX_UNICODE_STRING) + 256, &RetLength);
-  if (nNtStatus == STATUS_BUFFER_TOO_SMALL || nNtStatus == STATUS_BUFFER_OVERFLOW)
+  if (nNtStatus == STATUS_INFO_LENGTH_MISMATCH || nNtStatus == STATUS_BUFFER_TOO_SMALL ||
+      nNtStatus == STATUS_BUFFER_OVERFLOW)
   {
     MX_FREE(FileName);
 
@@ -1190,7 +1191,8 @@ HRESULT GetFileNameFromHandle(_In_ HANDLE hFile, _Out_ CStringW &cStrFileNameW)
     else
       nNtStatus = STATUS_INSUFFICIENT_RESOURCES;
   }
-  while (nNtStatus == STATUS_BUFFER_OVERFLOW || nNtStatus == STATUS_BUFFER_TOO_SMALL);
+  while (nNtStatus == STATUS_BUFFER_OVERFLOW || nNtStatus == STATUS_BUFFER_TOO_SMALL ||
+         nNtStatus == STATUS_INFO_LENGTH_MISMATCH);
   if (NT_SUCCESS(nNtStatus))
   {
     if (cStrFileNameW.CopyN(lpNameInfo->Name.Buffer, (SIZE_T)(lpNameInfo->Name.Length) / 2) == FALSE)

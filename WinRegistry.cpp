@@ -251,9 +251,9 @@ HRESULT CWindowsRegistry::ReadDWord(_In_ PUNICODE_STRING Name, _Out_ DWORD &dwVa
   if (!NT_SUCCESS(nNtStatus))
   {
     dwValue = 0;
-    return (nNtStatus == STATUS_BUFFER_OVERFLOW ||
-            nNtStatus == STATUS_BUFFER_TOO_SMALL) ? MX_E_InvalidData
-                                                  : HRESULT_FROM_WIN32(::MxRtlNtStatusToDosError(nNtStatus));
+    return (nNtStatus == STATUS_INFO_LENGTH_MISMATCH || nNtStatus == STATUS_BUFFER_OVERFLOW ||
+            nNtStatus == STATUS_BUFFER_TOO_SMALL)
+           ? MX_E_InvalidData : HRESULT_FROM_WIN32(::MxRtlNtStatusToDosError(nNtStatus));
   }
   if (s.Info.Type != REG_DWORD && s.Info.Type != REG_DWORD_BIG_ENDIAN)
   {
@@ -344,7 +344,8 @@ HRESULT CWindowsRegistry::ReadString(_In_ PUNICODE_STRING Name, _Out_ PUNICODE_S
   lpInfo = &(s.Info);
   nNtStatus = ::MxNtQueryValueKey((HANDLE)hKey, (PMX_UNICODE_STRING)Name, MxKeyValuePartialInformation,
                                   lpInfo, (ULONG)sizeof(s), &RetLength);
-  if (nNtStatus == STATUS_BUFFER_OVERFLOW || nNtStatus == STATUS_BUFFER_TOO_SMALL)
+  if (nNtStatus == STATUS_BUFFER_OVERFLOW || nNtStatus == STATUS_BUFFER_TOO_SMALL ||
+      nNtStatus == STATUS_INFO_LENGTH_MISMATCH)
   {
     //check type
     if (lpInfo->Type != REG_SZ && lpInfo->Type != REG_EXPAND_SZ)
