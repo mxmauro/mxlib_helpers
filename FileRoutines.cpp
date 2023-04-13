@@ -71,10 +71,6 @@ typedef VOID (__stdcall *lpfnCoTaskMemFree)(_In_opt_ LPVOID pv);
 
 //-----------------------------------------------------------
 
-static LPCWSTR szAppDataSubFolderW = NULL;
-
-//-----------------------------------------------------------
-
 static HRESULT _GetKnownFolderFolderPath(_In_ int csIdl, _In_ const GUID &sGuid, _In_ BOOL bCreate,
                                          _Out_ MX::CStringW &cStrDestW);
 
@@ -82,8 +78,7 @@ static HRESULT _GetKnownFolderFolderPath(_In_ int csIdl, _In_ const GUID &sGuid,
 
 namespace MX {
 
-namespace FileRoutines
-{
+namespace FileRoutines {
 
 HRESULT GetAppFileName(_Out_ CStringW &cStrDestW)
 {
@@ -219,30 +214,6 @@ HRESULT GetProcessFileName(_In_ HANDLE hProc, _Out_ CStringW &cStrDestW)
 
   //done
   return S_OK;
-}
-
-VOID SetAppDataFolder(_In_z_ LPCWSTR szSubFolderW)
-{
-  szAppDataSubFolderW = szSubFolderW;
-  return;
-}
-
-HRESULT GetAppDataFolderPath(_Out_ CStringW &cStrDestW)
-{
-  HRESULT hRes;
-
-  if (szAppDataSubFolderW == NULL || *szAppDataSubFolderW == 0)
-    return E_FAIL;
-  hRes = GetCommonAppDataFolderPath(cStrDestW);
-  if (SUCCEEDED(hRes))
-  {
-    if (cStrDestW.Concat(szAppDataSubFolderW) == FALSE ||
-        cStrDestW.ConcatN(L"\\", 1) == FALSE)
-    {
-      hRes = E_OUTOFMEMORY;
-    }
-  }
-  return hRes;
 }
 
 HRESULT GetCommonAppDataFolderPath(_Out_ CStringW &cStrDestW)

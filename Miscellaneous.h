@@ -35,7 +35,8 @@ BOOL GitWildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR s
 BOOL String2Guid(_Out_ GUID &sGuid, _In_ LPCSTR szGuidA, _In_ SIZE_T nGuidLength = (SIZE_T)-1);
 BOOL String2Guid(_Out_ GUID &sGuid, _In_ LPCWSTR szGuidW, _In_ SIZE_T nGuidLength = (SIZE_T)-1);
 
-HRESULT ExecuteApp(_In_z_ LPCWSTR szCmdLineW, _In_ DWORD dwAfterSeconds = 5);
+HRESULT ExecuteApp(_In_ BOOL bWait, _In_ BOOL bHide, _In_z_ LPCWSTR szAppNameW, _In_ ULONG nParamsCount, ...);
+
 HRESULT SelfDeleteApp(_In_ DWORD dwAfterSeconds = 5);
 
 }; //namespace Misc

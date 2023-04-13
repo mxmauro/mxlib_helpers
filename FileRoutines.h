@@ -52,10 +52,6 @@ HRESULT GetAppFolderPath(_Out_ CStringW &cStrDestW);
 HRESULT GetProcessFileName(_In_ DWORD dwPid, _Out_ CStringW &cStrDestW);
 HRESULT GetProcessFileName(_In_ HANDLE hProc, _Out_ CStringW &cStrDestW);
 
-//IMPORTANT: Passed parameter should exists in entire app's life.
-VOID SetAppDataFolder(_In_z_ LPCWSTR szSubFolderW);
-HRESULT GetAppDataFolderPath(_Out_ CStringW &cStrDestW);
-
 HRESULT GetCommonAppDataFolderPath(_Out_ CStringW &cStrDestW);
 HRESULT GetProgramFilesFolderPath(_Out_ CStringW &cStrDestW);
 #if defined(_M_X64)

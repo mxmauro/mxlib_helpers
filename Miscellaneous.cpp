@@ -19,6 +19,12 @@
  */
 #include "Miscellaneous.h"
 #include "FileRoutines.h"
+#include <stdio.h>
+#include <stdlib.h>
+
+//-----------------------------------------------------------
+
+static BOOL AddRepeatedChar(_Inout_ MX::CStringW &cStrW, _In_ WCHAR chW, _In_ SIZE_T nCount);
 
 //-----------------------------------------------------------
 
@@ -430,27 +436,190 @@ HRESULT ExecuteApp(_In_z_ LPCWSTR szCmdLineW, _In_ DWORD dwAfterSeconds)
   return hRes;
 }
 
-HRESULT SelfDeleteApp(_In_ DWORD dwAfterSeconds)
+HRESULT ExecuteApp(_In_ BOOL bWait, _In_ BOOL bHide, _In_z_ LPCWSTR szAppNameW, _In_ ULONG nParamsCount, ...)
 {
-  CStringW cStrCmdW;
+  MX::CStringW cStrCmdLineW;
+  STARTUPINFOW sSiW;
+  PROCESS_INFORMATION sPi;
+  DWORD dwCreationFlags;
+  va_list argptr;
   HRESULT hRes;
 
-  hRes = FileRoutines::GetAppFileName(cStrCmdW);
-  if (SUCCEEDED(hRes))
+  if (szAppNameW == NULL)
+    return E_POINTER;
+  if (szAppNameW[0] == 0)
+    return E_INVALIDARG;
+
+  //quote application name if needed
+  if (MX::StrChrW(szAppNameW, L' ') != NULL)
   {
-    if (cStrCmdW.InsertN(L"DEL \"", 0, 5) != FALSE && cStrCmdW.ConcatN("\"", 1) != FALSE)
+    if (cStrCmdLineW.Format(L"\"%s\"", szAppNameW) == FALSE)
+      return E_OUTOFMEMORY;
+  }
+  else
+  {
+    if (cStrCmdLineW.Copy(szAppNameW) == FALSE)
+      return E_OUTOFMEMORY;
+  }
+
+  //process arguments
+  va_start(argptr, nParamsCount);
+  for (ULONG i = nParamsCount; i > 0; i--)
+  {
+    LPCWSTR szParamW = va_arg(argptr, LPCWSTR);
+
+    if (szParamW == NULL || szParamW[0] == 0)
+      continue;
+
+    //insert separator
+    if (cStrCmdLineW.ConcatN(L" ", 1) == FALSE)
+      return E_OUTOFMEMORY;
+
+    //insert parameter
+    if (MX::StrChrW(szParamW, L' ') != FALSE || MX::StrChrW(szParamW, L'\t') != FALSE ||
+        MX::StrChrW(szParamW, L'\n') != FALSE || MX::StrChrW(szParamW, L'\v') != FALSE ||
+        MX::StrChrW(szParamW, L'\"') != FALSE)
     {
-      hRes = ExecuteApp((LPCWSTR)cStrCmdW, dwAfterSeconds);
+      //escape parameter
+
+      //opening quotes
+      if (cStrCmdLineW.ConcatN(L"\"", 1) == FALSE)
+      {
+        va_end(argptr);
+        return E_OUTOFMEMORY;
+      }
+
+      for (;;)
+      {
+        SIZE_T nBackSlashCounter = 0;
+
+        while (*szParamW == L'\\')
+        {
+          szParamW += 1;
+          nBackSlashCounter += 1;
+        }
+
+        if (*szParamW == 0)
+        {
+          //escape all backslashes, but let the terminating double quotation mark we add below be interpreted
+          //as a metacharacter
+          if (AddRepeatedChar(cStrCmdLineW, L'\\', nBackSlashCounter * 2) == FALSE)
+          {
+            va_end(argptr);
+            return E_OUTOFMEMORY;
+          }
+          break;
+        }
+
+        if (*szParamW == L'"')
+        {
+          //escape all backslashes and the following double quotation mark
+          nBackSlashCounter = nBackSlashCounter * 2 + 1;
+        }
+        //else backslashes aren't special
+
+        if (AddRepeatedChar(cStrCmdLineW, L'\\', nBackSlashCounter) == FALSE ||
+            cStrCmdLineW.ConcatN(szParamW, 1) == FALSE)
+        {
+          va_end(argptr);
+          return E_OUTOFMEMORY;
+        }
+
+        //advance char
+        szParamW += 1;
+      }
+
+      //closing quotes
+      if (cStrCmdLineW.ConcatN(L"\"", 1) == FALSE)
+        return E_OUTOFMEMORY;
     }
     else
     {
-      hRes = E_OUTOFMEMORY;
+      if (cStrCmdLineW.Concat(szParamW) == FALSE)
+        return E_OUTOFMEMORY;
     }
   }
+  va_end(argptr);
+
+  //prepare to execute process
+  ::MxMemSet(&sSiW, 0, sizeof(sSiW));
+  sSiW.cb = (DWORD)sizeof(sSiW);
+  ::MxMemSet(&sPi, 0, sizeof(sPi));
+
+  dwCreationFlags = 0;
+  if (bHide != FALSE)
+  {
+    dwCreationFlags |= CREATE_NO_WINDOW;
+    sSiW.dwFlags |= STARTF_USESHOWWINDOW;
+    sSiW.wShowWindow = SW_HIDE;
+  }
+
+  //run child process
+  if (::CreateProcessW(NULL, (LPWSTR)cStrCmdLineW, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &sSiW,
+                       &sPi) == FALSE)
+  {
+    return MX_HRESULT_FROM_LASTERROR();
+  }
+
+  //wait for exit code if requested
+  if (bWait != FALSE)
+  {
+    DWORD dwExitCode;
+
+    ::WaitForSingleObject(sPi.hProcess, INFINITE);
+    ::GetExitCodeProcess(sPi.hProcess, &dwExitCode);
+
+    hRes = MX_HRESULT_FROM_WIN32(dwExitCode);
+  }
+  else
+  {
+    hRes = S_OK;
+  }
+
+  //cleanup
+  ::CloseHandle(sPi.hThread);
+  ::CloseHandle(sPi.hProcess);
+
   //done
   return hRes;
+}
+
+HRESULT SelfDeleteApp(_In_ DWORD dwAfterSeconds)
+{
+  CStringW cStrAppNameW, cStrCmdExeW;
+  WCHAR szSecondsW[16];
+  HRESULT hRes;
+
+  hRes = FileRoutines::GetAppFileName(cStrAppNameW);
+  if (FAILED(hRes))
+    return hRes;
+
+  hRes = FileRoutines::GetWindowsSystemPath(cStrCmdExeW);
+  if (FAILED(hRes))
+    return hRes;
+  if (cStrCmdExeW.ConcatN(L"CMD.EXE", 7) == FALSE)
+    return E_OUTOFMEMORY;
+
+  _snwprintf_s(szSecondsW, _countof(szSecondsW), _TRUNCATE, L"%lu", dwAfterSeconds);
+
+  //done
+  return ExecuteApp(FALSE, TRUE, (LPCWSTR)cStrCmdExeW, 8, L"/C", L"PING", L"127.0.0.1", L"-n", szSecondsW, L"&",
+                    L"DEL", (LPCWSTR)cStrAppNameW);
 }
 
 }; //namespace Misc
 
 }; //namespace MX
+
+//-----------------------------------------------------------
+
+static BOOL AddRepeatedChar(_Inout_ MX::CStringW &cStrW, _In_ WCHAR chW, _In_ SIZE_T nCount)
+{
+  while (nCount > 0)
+  {
+    if (cStrW.ConcatN(&chW, 1) == FALSE)
+      return FALSE;
+    nCount -= 1;
+  }
+  return TRUE;
+}

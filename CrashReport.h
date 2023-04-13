@@ -29,7 +29,7 @@ namespace MX {
 namespace CrashReport {
 
 VOID Initialize();
-BOOL HandleCrashDump(_In_z_ LPCWSTR szModuleNameW);
+BOOL HandleCrashDump(_In_z_ LPCWSTR szApplicationNameW, _In_z_ LPCWSTR szModuleNameW);
 
 }; //namespace CrashReport
 

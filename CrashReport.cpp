@@ -53,8 +53,10 @@ static LPTOP_LEVEL_EXCEPTION_FILTER lpPrevExceptionFilter = NULL;
 
 static BOOL GetParamValue(_Inout_ LPCWSTR &sW, _Out_ LPVOID *lplpValue, _In_ WCHAR chEndingW);
 static LONG WINAPI OnUnhandledExceptionFilter(_In_ PEXCEPTION_POINTERS ExceptionInfo);
-static VOID CleanupDumpFolder(_In_z_ LPCWSTR szBaseFileNameW);
-static HANDLE CreateDumpFile(_In_z_ LPCWSTR szBaseFileNameW);
+
+static VOID RemoveOldFiles(_In_z_ LPCWSTR szDumpFolderW);
+
+static HANDLE CreateDumpFile(_In_z_ LPCWSTR szDumpFolderW, _In_z_ LPCWSTR szBaseFileNameW);
 
 //-----------------------------------------------------------
 
@@ -70,15 +72,16 @@ VOID Initialize()
   return;
 }
 
-BOOL HandleCrashDump(_In_z_ LPCWSTR szModuleNameW)
+BOOL HandleCrashDump(_In_z_ LPCWSTR szApplicationNameW, _In_z_ LPCWSTR szModuleNameW)
 {
-  CStringW cStrBaseFileNameW;
+  CStringW cStrDumpFolderW;
   LPCWSTR sW;
   HANDLE hProc;
   LPCRASHINFO lpCrashInfo;
   CRASHINFO sLocalCrashInfo;
   HINSTANCE hDbgHelpDll;
 
+  MX_ASSERT(szApplicationNameW != NULL && *szApplicationNameW != 0);
   MX_ASSERT(szModuleNameW != NULL && *szModuleNameW != 0);
 
   //parse command line
@@ -123,15 +126,11 @@ BOOL HandleCrashDump(_In_z_ LPCWSTR szModuleNameW)
   if (GetParamValue(sW, (LPVOID*)&lpCrashInfo, 0) == FALSE)
     return TRUE; //invalid command line parameter (handled)
 
-  //copy base module name
-  if (cStrBaseFileNameW.Copy(szModuleNameW) == FALSE)
+  //setup dump folder
+  if (FAILED(FileRoutines::GetCommonAppDataFolderPath(cStrDumpFolderW)))
     return TRUE; //error (handled)
-  //setup log folder
-  if (FAILED(MX::FileRoutines::GetAppDataFolderPath(cStrBaseFileNameW)))
+  if (cStrDumpFolderW.AppendFormat(L"%s\\Dumps\\", szApplicationNameW) == FALSE)
     return TRUE; //error (handled)
-  if (cStrBaseFileNameW.AppendFormat(L"Dumps\\%s\\", szModuleNameW) == FALSE)
-    return TRUE; //error (handled)
-  MX::FileRoutines::NormalizePath(cStrBaseFileNameW);
 
   //read crash info data
   if (::ReadProcessMemory(hProc, lpCrashInfo, &sLocalCrashInfo, sizeof(sLocalCrashInfo), NULL) == FALSE)
@@ -147,11 +146,11 @@ BOOL HandleCrashDump(_In_z_ LPCWSTR szModuleNameW)
     {
       MX::CWindowsHandle cFileH;
 
-      MX::FileRoutines::CreateDirectoryRecursive((LPCWSTR)cStrBaseFileNameW);
+      MX::FileRoutines::CreateDirectoryRecursive((LPCWSTR)cStrDumpFolderW);
 
-      CleanupDumpFolder((LPCWSTR)cStrBaseFileNameW);
+      RemoveOldFiles((LPCWSTR)cStrDumpFolderW);
 
-      cFileH.Attach(CreateDumpFile((LPCWSTR)cStrBaseFileNameW));
+      cFileH.Attach(CreateDumpFile((LPCWSTR)cStrDumpFolderW, szModuleNameW));
       if (cFileH)
       {
         MINIDUMP_EXCEPTION_INFORMATION sMiniDumpExceptionInfo;
@@ -169,6 +168,7 @@ BOOL HandleCrashDump(_In_z_ LPCWSTR szModuleNameW)
   }
 
   ::CloseHandle(hProc);
+
   //done
   return TRUE; //handled
 }
@@ -259,9 +259,9 @@ static LONG WINAPI OnUnhandledExceptionFilter(_In_ PEXCEPTION_POINTERS Exception
   return EXCEPTION_EXECUTE_HANDLER;
 }
 
-static VOID CleanupDumpFolder(_In_z_ LPCWSTR szBaseFileNameW)
+static VOID RemoveOldFiles(_In_z_ LPCWSTR szDumpFolderW)
 {
-  MX::CStringW cStrFileNameW;
+  MX::CStringW cStrTempW;
   WIN32_FIND_DATAW sFindDataW;
   ULARGE_INTEGER uliLowerTime, uliTemp;
   WCHAR szLowerFileNameW[sizeof(sFindDataW.cFileName)];
@@ -270,9 +270,9 @@ static VOID CleanupDumpFolder(_In_z_ LPCWSTR szBaseFileNameW)
 
 loop:
   dwCount = 0;
-  if (cStrFileNameW.Copy(szBaseFileNameW) == FALSE || cStrFileNameW.ConcatN(L"*", 1) == FALSE)
+  if (cStrTempW.Copy(szDumpFolderW) == FALSE || cStrTempW.ConcatN(L"*", 1) == FALSE)
     return;
-  hFindFile = ::FindFirstFileW((LPCWSTR)cStrFileNameW, &sFindDataW);
+  hFindFile = ::FindFirstFileW((LPCWSTR)cStrTempW, &sFindDataW);
   if (hFindFile == NULL || hFindFile == INVALID_HANDLE_VALUE)
     return;
   uliLowerTime.QuadPart = (ULONGLONG)-1;
@@ -292,9 +292,9 @@ loop:
 
   if (dwCount > MAX_DUMPS_COUNT)
   {
-    if (cStrFileNameW.Copy(szBaseFileNameW) == FALSE || cStrFileNameW.Concat(szLowerFileNameW) == FALSE)
+    if (cStrTempW.Copy(szDumpFolderW) == FALSE || cStrTempW.Concat(szLowerFileNameW) == FALSE)
       return;
-    if (FAILED(MX::FileRoutines::_DeleteFile((LPCWSTR)cStrFileNameW)))
+    if (FAILED(MX::FileRoutines::_DeleteFile((LPCWSTR)cStrTempW)))
       return;
     dwCount--;
   }
@@ -304,31 +304,39 @@ loop:
   return;
 }
 
-static HANDLE CreateDumpFile(_In_z_ LPCWSTR szBaseFileNameW)
+static HANDLE CreateDumpFile(_In_z_ LPCWSTR szDumpFolderW, _In_z_ LPCWSTR szBaseFileNameW)
 {
   MX::CStringW cStrFileNameW;
   SYSTEMTIME stNow;
   HANDLE hFile;
-  ULONG i;
+  HRESULT hRes;
 
   ::GetLocalTime(&stNow);
-  if (cStrFileNameW.Format(L"%sdump_%04lu-%02lu-%02lu.dmp", szBaseFileNameW, stNow.wYear, stNow.wMonth,
+
+  if (cStrFileNameW.Format(L"%s%s_%04lu-%02lu-%02lu.dmp", szDumpFolderW, szBaseFileNameW, stNow.wYear, stNow.wMonth,
                            stNow.wDay) != FALSE)
   {
     hFile = ::CreateFileW((LPCWSTR)cStrFileNameW, GENERIC_WRITE, FILE_SHARE_READ, 0, CREATE_NEW,
                           FILE_ATTRIBUTE_NORMAL, 0);
     if (hFile != NULL && hFile != INVALID_HANDLE_VALUE)
       return hFile;
+    hRes = MX_HRESULT_FROM_LASTERROR();
+    if (hRes != HRESULT_FROM_WIN32(ERROR_FILE_EXISTS))
+      return INVALID_HANDLE_VALUE;
   }
-  for (i=2; i<=1000; i++)
+
+  for (ULONG i = 2; i <= 1000; i++)
   {
-    if (cStrFileNameW.Format(L"%sdump_%04lu-%02lu-%02lu_%lu.dmp", szBaseFileNameW, stNow.wYear, stNow.wMonth,
-                             stNow.wDay, i) != FALSE)
+    if (cStrFileNameW.Format(L"%s%s_%04lu-%02lu-%02lu_%lu.dmp", szDumpFolderW, szBaseFileNameW, stNow.wYear,
+                             stNow.wMonth, stNow.wDay, i) != FALSE)
     {
       hFile = ::CreateFileW((LPCWSTR)cStrFileNameW, GENERIC_WRITE, FILE_SHARE_READ, 0, CREATE_NEW,
                             FILE_ATTRIBUTE_NORMAL, 0);
       if (hFile != NULL && hFile != INVALID_HANDLE_VALUE)
         return hFile;
+      hRes = MX_HRESULT_FROM_LASTERROR();
+      if (hRes != HRESULT_FROM_WIN32(ERROR_FILE_EXISTS))
+        break;
     }
   }
   return INVALID_HANDLE_VALUE;
