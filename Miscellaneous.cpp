@@ -173,7 +173,7 @@ BOOL GitWildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR s
             nPattern1Backup = (SIZE_T)-1;
             nText2Backup = nTextOfs;
             nPattern2Backup = nPatternOfs;
-            if (szTextW[nTextOfs] == L'\\')
+            if (szTextW[nTextOfs] != L'\\')
               nPatternOfs++;
             continue;
           }
@@ -250,7 +250,7 @@ BOOL GitWildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR s
           continue;
       }
     }
-    if (nPattern1Backup != (SIZE_T)-1 && szPatternW[nPattern1Backup] != L'\\')
+    if (nPattern1Backup != (SIZE_T)-1 && szTextW[nText1Backup] != L'\\')
     {
       // *-loop: backtrack to the last * but do not jump over /
       nTextOfs = ++nText1Backup;
