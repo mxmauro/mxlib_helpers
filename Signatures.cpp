@@ -939,12 +939,12 @@ HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _In_opt_ HANDLE hFile, _In_o
     hFile = cFileH.Get();
   }
 
-  hRes = cHashSha256.BeginDigest(CMessageDigest::AlgorithmSHA256);
+  hRes = cHashSha256.BeginDigest(CMessageDigest::eAlgorithm::SHA256);
   if (SUCCEEDED(hRes))
   {
-    hRes = cHashSha1.BeginDigest(CMessageDigest::AlgorithmSHA1);
+    hRes = cHashSha1.BeginDigest(CMessageDigest::eAlgorithm::SHA1);
     if (SUCCEEDED(hRes))
-      hRes = cHashMd5.BeginDigest(CMessageDigest::AlgorithmMD5);
+      hRes = cHashMd5.BeginDigest(CMessageDigest::eAlgorithm::MD5);
   }
 
   if (SUCCEEDED(hRes))

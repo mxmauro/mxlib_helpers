@@ -53,21 +53,21 @@ VOID Print(_In_ Console::eColor nColor, _In_ LPCWSTR szFormatW, ...)
     CONSOLE_SCREEN_BUFFER_INFO sCsbi;
     va_list args;
 
-    if (nColor != ColorNormal)
+    if (nColor != Console::eColor::Normal)
     {
       ::GetConsoleScreenBufferInfo(hConsoleOut, &sCsbi);
       switch (nColor)
       {
-        case ColorError:
+        case Console::eColor::Error:
           ::SetConsoleTextAttribute(hConsoleOut, FOREGROUND_RED | FOREGROUND_INTENSITY);
           break;
-        case ColorSuccess:
+        case Console::eColor::Success:
           ::SetConsoleTextAttribute(hConsoleOut, FOREGROUND_GREEN | FOREGROUND_INTENSITY);
           break;
-        case ColorYellow:
+        case Console::eColor::Yellow:
           ::SetConsoleTextAttribute(hConsoleOut, FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_INTENSITY);
           break;
-        case ColorBlue:
+        case Console::eColor::Blue:
           ::SetConsoleTextAttribute(hConsoleOut, FOREGROUND_BLUE | FOREGROUND_INTENSITY);
           break;
       }
@@ -77,7 +77,7 @@ VOID Print(_In_ Console::eColor nColor, _In_ LPCWSTR szFormatW, ...)
     vwprintf_s(szFormatW, args);
     va_end(args);
 
-    if (nColor != ColorNormal)
+    if (nColor != Console::eColor::Normal)
     {
       ::SetConsoleTextAttribute(hConsoleOut, sCsbi.wAttributes);
     }
@@ -88,9 +88,9 @@ VOID Print(_In_ Console::eColor nColor, _In_ LPCWSTR szFormatW, ...)
 VOID PrintError(_In_ HRESULT hRes)
 {
   if (SUCCEEDED(hRes))
-    Console::Print(ColorSuccess, L"OK");
+    Console::Print(Console::eColor::Success, L"OK");
   else
-    Console::Print(ColorError, L"ERROR: 0x%08X", hRes);
+    Console::Print(Console::eColor::Error, L"ERROR: 0x%08X", hRes);
   return;
 }
 

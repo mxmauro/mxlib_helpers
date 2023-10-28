@@ -137,7 +137,7 @@ HRESULT ExtractToStream(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _In_ LPCW
   if (SUCCEEDED(hRes) && (SIZE_T)dwResSize != nWritten)
     hRes = MX_E_WriteFault;
   if (SUCCEEDED(hRes))
-    hRes = cStream->Seek(0, CStream::SeekStart);
+    hRes = cStream->Seek(0, CStream::eSeekMethod::Start);
   if (FAILED(hRes))
     return hRes;
   //done

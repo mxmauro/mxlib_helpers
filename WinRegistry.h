@@ -76,9 +76,9 @@ public:
 
   HRESULT WriteMultiString(_In_z_ LPCWSTR szNameW, _In_ SIZE_T nValuesCount, _In_ LPCWSTR *lpszValuesW);
 
-  HRESULT WriteBlob(_In_z_ LPCWSTR szNameW, _In_ LPCVOID lpValue, _In_ SIZE_T nValueLen);
+  HRESULT WriteBlob(_In_z_ LPCWSTR szNameW, _In_opt_ LPCVOID lpValue, _In_ SIZE_T nValueLen);
 
-  HRESULT WriteAny(_In_z_ LPCWSTR szNameW, _In_ DWORD dwType, _In_ LPCVOID lpValue, _In_ SIZE_T nValueLen);
+  HRESULT WriteAny(_In_z_ LPCWSTR szNameW, _In_ DWORD dwType, _In_opt_ LPCVOID lpValue, _In_ SIZE_T nValueLen);
 
   HRESULT WritePassword(_In_z_ LPCWSTR szNameW, _In_z_ LPCWSTR szPasswordW);
 

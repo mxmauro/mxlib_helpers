@@ -32,11 +32,22 @@ namespace MX {
 
 namespace Network {
 
-typedef enum {
-  LocalIpAddressesFlagsDontAddIpV4 = 1,
-  LocalIpAddressesFlagsDontAddIpV6 = 2,
-  LocalIpAddressesFlagsDontAddNetbiosName = 4
-} eGetLocalIpAddressesFlags;
+enum class eLocalIpAddressesFlags
+{
+  DontAddIpV4 = 1,
+  DontAddIpV6 = 2,
+  DontAddNetbiosName = 4
+};
+
+inline eLocalIpAddressesFlags operator|(eLocalIpAddressesFlags lhs, eLocalIpAddressesFlags rhs)
+{
+  return static_cast<eLocalIpAddressesFlags>(static_cast<int>(lhs) | static_cast<int>(rhs));
+}
+
+inline eLocalIpAddressesFlags operator&(eLocalIpAddressesFlags lhs, eLocalIpAddressesFlags rhs)
+{
+  return static_cast<eLocalIpAddressesFlags>(static_cast<int>(lhs) & static_cast<int>(rhs));
+}
 
 }; //namespace Network
 
@@ -48,7 +59,7 @@ namespace MX {
 
 namespace Network {
 
-HRESULT GetLocalIpAddresses(_Out_ TArrayListWithFree<LPCWSTR> &cStrListW, _In_ int nFlags);
+HRESULT GetLocalIpAddresses(_Out_ TArrayListWithFree<LPCWSTR> &cStrListW, _In_ eLocalIpAddressesFlags nFlags);
 HRESULT FormatIpAddress(_Out_ CStringW &cStrW, _In_ PSOCKADDR_INET lpAddr);
 
 }; //namespace Network

@@ -297,7 +297,7 @@ HRESULT GetProcessMembershipType(_Out_ Process::eTokenGetMembershipType &nType)
   HANDLE hToken;
   HRESULT hRes;
 
-  nType = TokenMembershipTypeLimitedUser;
+  nType = eTokenGetMembershipType::LimitedUser;
   if (::OpenProcessToken(::GetCurrentProcess(), TOKEN_QUERY | TOKEN_DUPLICATE, &hToken) != FALSE)
   {
     hRes = GetTokenMembershipType(hToken, nType);
@@ -315,7 +315,7 @@ HRESULT GetThreadMembershipType(_Out_ Process::eTokenGetMembershipType &nType)
   HANDLE hToken;
   HRESULT hRes;
 
-  nType = TokenMembershipTypeLimitedUser;
+  nType = eTokenGetMembershipType::LimitedUser;
   if (::OpenThreadToken(::GetCurrentThread(), TOKEN_QUERY | TOKEN_DUPLICATE, TRUE, &hToken) != FALSE)
   {
     hRes = GetTokenMembershipType(hToken, nType);
@@ -341,19 +341,19 @@ HRESULT GetTokenMembershipType(_In_ HANDLE hToken, _Out_ Process::eTokenGetMembe
   HANDLE hTokenToCheck = NULL;
   HRESULT hRes;
 
+  nType = Process::eTokenGetMembershipType::LimitedUser;
   if (::DuplicateToken(hToken, SecurityIdentification, &hTokenToCheck) == FALSE)
-  {
-    nType = Process::TokenMembershipTypeLimitedUser;
     return MX_HRESULT_FROM_LASTERROR();
-  }
+
   //check if system account
   b = FALSE;
   if (::CheckTokenMembership(hTokenToCheck, (PSID)&sLocalSystemSID, &b) != FALSE && b != FALSE)
   {
-    nType = TokenMembershipTypeRunningInSystemAccount;
+    nType = eTokenGetMembershipType::SystemAccount;
     hRes = S_OK;
     goto done;
   }
+
   //on Vista+, check if we are elevated
   if (IsWinVistaPlus() != FALSE)
   {
@@ -364,7 +364,7 @@ HRESULT GetTokenMembershipType(_In_ HANDLE hToken, _Out_ Process::eTokenGetMembe
     if (::GetTokenInformation(hTokenToCheck, TokenElevation, &sTokElev, (DWORD)sizeof(sTokElev), &dw) != FALSE &&
         sTokElev.TokenIsElevated != 0)
     {
-      nType = TokenMembershipTypeRunningOnAdministratorsGroupAndElevated;
+      nType = eTokenGetMembershipType::AdministratorsGroupAndElevated;
       hRes = S_OK;
       goto done;
     }
@@ -394,7 +394,7 @@ HRESULT GetTokenMembershipType(_In_ HANDLE hToken, _Out_ Process::eTokenGetMembe
     b = FALSE;
     if (::CheckTokenMembership(hTokenToCheck, (PSID)&sAdminsSID, &b) != FALSE && b != FALSE)
     {
-      nType = TokenMembershipTypeRunningOnAdministratorsGroup;
+      nType = eTokenGetMembershipType::AdministratorsGroup;
       hRes = S_OK;
       goto done;
     }
@@ -405,7 +405,7 @@ HRESULT GetTokenMembershipType(_In_ HANDLE hToken, _Out_ Process::eTokenGetMembe
     b = FALSE;
     if (::CheckTokenMembership(hTokenToCheck, (PSID)&sAdminsSID, &b) != FALSE && b != FALSE)
     {
-      nType = TokenMembershipTypeRunningOnAdministratorsGroupAndElevated;
+      nType = eTokenGetMembershipType::AdministratorsGroupAndElevated;
       hRes = S_OK;
       goto done;
     }

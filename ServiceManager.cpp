@@ -39,9 +39,9 @@ class CRegistryBackupValue : public MX::CBaseMemObj
 {
 public:
   CStringW cStrValueNameW;
-  DWORD dwType;
+  DWORD dwType{ 0 };
   TAutoFreePtr<BYTE> cData;
-  SIZE_T nDataSize;
+  SIZE_T nDataSize{ 0 };
 };
 
 class CRegistryBackupKey : public MX::CBaseMemObj
@@ -74,7 +74,6 @@ namespace MX {
 
 CServiceManager::CServiceManager() : CBaseMemObj(), CNonCopyableObj()
 {
-  hServMgr = hServ = NULL;
   return;
 }
 
@@ -169,15 +168,15 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
   dwServiceType = SERVICE_WIN32_OWN_PROCESS;
   switch (lpCreateInfo->nServiceType)
   {
-    case ServiceTypeLocalSystem:
-    case ServiceTypeNetworkService:
+    case eServiceType::LocalSystem:
+    case eServiceType::NetworkService:
       break;
 
-    case ServiceTypeKernelDriver:
+    case eServiceType::KernelDriver:
       dwServiceType = SERVICE_KERNEL_DRIVER;
       break;
 
-    case ServiceTypeFileSystemDriver:
+    case eServiceType::FileSystemDriver:
       dwServiceType = SERVICE_FILE_SYSTEM_DRIVER;
       break;
 
@@ -199,7 +198,7 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
                            NULL,
                            ((lpCreateInfo->szDependenciesW != NULL && *(lpCreateInfo->szDependenciesW) != 0)
                             ? lpCreateInfo->szDependenciesW : NULL),
-                           (lpCreateInfo->nServiceType != ServiceTypeNetworkService) ? NULL : szNetworkServiceAccountW,
+                           (lpCreateInfo->nServiceType != eServiceType::NetworkService) ? NULL : szNetworkServiceAccountW,
                            NULL);
   if (hServ == NULL)
   {
@@ -219,8 +218,8 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
                                NULL,
                                ((lpCreateInfo->szDependenciesW != NULL && *(lpCreateInfo->szDependenciesW) != 0)
                                 ? lpCreateInfo->szDependenciesW : L"\0"),
-                               (lpCreateInfo->nServiceType != ServiceTypeNetworkService) ? NULL
-                                                                                         : szNetworkServiceAccountW,
+                               (lpCreateInfo->nServiceType != eServiceType::NetworkService)
+                                ? NULL : szNetworkServiceAccountW,
                                NULL, lpCreateInfo->szServiceDisplayNameW) == FALSE)
     {
       hRes = MX_HRESULT_FROM_LASTERROR();
@@ -250,9 +249,9 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
                                       ? lpCreateInfo->szLoadOrderGroupW : NULL),
                                       NULL,
                                       ((lpCreateInfo->szDependenciesW != NULL && *(lpCreateInfo->szDependenciesW) != 0)
-                                      ? lpCreateInfo->szDependenciesW : NULL),
-                                      (lpCreateInfo->nServiceType != ServiceTypeNetworkService)
-                                      ? NULL : szNetworkServiceAccountW,
+                                       ? lpCreateInfo->szDependenciesW : NULL),
+                                      (lpCreateInfo->nServiceType != eServiceType::NetworkService)
+                                       ? NULL : szNetworkServiceAccountW,
                                       NULL);
             if (hServ != NULL)
             {
@@ -276,7 +275,8 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
          ? S_OK : MX_HRESULT_FROM_LASTERROR();
   //setup required privileges
   if (SUCCEEDED(hRes) && bIsWindowsVistaOrLater != FALSE &&
-      (lpCreateInfo->nServiceType == ServiceTypeLocalSystem || lpCreateInfo->nServiceType == ServiceTypeNetworkService))
+      (lpCreateInfo->nServiceType == eServiceType::LocalSystem ||
+       lpCreateInfo->nServiceType == eServiceType::NetworkService))
   {
     SERVICE_REQUIRED_PRIVILEGES_INFOW sReqPrivInfoW;
 
@@ -291,7 +291,8 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
   }
   //setup sid info
   if (SUCCEEDED(hRes) && bIsWindowsVistaOrLater != FALSE &&
-      (lpCreateInfo->nServiceType == ServiceTypeLocalSystem || lpCreateInfo->nServiceType == ServiceTypeNetworkService))
+      (lpCreateInfo->nServiceType == eServiceType::LocalSystem ||
+       lpCreateInfo->nServiceType == eServiceType::NetworkService))
   {
     SERVICE_SID_INFO sServSidInfo;
 
@@ -304,7 +305,8 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
   }
   //setup restart time
   if (SUCCEEDED(hRes) &&
-      (lpCreateInfo->nServiceType == ServiceTypeLocalSystem || lpCreateInfo->nServiceType == ServiceTypeNetworkService))
+      (lpCreateInfo->nServiceType == eServiceType::LocalSystem ||
+       lpCreateInfo->nServiceType == eServiceType::NetworkService))
   {
     SERVICE_FAILURE_ACTIONSW sServFailActW;
     SC_ACTION aServActions[1];
@@ -341,7 +343,8 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
     }
   }
   if (SUCCEEDED(hRes) &&
-      (lpCreateInfo->nServiceType == ServiceTypeLocalSystem || lpCreateInfo->nServiceType == ServiceTypeNetworkService))
+      (lpCreateInfo->nServiceType == eServiceType::LocalSystem ||
+       lpCreateInfo->nServiceType == eServiceType::NetworkService))
   {
     SERVICE_DESCRIPTIONW sServDescW;
 
@@ -740,15 +743,15 @@ static DWORD GetServiceStartType(_In_ MX::CServiceManager::eStartMode nStartMode
 {
   switch (nStartMode)
   {
-    case MX::CServiceManager::StartModeAuto:
+    case MX::CServiceManager::eStartMode::Auto:
       return SERVICE_AUTO_START;
-    case MX::CServiceManager::StartModeBoot:
+    case MX::CServiceManager::eStartMode::Boot:
       return SERVICE_BOOT_START;
-    case MX::CServiceManager::StartModeSystem:
+    case MX::CServiceManager::eStartMode::System:
       return SERVICE_SYSTEM_START;
-    case MX::CServiceManager::StartModeManual:
+    case MX::CServiceManager::eStartMode::Manual:
       return SERVICE_DEMAND_START;
-    case MX::CServiceManager::StartModeDisabled:
+    case MX::CServiceManager::eStartMode::Disabled:
       return SERVICE_DISABLED;
   }
   return 0xFFFFFFFFUL;

@@ -31,18 +31,21 @@
 #define DELETE_RETRIES_COUNT                             400
 #define DELETE_RETRIES_DELAY_MS                           15
 
+#ifndef FILE_SUPERSEDE
+  #define FILE_SUPERSEDE                          0x00000000
+#endif //FILE_SUPERSEDE
 #ifndef FILE_OPEN
   #define FILE_OPEN                               0x00000001
 #endif //FILE_OPEN
+#ifndef FILE_CREATE
+  #define FILE_CREATE                             0x00000002
+#endif //FILE_CREATE
 #ifndef FILE_SYNCHRONOUS_IO_NONALERT
   #define FILE_SYNCHRONOUS_IO_NONALERT            0x00000020
 #endif //FILE_SYNCHRONOUS_IO_NONALERT
 #ifndef FILE_NON_DIRECTORY_FILE
   #define FILE_NON_DIRECTORY_FILE                 0x00000040
 #endif //FILE_NON_DIRECTORY_FILE
-#ifndef FILE_SEQUENTIAL_ONLY
-  #define FILE_SEQUENTIAL_ONLY                    0x00000004
-#endif //FILE_SEQUENTIAL_ONLY
 
 #ifndef OBJ_CASE_INSENSITIVE
   #define OBJ_CASE_INSENSITIVE                    0x00000040
@@ -471,7 +474,7 @@ HRESULT RemoveDirectoryRecursive(_In_ LPCWSTR szFolderNameW, _In_opt_ FileRoutin
   if (*szFolderNameW == 0)
     return E_INVALIDARG;
 
-  //trasverse folder
+  //transverse folder
   if (cStrTempW.Copy(szFolderNameW) == FALSE)
     return E_OUTOFMEMORY;
   nBaseLen = cStrTempW.GetLength();
@@ -519,7 +522,7 @@ HRESULT RemoveDirectoryRecursive(_In_ LPCWSTR szFolderNameW, _In_opt_ FileRoutin
   ::FindClose(hFind);
   //remove directory
   cStrTempW.Delete(nBaseLen-1, (SIZE_T)-1); //remove trailing slash
-  if (nDD == WaitUntilReboot)
+  if (nDD == eDelayedDelete::WaitUntilReboot)
   {
     if (::MoveFileExW((LPCWSTR)cStrTempW, NULL, MOVEFILE_DELAY_UNTIL_REBOOT) == FALSE)
       return MX_HRESULT_FROM_LASTERROR();
@@ -545,7 +548,7 @@ HRESULT RemoveDirectoryRecursive(_In_ LPCWSTR szFolderNameW, _In_opt_ FileRoutin
       }
       if (i == 1)
       {
-        if (nDD == DeleteOnRebootOnFailure)
+        if (nDD == eDelayedDelete::DeleteOnRebootOnFailure)
         {
           if (::MoveFileExW((LPWSTR)cStrTempW, NULL, MOVEFILE_DELAY_UNTIL_REBOOT) == FALSE)
             return MX_HRESULT_FROM_LASTERROR();
@@ -571,7 +574,7 @@ HRESULT _DeleteFile(_In_ LPCWSTR szFileNameW, _In_opt_ eDelayedDelete nDD)
   dw = ::GetFileAttributesW(szFileNameW);
   if (dw != INVALID_FILE_ATTRIBUTES && (dw & FILE_ATTRIBUTE_DIRECTORY) != 0)
     return S_OK;
-  if (nDD == WaitUntilReboot)
+  if (nDD == eDelayedDelete::WaitUntilReboot)
   {
     if (::MoveFileExW(szFileNameW, NULL, MOVEFILE_DELAY_UNTIL_REBOOT) == FALSE)
       return MX_HRESULT_FROM_LASTERROR();
@@ -596,7 +599,7 @@ HRESULT _DeleteFile(_In_ LPCWSTR szFileNameW, _In_opt_ eDelayedDelete nDD)
       }
       if (dw == 1)
       {
-        if (nDD == DeleteOnRebootOnFailure)
+        if (nDD == eDelayedDelete::DeleteOnRebootOnFailure)
         {
           if (::MoveFileExW(szFileNameW, NULL, MOVEFILE_DELAY_UNTIL_REBOOT) == FALSE)
             return MX_HRESULT_FROM_LASTERROR();
@@ -1177,7 +1180,7 @@ HRESULT GetFileNameFromHandle(_In_ HANDLE hFile, _Out_ CStringW &cStrFileNameW)
 
 HRESULT OpenFileWithEscalatingSharing(_In_z_ LPCWSTR szFileNameW, _Out_ HANDLE *lphFile)
 {
-  static const BYTE aSharingAccess[4] = {
+  static const BYTE aShareMode[4] = {
     FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, FILE_SHARE_READ | FILE_SHARE_DELETE,
     FILE_SHARE_READ | FILE_SHARE_WRITE, FILE_SHARE_READ
   };
@@ -1206,8 +1209,8 @@ HRESULT OpenFileWithEscalatingSharing(_In_z_ LPCWSTR szFileNameW, _Out_ HANDLE *
       {
         ::MxMemSet(&sIoStatus, 0, sizeof(sIoStatus));
         nNtStatus = ::MxNtCreateFile(lphFile, FILE_GENERIC_READ, &sObjAttrib, &sIoStatus, NULL, 0,
-                                     (ULONG)aSharingAccess[i], FILE_OPEN, FILE_NON_DIRECTORY_FILE |
-                                     FILE_SEQUENTIAL_ONLY | FILE_SYNCHRONOUS_IO_NONALERT, NULL, 0);
+                                     (ULONG)aShareMode[i], FILE_OPEN,
+                                     FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT, NULL, 0);
         if (NT_SUCCESS(nNtStatus))
           return S_OK;
         hRes = MX_HRESULT_FROM_WIN32(::MxRtlNtStatusToDosError(nNtStatus));
@@ -1231,7 +1234,7 @@ HRESULT OpenFileWithEscalatingSharing(_In_z_ LPCWSTR szFileNameW, _Out_ HANDLE *
         ::Sleep(CREATE_RETRIES_DELAY_MS);
       for (i = 0; i < 4; i++)
       {
-        *lphFile = ::CreateFileW(szFileNameW, GENERIC_READ, (DWORD)aSharingAccess[i], NULL, OPEN_EXISTING, 0, NULL);
+        *lphFile = ::CreateFileW(szFileNameW, GENERIC_READ, (DWORD)aShareMode[i], NULL, OPEN_EXISTING, 0, NULL);
         if ((*lphFile) != NULL && (*lphFile) != INVALID_HANDLE_VALUE)
           return S_OK;
         hRes = MX_HRESULT_FROM_LASTERROR();
@@ -1246,6 +1249,90 @@ HRESULT OpenFileWithEscalatingSharing(_In_z_ LPCWSTR szFileNameW, _Out_ HANDLE *
       }
     }
   }
+
+  //done
+  return hRes;
+}
+
+HRESULT CreateFileWithOptions(_In_z_ LPCWSTR szFileNameW, _Out_ HANDLE *lphFile, _In_opt_ BOOL bCreateDirectory,
+                              _In_opt_ BOOL bReplaceExisting, _In_opt_ DWORD dwSharedMode)
+{
+  DWORD dwRetry;
+  HRESULT hRes;
+
+  if (bCreateDirectory != FALSE)
+  {
+    CStringW cStrTempW;
+    LPWSTR sW;
+
+    if (cStrTempW.Copy(szFileNameW) == FALSE)
+      return E_OUTOFMEMORY;
+    MX::FileRoutines::NormalizePath(cStrTempW);
+
+    sW = (LPWSTR)MX::StrChrW((LPCWSTR)cStrTempW, L'\\', TRUE);
+    if (sW != NULL)
+      *sW = 0;
+    MX::FileRoutines::CreateDirectoryRecursive((LPCWSTR)cStrTempW); //don't care about errors
+  }
+
+  if (StrNCompareW(szFileNameW, L"\\??\\", 4) == 0 || StrNCompareW(szFileNameW, L"\\Device\\", 8, TRUE) == 0)
+  {
+    MX_OBJECT_ATTRIBUTES sObjAttrib;
+    MX_IO_STATUS_BLOCK sIoStatus;
+    MX_UNICODE_STRING usFileName;
+    NTSTATUS nNtStatus;
+
+    ::MxMemSet(&sObjAttrib, 0, sizeof(sObjAttrib));
+    sObjAttrib.Length = (ULONG)sizeof(sObjAttrib);
+    sObjAttrib.Attributes = OBJ_CASE_INSENSITIVE;
+    sObjAttrib.ObjectName = &usFileName;
+    usFileName.Buffer = (PWSTR)szFileNameW;
+    usFileName.Length = usFileName.MaximumLength = (USHORT)(StrLenW(szFileNameW) * 2);
+    for (dwRetry = CREATE_RETRIES_COUNT; dwRetry > 0; dwRetry--)
+    {
+      if (dwRetry != CREATE_RETRIES_COUNT)
+        ::Sleep(CREATE_RETRIES_DELAY_MS);
+      ::MxMemSet(&sIoStatus, 0, sizeof(sIoStatus));
+      nNtStatus = ::MxNtCreateFile(lphFile, FILE_GENERIC_READ | FILE_GENERIC_WRITE, &sObjAttrib, &sIoStatus,
+                                   NULL, FILE_ATTRIBUTE_NORMAL, (ULONG)dwSharedMode,
+                                   ((bReplaceExisting != FALSE) ? FILE_SUPERSEDE : FILE_CREATE),
+                                   FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT, NULL, 0);
+      if (NT_SUCCESS(nNtStatus))
+        return S_OK;
+      hRes = MX_HRESULT_FROM_WIN32(::MxRtlNtStatusToDosError(nNtStatus));
+      *lphFile = NULL;
+      
+      if (hRes != HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION) && hRes != HRESULT_FROM_WIN32(ERROR_LOCK_VIOLATION) &&
+          hRes != E_ACCESSDENIED)
+      {
+        break;
+      }
+    }
+  }
+  else
+  {
+    //NOTE: CreateFileW adds FILE_NON_DIRECTORY_FILE flag if FILE_FLAG_BACKUP_SEMANTICS is not specified
+    for (dwRetry = CREATE_RETRIES_COUNT; dwRetry > 0; dwRetry--)
+    {
+      if (dwRetry != CREATE_RETRIES_COUNT)
+        ::Sleep(CREATE_RETRIES_DELAY_MS);
+      
+      *lphFile = ::CreateFileW(szFileNameW, GENERIC_READ | GENERIC_WRITE, (DWORD)dwSharedMode, NULL,
+                                ((bReplaceExisting != FALSE) ? CREATE_ALWAYS : CREATE_NEW), FILE_ATTRIBUTE_NORMAL,
+                                NULL);
+      if ((*lphFile) != NULL && (*lphFile) != INVALID_HANDLE_VALUE)
+        return S_OK;
+      hRes = MX_HRESULT_FROM_LASTERROR();
+      *lphFile = NULL;
+      if (hRes != HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION) && hRes != HRESULT_FROM_WIN32(ERROR_LOCK_VIOLATION) &&
+          hRes != E_ACCESSDENIED)
+      {
+        break;
+      }
+    }
+  }
+
+  //done
   return hRes;
 }
 

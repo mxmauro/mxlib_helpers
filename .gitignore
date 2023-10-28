@@ -1,5 +1,6 @@
 .vs
-.svn/
+obj/
+lib/
 *.~*
 *.suo
 *.ncb

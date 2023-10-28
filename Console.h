@@ -28,9 +28,10 @@ namespace MX {
 
 namespace Console {
 
-typedef enum {
-  ColorNormal, ColorError, ColorSuccess, ColorYellow, ColorBlue
-} eColor;
+enum class eColor
+{
+  Normal, Error, Success, Yellow, Blue
+} ;
 
 }; //namespace Console
 
