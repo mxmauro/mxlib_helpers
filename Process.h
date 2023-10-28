@@ -30,12 +30,13 @@ namespace MX {
 
 namespace Process {
 
-typedef enum {
-  TokenMembershipTypeLimitedUser,
-  TokenMembershipTypeRunningInSystemAccount,
-  TokenMembershipTypeRunningOnAdministratorsGroup,
-  TokenMembershipTypeRunningOnAdministratorsGroupAndElevated
-} eTokenGetMembershipType;
+enum class eTokenGetMembershipType
+{
+  LimitedUser,
+  SystemAccount,
+  AdministratorsGroup,
+  AdministratorsGroupAndElevated
+};
 
 }; //Process
 

@@ -30,20 +30,22 @@ namespace MX {
 class CServiceManager : public virtual CBaseMemObj, public CNonCopyableObj
 {
 public:
-  typedef enum {
-    ServiceTypeLocalSystem,
-    ServiceTypeNetworkService,
-    ServiceTypeKernelDriver,
-    ServiceTypeFileSystemDriver
-  } eServiceType;
+  enum class eServiceType
+  {
+    LocalSystem,
+    NetworkService,
+    KernelDriver,
+    FileSystemDriver
+  };
 
-  typedef enum {
-    StartModeAuto,
-    StartModeBoot,
-    StartModeSystem,
-    StartModeManual,
-    StartModeDisabled
-  } eStartMode;
+  enum class eStartMode
+  {
+    Auto,
+    Boot,
+    System,
+    Manual,
+    Disabled
+  };
 
 public:
   typedef struct tagCREATEINFO {
@@ -88,7 +90,7 @@ public:
   HRESULT ChangeStartMode(_In_ CServiceManager::eStartMode nStartMode);
 
 private:
-  SC_HANDLE hServMgr, hServ;
+  SC_HANDLE hServMgr{ NULL }, hServ{ NULL };
 };
 
 }; //namespace MX

@@ -42,7 +42,7 @@ public:
   HRESULT Write(_In_reads_bytes_(nBytes) LPCVOID lpSrc, _In_ SIZE_T nBytes, _Out_ SIZE_T &nWritten,
                 _In_opt_ ULONGLONG nStartOffset = ULONGLONG_MAX);
 
-  HRESULT Seek(_In_ ULONGLONG nPosition, _In_opt_ eSeekMethod nMethod = SeekStart);
+  HRESULT Seek(_In_ ULONGLONG nPosition, _In_opt_ eSeekMethod nMethod = eSeekMethod::Start);
 
   ULONGLONG GetLength() const;
 
@@ -586,7 +586,7 @@ HRESULT CFileStream::Read(_Out_writes_bytes_(nRead) LPVOID lpDest, _In_ SIZE_T n
   {
     //NOTE: CFileStream::Read is only called during HTML output while sending data to socket so no problem to
     //      modify the current offset with seek.
-    hRes = Seek(nStartOffset, MX::CStream::SeekStart);
+    hRes = Seek(nStartOffset, eSeekMethod::Start);
     if (FAILED(hRes))
       return hRes;
   }
@@ -614,7 +614,7 @@ HRESULT CFileStream::Read(_Out_writes_bytes_(nRead) LPVOID lpDest, _In_ SIZE_T n
   {
     if ((nAvailable = cDecompressor->GetAvailableData()) > 0)
     {
-      //process alredy decompressed data
+      //process already decompressed data
       if (nBytesToSkip > 0)
       {
         if ((ULONGLONG)nAvailable > nBytesToSkip)
@@ -635,7 +635,7 @@ HRESULT CFileStream::Read(_Out_writes_bytes_(nRead) LPVOID lpDest, _In_ SIZE_T n
     }
     else
     {
-      //feed the decompressor with compressed data
+      //feed the decompresser with compressed data
       //calculate hash
       nCurrHash = (ULONGLONG)((SIZE_T)(sCompressedData.lpNext - sCompressedData.lpStart));
       nCurrHash = fnv_64a_buf(&nCurrHash, sizeof(ULONGLONG), nFileHash);
@@ -689,12 +689,12 @@ HRESULT CFileStream::Seek(_In_ ULONGLONG nPosition, _In_opt_ eSeekMethod nMethod
 {
   switch (nMethod)
   {
-    case SeekStart:
+    case eSeekMethod::Start:
       if (nPosition > nUncompressedSize)
         nPosition = nUncompressedSize;
       break;
 
-    case SeekCurrent:
+    case eSeekMethod::Current:
       if ((LONGLONG)nPosition >= 0)
       {
         if (nPosition > nUncompressedSize - nOffset)
@@ -710,7 +710,7 @@ HRESULT CFileStream::Seek(_In_ ULONGLONG nPosition, _In_opt_ eSeekMethod nMethod
       }
       break;
 
-    case SeekEnd:
+    case eSeekMethod::End:
       if (nPosition > nUncompressedSize)
         nPosition = nUncompressedSize;
       nPosition = nUncompressedSize - nPosition;

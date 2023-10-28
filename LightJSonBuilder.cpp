@@ -74,7 +74,7 @@ BOOL CLightJSonBuilder::AddObject(_In_opt_z_ LPCSTR szNameA)
   {
     if (cStrJsonA.ConcatN("\"", 1) == FALSE)
       return FALSE;
-    if (cStrJsonA.Concat(szNameA) == FALSE)
+    if (EscapeString(cStrJsonA, szNameA, StrLenA(szNameA), TRUE) == FALSE)
       return FALSE;
     return cStrJsonA.ConcatN("\": { ", 5);
   }
@@ -127,7 +127,7 @@ BOOL CLightJSonBuilder::AddArray(_In_opt_z_ LPCSTR szNameA)
   {
     if (cStrJsonA.ConcatN("\"", 1) == FALSE)
       return FALSE;
-    if (cStrJsonA.Concat(szNameA) == FALSE)
+    if (EscapeString(cStrJsonA, szNameA, StrLenA(szNameA), TRUE) == FALSE)
       return FALSE;
     return cStrJsonA.ConcatN("\": [ ", 5);
   }
@@ -168,7 +168,7 @@ BOOL CLightJSonBuilder::AddObjectBoolean(_In_z_ LPCSTR szNameA, _In_ BOOL bValue
   //insert text
   if (cStrJsonA.ConcatN("\"", 1) == FALSE)
     return FALSE;
-  if (cStrJsonA.Concat(szNameA) == FALSE)
+  if (EscapeString(cStrJsonA, szNameA, StrLenA(szNameA), TRUE) == FALSE)
     return FALSE;
   if (bValue != FALSE)
   {
@@ -208,7 +208,7 @@ BOOL CLightJSonBuilder::AddObjectString(_In_z_ LPCSTR szNameA, _In_ LPCSTR szVal
   //insert text
   if (cStrJsonA.ConcatN("\"", 1) == FALSE)
     return FALSE;
-  if (cStrJsonA.Concat(szNameA) == FALSE)
+  if (EscapeString(cStrJsonA, szNameA, StrLenA(szNameA), TRUE) == FALSE)
     return FALSE;
   if (cStrJsonA.ConcatN("\": \"", 4) == FALSE)
     return FALSE;
@@ -258,7 +258,7 @@ BOOL CLightJSonBuilder::AddObjectString(_In_z_ LPCSTR szNameA, _In_ LPCWSTR szVa
   //insert text
   if (cStrJsonA.ConcatN("\"", 1) == FALSE)
     return FALSE;
-  if (cStrJsonA.Concat(szNameA) == FALSE)
+  if (EscapeString(cStrJsonA, szNameA, StrLenA(szNameA), TRUE) == FALSE)
     return FALSE;
   if (cStrJsonA.ConcatN("\": \"", 4) == FALSE)
     return FALSE;
@@ -306,7 +306,7 @@ BOOL CLightJSonBuilder::AddObjectString(_In_z_ LPCSTR szNameA, _In_ PUNICODE_STR
   //insert text
   if (cStrJsonA.ConcatN("\"", 1) == FALSE)
     return FALSE;
-  if (cStrJsonA.Concat(szNameA) == FALSE)
+  if (EscapeString(cStrJsonA, szNameA, StrLenA(szNameA), TRUE) == FALSE)
     return FALSE;
   if (cStrJsonA.ConcatN("\": \"", 4) == FALSE)
     return FALSE;
@@ -334,7 +334,11 @@ BOOL CLightJSonBuilder::AddObjectLong(_In_z_ LPCSTR szNameA, _In_ LONG nValue)
   }
 
   //insert text
-  return cStrJsonA.AppendFormat("\"%s\": %ld", szNameA, nValue);
+  if (cStrJsonA.ConcatN("\"", 1) == FALSE)
+    return FALSE;
+  if (EscapeString(cStrJsonA, szNameA, StrLenA(szNameA), TRUE) == FALSE)
+    return FALSE;
+  return cStrJsonA.AppendFormat("\": %ld", nValue);
 }
 
 BOOL CLightJSonBuilder::AddObjectULong(_In_z_ LPCSTR szNameA, _In_ ULONG nValue, _In_opt_ BOOL bAsHexa)
@@ -356,7 +360,11 @@ BOOL CLightJSonBuilder::AddObjectULong(_In_z_ LPCSTR szNameA, _In_ ULONG nValue,
   }
 
   //insert text
-  return cStrJsonA.AppendFormat((bAsHexa == FALSE) ? "\"%s\": %lu" : "\"%s\": \"0x%08X\"", szNameA, nValue);
+  if (cStrJsonA.ConcatN("\"", 1) == FALSE)
+    return FALSE;
+  if (EscapeString(cStrJsonA, szNameA, StrLenA(szNameA), TRUE) == FALSE)
+    return FALSE;
+  return cStrJsonA.AppendFormat(((bAsHexa == FALSE) ? "\": %lu" : "\": \"0x%08X\""), nValue);
 }
 
 BOOL CLightJSonBuilder::AddObjectLongLong(_In_z_ LPCSTR szNameA, _In_ LONGLONG nValue)
@@ -378,7 +386,11 @@ BOOL CLightJSonBuilder::AddObjectLongLong(_In_z_ LPCSTR szNameA, _In_ LONGLONG n
   }
 
   //insert text
-  return cStrJsonA.AppendFormat("\"%s\": \"%I64d\"", szNameA, nValue);
+  if (cStrJsonA.ConcatN("\"", 1) == FALSE)
+    return FALSE;
+  if (EscapeString(cStrJsonA, szNameA, StrLenA(szNameA), TRUE) == FALSE)
+    return FALSE;
+  return cStrJsonA.AppendFormat("\": \"%I64d\"", nValue);
 }
 
 BOOL CLightJSonBuilder::AddObjectULongLong(_In_z_ LPCSTR szNameA, _In_ ULONGLONG nValue, _In_opt_ BOOL bAsHexa)
@@ -400,7 +412,11 @@ BOOL CLightJSonBuilder::AddObjectULongLong(_In_z_ LPCSTR szNameA, _In_ ULONGLONG
   }
 
   //insert text
-  return cStrJsonA.AppendFormat((bAsHexa == FALSE) ? "\"%s\": \"%I64u\"" : "\"%s\": \"0x%016I64X\"", szNameA, nValue);
+  if (cStrJsonA.ConcatN("\"", 1) == FALSE)
+    return FALSE;
+  if (EscapeString(cStrJsonA, szNameA, StrLenA(szNameA), TRUE) == FALSE)
+    return FALSE;
+  return cStrJsonA.AppendFormat(((bAsHexa == FALSE) ? "\": \"%I64u\"" : "\": \"0x%016I64X\""), nValue);
 }
 
 BOOL CLightJSonBuilder::AddObjectObject(_In_z_ LPCSTR szNameA, _In_ CLightJSonBuilder &cSrc)
@@ -422,7 +438,13 @@ BOOL CLightJSonBuilder::AddObjectObject(_In_z_ LPCSTR szNameA, _In_ CLightJSonBu
   }
 
   //insert text
-  return cStrJsonA.AppendFormat("\"%s\": %s", szNameA, (LPCSTR)cSrc);
+  if (cStrJsonA.ConcatN("\"", 1) == FALSE)
+    return FALSE;
+  if (EscapeString(cStrJsonA, szNameA, StrLenA(szNameA), TRUE) == FALSE)
+    return FALSE;
+  if (cStrJsonA.ConcatN("\": ", 3) == FALSE)
+    return FALSE; 
+  return cStrJsonA.ConcatN((LPCSTR)cSrc, cSrc.GetLength());
 }
 
 BOOL CLightJSonBuilder::AddArrayBoolean(_In_ BOOL bValue)
@@ -640,7 +662,7 @@ BOOL CLightJSonBuilder::AddArrayObject(_In_ CLightJSonBuilder &cSrc)
   }
 
   //insert text
-  return cStrJsonA.Concat((LPCSTR)cSrc);
+  return cStrJsonA.ConcatN((LPCSTR)cSrc, cSrc.GetLength());
 }
 
 BOOL CLightJSonBuilder::AddRaw(_In_ LPCSTR szStrA, _In_opt_ SIZE_T nStrLen)
@@ -663,8 +685,7 @@ BOOL CLightJSonBuilder::AddRaw(_In_ LPCWSTR szStrW, _In_opt_ SIZE_T nStrLen)
   return (SUCCEEDED(Utf8_Encode(cStrJsonA, szStrW, nStrLen, TRUE))) ? TRUE : FALSE;
 }
 
-BOOL CLightJSonBuilder::EscapeString(_Inout_ CStringA &cStrA, _In_ LPCSTR szValueA, _In_ SIZE_T nValueLen,
-                                     _In_opt_ BOOL bAppend)
+BOOL CLightJSonBuilder::EscapeString(_Inout_ CStringA &cStrA, _In_ LPCSTR szValueA, _In_ SIZE_T nValueLen, _In_opt_ BOOL bAppend)
 {
   LPCSTR szStartA, szValueEndA;
 
@@ -736,8 +757,7 @@ BOOL CLightJSonBuilder::EscapeString(_Inout_ CStringA &cStrA, _In_ LPCSTR szValu
   return TRUE;
 }
 
-BOOL CLightJSonBuilder::EscapeString(_Inout_ CStringA &cStrA, _In_ LPCWSTR szValueW, _In_ SIZE_T nValueLen,
-                                     _In_opt_ BOOL bAppend)
+BOOL CLightJSonBuilder::EscapeString(_Inout_ CStringA &cStrA, _In_ LPCWSTR szValueW, _In_ SIZE_T nValueLen, _In_opt_ BOOL bAppend)
 {
   LPCWSTR szValueEndW;
   CHAR szDestA[6];

@@ -31,7 +31,7 @@ namespace MX {
 
 namespace Network {
 
-HRESULT GetLocalIpAddresses(_Out_ TArrayListWithFree<LPCWSTR> &cStrListW, _In_ int nFlags)
+HRESULT GetLocalIpAddresses(_Out_ TArrayListWithFree<LPCWSTR> &cStrListW, _In_ eLocalIpAddressesFlags nFlags)
 {
   TAutoFreePtr<IP_ADAPTER_ADDRESSES> cIpAddrBuffer;
   PIP_ADAPTER_ADDRESSES lpCurrAdapter;
@@ -83,10 +83,10 @@ HRESULT GetLocalIpAddresses(_Out_ TArrayListWithFree<LPCWSTR> &cStrListW, _In_ i
       switch (lpCurrUnicastAddress->Address.lpSockaddr->sa_family)
       {
         case AF_INET:
-          if ((nFlags & LocalIpAddressesFlagsDontAddIpV4) != 0)
+          if ((nFlags & eLocalIpAddressesFlags::DontAddIpV4) != (eLocalIpAddressesFlags)0)
             break;
           u.lpAddrV4 =  (sockaddr_in*)(lpCurrUnicastAddress->Address.lpSockaddr);
-          //ignore zero & localhost
+          //ignore zero & local host
           if (u.lpAddrV4->sin_addr.S_un.S_un_b.s_b2 == 0 && u.lpAddrV4->sin_addr.S_un.S_un_b.s_b3 == 0)
           {
             if ((u.lpAddrV4->sin_addr.S_un.S_un_b.s_b1 == 0 && u.lpAddrV4->sin_addr.S_un.S_un_b.s_b4 == 0) ||
@@ -106,7 +106,7 @@ HRESULT GetLocalIpAddresses(_Out_ TArrayListWithFree<LPCWSTR> &cStrListW, _In_ i
           break;
 
         case AF_INET6:
-          if ((nFlags & LocalIpAddressesFlagsDontAddIpV6) != 0)
+          if ((nFlags & eLocalIpAddressesFlags::DontAddIpV6) != (eLocalIpAddressesFlags)0)
             break;
           u.lpAddrV6 =  (SOCKADDR_IN6_W2KSP1*)(lpCurrUnicastAddress->Address.lpSockaddr);
           //ignore zero & localhost
@@ -135,7 +135,7 @@ HRESULT GetLocalIpAddresses(_Out_ TArrayListWithFree<LPCWSTR> &cStrListW, _In_ i
     }
   }
 
-  if ((nFlags & LocalIpAddressesFlagsDontAddNetbiosName) == 0)
+  if ((nFlags & eLocalIpAddressesFlags::DontAddNetbiosName) == (eLocalIpAddressesFlags)0)
   {
     hRes = System::_GetComputerNameEx(ComputerNameDnsFullyQualified, cStrTempW);
     if (FAILED(hRes))

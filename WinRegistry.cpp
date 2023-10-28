@@ -33,7 +33,7 @@ static const MX_UNICODE_STRING usEmpty = { 0, 0, (PWSTR)L"" };
 
 //-----------------------------------------------------------
 
-static NTSTATUS OpenBaseKey(_In_ HKEY hKey, _In_ DWORD dwAccess, _Out_ PHANDLE lphBaseKey);
+static NTSTATUS OpenBaseKey(_In_opt_ HKEY hKey, _In_ DWORD dwAccess, _Out_ PHANDLE lphBaseKey);
 static HRESULT RecursiveDeleteKey(_In_ HANDLE hKey, _In_opt_ PUNICODE_STRING SubKey);
 
 static NTSTATUS GetSubKeyName(_In_ HANDLE hKey, _In_ ULONG Index, _Out_ PUNICODE_STRING *pKeyName);
@@ -927,12 +927,12 @@ HRESULT CWindowsRegistry::WriteMultiString(_In_z_ LPCWSTR szNameW, _In_ SIZE_T n
   return S_OK;
 }
 
-HRESULT CWindowsRegistry::WriteBlob(_In_z_ LPCWSTR szNameW, _In_ LPCVOID lpValue, _In_ SIZE_T nValueLen)
+HRESULT CWindowsRegistry::WriteBlob(_In_z_ LPCWSTR szNameW, _In_opt_ LPCVOID lpValue, _In_ SIZE_T nValueLen)
 {
   return WriteAny(szNameW, REG_BINARY, lpValue, nValueLen);
 }
 
-HRESULT CWindowsRegistry::WriteAny(_In_z_ LPCWSTR szNameW, _In_ DWORD dwType, _In_ LPCVOID lpValue,
+HRESULT CWindowsRegistry::WriteAny(_In_z_ LPCWSTR szNameW, _In_ DWORD dwType, _In_opt_ LPCVOID lpValue,
                                    _In_ SIZE_T nValueLen)
 {
   DWORD dwOsErr;
@@ -1135,7 +1135,7 @@ HRESULT CWindowsRegistry::EnumerateValues(_In_ DWORD dwIndex, _Out_ PUNICODE_STR
 
 //-----------------------------------------------------------
 
-static NTSTATUS OpenBaseKey(_In_ HKEY hKey, _In_ DWORD dwAccess, _Out_ PHANDLE lphBaseKey)
+static NTSTATUS OpenBaseKey(_In_opt_ HKEY hKey, _In_ DWORD dwAccess, _Out_ PHANDLE lphBaseKey)
 {
   static const MX_UNICODE_STRING usMachine = { 34, 36, (PWSTR)L"\\REGISTRY\\MACHINE" };
   static const MX_UNICODE_STRING usUser = { 28, 30, (PWSTR)L"\\REGISTRY\\USER" };

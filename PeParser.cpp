@@ -44,7 +44,6 @@ namespace MX {
 
 CPEParser::CPEParser() : CBaseMemObj(), CNonCopyableObj()
 {
-  ClearVars();
   return;
 }
 
@@ -290,14 +289,15 @@ LPBYTE CPEParser::RvaToVa(_In_ DWORD dwVirtualAddress)
     if (dwVirtualAddress >= lpFileImgSect[i].VirtualAddress &&
         dwVirtualAddress < lpFileImgSect[i].VirtualAddress + lpFileImgSect[i].Misc.VirtualSize)
     {
-      return lpBaseAddress + (SIZE_T)(dwVirtualAddress - lpFileImgSect[i].VirtualAddress +
-                                      lpFileImgSect[i].PointerToRawData);
+      return lpBaseAddress + (SIZE_T)dwVirtualAddress - (SIZE_T)(lpFileImgSect[i].VirtualAddress) +
+             (SIZE_T)(lpFileImgSect[i].PointerToRawData);
     }
   }
   return NULL;
 }
 
-BOOL CPEParser::ReadRaw(_Out_writes_(nBytes) LPVOID lpDest, _In_ LPCVOID lpSrc, _In_ SIZE_T nBytes)
+_Success_(return != FALSE)
+BOOL CPEParser::ReadRaw(_Out_writes_bytes_(nBytes) LPVOID lpDest, _In_ LPCVOID lpSrc, _In_ SIZE_T nBytes)
 {
   SIZE_T nOffset;
 

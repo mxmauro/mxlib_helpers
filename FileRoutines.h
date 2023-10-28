@@ -30,11 +30,12 @@ namespace MX {
 
 namespace FileRoutines {
 
-typedef enum {
+enum class eDelayedDelete
+{
   DontTryDeleteOnReboot,
   DeleteOnRebootOnFailure,
   WaitUntilReboot
-} eDelayedDelete;
+} ;
 
 }; //namespace FileRoutines
 
@@ -68,12 +69,12 @@ HRESULT _GetTempPath(_Out_ CStringW &cStrDestW);
 
 HRESULT CreateDirectoryRecursive(_In_ LPCWSTR szFolderNameW);
 HRESULT RemoveDirectoryRecursive(_In_ LPCWSTR szFolderNameW,
-                                 _In_opt_ FileRoutines::eDelayedDelete nDD = FileRoutines::DontTryDeleteOnReboot);
+                                 _In_opt_ FileRoutines::eDelayedDelete nDD = FileRoutines::eDelayedDelete::DontTryDeleteOnReboot);
 
 HRESULT _DeleteFile(_In_ LPCWSTR szFileNameW,
-                    _In_opt_ FileRoutines::eDelayedDelete nDD = FileRoutines::DontTryDeleteOnReboot);
+                    _In_opt_ FileRoutines::eDelayedDelete nDD = FileRoutines::eDelayedDelete::DontTryDeleteOnReboot);
 HRESULT DeleteDirectoryFiles(_In_ LPCWSTR szFolderNameW,
-                             _In_opt_ FileRoutines::eDelayedDelete nDD = FileRoutines::DontTryDeleteOnReboot);
+                             _In_opt_ FileRoutines::eDelayedDelete nDD = FileRoutines::eDelayedDelete::DontTryDeleteOnReboot);
 
 VOID NormalizePath(_Inout_ CStringW &cStrPathW);
 
@@ -89,6 +90,8 @@ HRESULT ResolveSymbolicLink(_Inout_ CStringW &cStrPathW);
 HRESULT GetFileNameFromHandle(_In_ HANDLE hFile, _Out_ CStringW &cStrFileNameW);
 
 HRESULT OpenFileWithEscalatingSharing(_In_z_ LPCWSTR szFileNameW, _Out_ HANDLE *lphFile);
+HRESULT CreateFileWithOptions(_In_z_ LPCWSTR szFileNameW, _Out_ HANDLE *lphFile, _In_opt_ BOOL bCreateDirectory = TRUE,
+                              _In_opt_ BOOL bReplaceExisting = TRUE, _In_opt_ DWORD dwSharedMode = 0);
 
 }; //namespace FileRoutines
 

@@ -143,7 +143,8 @@ public:
   //NOTE: Returns NULL if invalid RVA
   LPBYTE RvaToVa(_In_ DWORD dwVirtualAddress);
 
-  BOOL ReadRaw(_Out_writes_(nBytes) LPVOID lpDest, _In_ LPCVOID lpSrc, _In_ SIZE_T nBytes);
+  _Success_(return != FALSE)
+  BOOL ReadRaw(_Out_writes_bytes_(nBytes) LPVOID lpDest, _In_ LPCVOID lpSrc, _In_ SIZE_T nBytes);
   HRESULT ReadAnsiString(_Out_ CStringA &cStrA, _In_ LPVOID lpNameAddress, _In_ SIZE_T nMaxLength);
 
 private:
@@ -160,31 +161,32 @@ private:
                               _In_ LPCWSTR szKeyW, _Out_ PIMAGE_RESOURCE_DIRECTORY_ENTRY *lplpDirEntry);
 
 private:
-  HANDLE hFile;
-  HANDLE hProc;
+  HANDLE hFile{ NULL };
+  HANDLE hProc{ NULL };
 
-  LPBYTE lpBaseAddress;
-  SIZE_T nDataSize;
-  BOOL bImageIsMapped;
+  LPBYTE lpBaseAddress{ NULL };
+  SIZE_T nDataSize{ 0 };
+  BOOL bImageIsMapped{ FALSE };
   struct {
-    BYTE aBuffer[8192];
-    SIZE_T nOffset, nLength;
+    BYTE aBuffer[8192]{};
+    SIZE_T nOffset{ 0 }, nLength{ 0 };
   } sFileCache;
 
-  WORD wMachine;
-  LPVOID lpOriginalImageBaseAddress;
+  WORD wMachine{ 0 };
+  LPVOID lpOriginalImageBaseAddress{ NULL };
 
-  IMAGE_DOS_HEADER sDosHdr;
+  IMAGE_DOS_HEADER sDosHdr{};
   union {
     IMAGE_NT_HEADERS32 s32;
 #if defined(_M_X64)
     IMAGE_NT_HEADERS64 s64;
 #endif //_M_X64
-  } uNtHdr;
+  } uNtHdr{};
 
-  SIZE_T nSectionsCount;
+  SIZE_T nSectionsCount{ 0 };
   TAutoFreePtr<IMAGE_SECTION_HEADER> cFileImgSect;
 
+private:
   class CImportedDll : public CBaseMemObj
   {
   public:
@@ -197,16 +199,16 @@ private:
   } sImportsInfo;
 
   struct {
-    DWORD dwCharacteristics;
-    WORD wMajorVersion;
-    WORD wMinorVersion;
+    DWORD dwCharacteristics{ 0 };
+    WORD wMajorVersion{ 0 };
+    WORD wMinorVersion{ 0 };
     TArrayListWithFree<LPEXPORTED_FUNCTION> aEntries;
   } sExportsInfo;
 
-  PIMAGE_RESOURCE_DIRECTORY lpResourceDir;
+  PIMAGE_RESOURCE_DIRECTORY lpResourceDir{ NULL };
 
   TAutoFreePtr<BYTE> cVersionInfo;
-  SIZE_T nVersionInfoSize;
+  SIZE_T nVersionInfoSize{ 0 };
 };
 
 }; //namespace MX

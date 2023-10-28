@@ -32,6 +32,10 @@ namespace MX {
 
 namespace Signatures {
 
+enum class eHashType {
+  HashTypeMD5 = 1, HashTypeSHA1, HashTypeSHA256
+};
+
 typedef struct tagHASHES {
   BYTE aSha256[32];
   BYTE aSha1[20];
