@@ -71,11 +71,6 @@ typedef struct {
 } ___WINTRUST_CATALOG_INFO;
 #pragma pack()
 
-typedef struct {
-  WORD wFileVersion[4];
-  WORD wProductVersion[4];
-} __DLL_VERSION;
-
 //-----------------------------------------------------------
 
 typedef LONG (WINAPI *lpfnWinVerifyTrustEx)(_In_ HWND hwnd, _In_ GUID *pgActionID, _In_ LPVOID pWVTData);
@@ -124,8 +119,6 @@ static GUID sDriverActionVerify = DRIVER_ACTION_VERIFY;
 
 static HINSTANCE hCrypt32Dll = NULL;
 static HINSTANCE hWinTrustDll = NULL;
-static __DLL_VERSION sCrypt32DllVersion = { 0 };
-static __DLL_VERSION sWinTrustDllVersion = { 0 };
 
 static lpfnWinVerifyTrustEx fnWinVerifyTrustEx = NULL;
 static lpfnWTHelperProvDataFromStateData fnWTHelperProvDataFromStateData = NULL;
@@ -154,10 +147,6 @@ static VOID EndSignaturesAndInfo();
 static HRESULT DoTrustVerification(_In_opt_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_ LPGUID lpActionId,
                                    _In_opt_ PWINTRUST_CATALOG_INFO lpCatalogInfo, _Out_ PCERT_CONTEXT *lplpCertCtx,
                                    _Out_ PFILETIME lpTimeStamp);
-
-static HRESULT CheckKnownExploits(_In_ PCCERT_CONTEXT pCert, _In_ HRESULT hOriginalRes);
-static int CompareVersion(_In_ LPWORD lpwVersion, _In_ WORD wMajor, _In_ WORD wMinor, _In_ WORD wRelease,
-                          _In_ WORD wBuild);
 
 //-----------------------------------------------------------
 
@@ -417,38 +406,6 @@ HRESULT Initialize()
       fnCertDuplicateCertificateContext == NULL || fnCertFreeCertificateContext == NULL)
   {
     hRes = MX_HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
-  }
-  if (SUCCEEDED(hRes))
-  {
-    CFileVersionInfo cFileVersion;
-
-    hRes = cFileVersion.InitializeFromMemory((LPCVOID)hCrypt32Dll, 0x80000000, TRUE);
-    if (SUCCEEDED(hRes))
-    {
-      sCrypt32DllVersion.wFileVersion[0] = (WORD)(cFileVersion->dwFileVersionMS >> 16);
-      sCrypt32DllVersion.wFileVersion[1] = (WORD)(cFileVersion->dwFileVersionMS & 0xFFFF);
-      sCrypt32DllVersion.wFileVersion[2] = (WORD)(cFileVersion->dwFileVersionLS >> 16);
-      sCrypt32DllVersion.wFileVersion[3] = (WORD)(cFileVersion->dwFileVersionLS & 0xFFFF);
-
-      sCrypt32DllVersion.wProductVersion[0] = (WORD)(cFileVersion->dwProductVersionMS >> 16);
-      sCrypt32DllVersion.wProductVersion[1] = (WORD)(cFileVersion->dwProductVersionMS & 0xFFFF);
-      sCrypt32DllVersion.wProductVersion[2] = (WORD)(cFileVersion->dwProductVersionLS >> 16);
-      sCrypt32DllVersion.wProductVersion[3] = (WORD)(cFileVersion->dwProductVersionLS & 0xFFFF);
-
-      hRes = cFileVersion.InitializeFromMemory((LPCVOID)hWinTrustDll, 0x80000000, TRUE);
-      if (SUCCEEDED(hRes))
-      {
-        sWinTrustDllVersion.wFileVersion[0] = (WORD)(cFileVersion->dwFileVersionMS >> 16);
-        sWinTrustDllVersion.wFileVersion[1] = (WORD)(cFileVersion->dwFileVersionMS & 0xFFFF);
-        sWinTrustDllVersion.wFileVersion[2] = (WORD)(cFileVersion->dwFileVersionLS >> 16);
-        sWinTrustDllVersion.wFileVersion[3] = (WORD)(cFileVersion->dwFileVersionLS & 0xFFFF);
-
-        sWinTrustDllVersion.wProductVersion[0] = (WORD)(cFileVersion->dwProductVersionMS >> 16);
-        sWinTrustDllVersion.wProductVersion[1] = (WORD)(cFileVersion->dwProductVersionMS & 0xFFFF);
-        sWinTrustDllVersion.wProductVersion[2] = (WORD)(cFileVersion->dwProductVersionLS >> 16);
-        sWinTrustDllVersion.wProductVersion[3] = (WORD)(cFileVersion->dwProductVersionLS & 0xFFFF);
-      }
-    }
   }
   if (SUCCEEDED(hRes))
   {
@@ -1163,15 +1120,6 @@ restart:
           break;
         if (lpProvSigner->pasCertChain != NULL && lpProvSigner->pasCertChain->pCert != NULL)
         {
-          HRESULT hResKnownExploit;
-
-          hResKnownExploit = CheckKnownExploits(lpProvSigner->pasCertChain->pCert, hRes);
-          if (hResKnownExploit != S_FALSE)
-          {
-            hRes = hResKnownExploit;
-            goto done;
-          }
-
           *lplpCertCtx = (PCERT_CONTEXT)fnCertDuplicateCertificateContext(lpProvSigner->pasCertChain->pCert);
           if ((*lplpCertCtx) == NULL)
           {
@@ -1209,59 +1157,4 @@ done:
     goto restart;
   }
   return hRes;
-}
-
-static HRESULT CheckKnownExploits(_In_ PCCERT_CONTEXT pCert, _In_ HRESULT hOriginalRes)
-{
-  //CHECK CVE-2020-0601
-  if (pCert->pCertInfo != NULL && pCert->pCertInfo->SignatureAlgorithm.pszObjId != NULL &&
-      (MX::StrNCompareA(pCert->pCertInfo->SignatureAlgorithm.pszObjId, "1.2.840.10045.", 14) == 0 || //szOID_ECDSA_###
-       MX::StrNCompareA(pCert->pCertInfo->SignatureAlgorithm.pszObjId, "1.3.132.0.", 10) == 0)) //szOID_ECC_CURVE_###
-  {
-    if (::IsWindows10OrGreater() != FALSE)
-    {
-      if (CompareVersion(sWinTrustDllVersion.wProductVersion, 10, 0, 18362, 592) < 0)
-      {
-        return MX_E_TRUST_FAILED_CVE_2020_0601;
-      }
-      else if (hOriginalRes == CERT_E_UNTRUSTEDROOT)
-      {
-        return MX_E_TRUST_FAILED_CVE_2020_0601;
-      }
-    }
-    else
-    {
-      if (hOriginalRes == CERT_E_UNTRUSTEDROOT)
-      {
-        return MX_E_TRUST_FAILED_CVE_2020_0601;
-      }
-    }
-  }
-  return S_FALSE;
-}
-
-static int CompareVersion(_In_ LPWORD lpwVersion, _In_ WORD wMajor, _In_ WORD wMinor, _In_ WORD wRelease,
-                          _In_ WORD wBuild)
-{
-  if (lpwVersion[0] < wMajor)
-    return -1;
-  if (lpwVersion[0] > wMajor)
-    return 1;
-  //---
-  if (lpwVersion[1] < wMinor)
-    return -1;
-  if (lpwVersion[1] > wMinor)
-    return 1;
-  //---
-  if (lpwVersion[2] < wRelease)
-    return -1;
-  if (lpwVersion[2] > wRelease)
-    return 1;
-  //---
-  if (lpwVersion[3] < wBuild)
-    return -1;
-  if (lpwVersion[3] > wBuild)
-    return 1;
-  //---
-  return 0;
 }
