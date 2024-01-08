@@ -168,6 +168,11 @@ HRESULT CPEParser::InitializeFromProcessHandle(_In_opt_ HANDLE _hProc, _In_opt_ 
     }
 #endif //_M_X64
   }
+  if (lpPeb == NULL)
+  {
+    Finalize();
+    return MX_E_ReadFault;
+  }
 
   //read ImageBaseAddress from PEB
 #if defined(_M_X64)
