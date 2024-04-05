@@ -38,10 +38,19 @@ namespace Console {
 
 VOID Initialize()
 {
-  nOldStdOutMode = _setmode(_fileno(stdout), _O_U16TEXT);
-  hConsoleOut = ::GetStdHandle(STD_OUTPUT_HANDLE);
+  if (__InterlockedRead(&nInitialized) == 0)
+  {
+    MX::CFastLock cLock(&nMutex);
 
-  _InterlockedExchange(&nInitialized, 1);
+    if (__InterlockedRead(&nInitialized) == 0)
+    {
+      nOldStdOutMode = _setmode(_fileno(stdout), _O_U16TEXT);
+      hConsoleOut = ::GetStdHandle(STD_OUTPUT_HANDLE);
+    }
+
+    // done
+    _InterlockedExchange(&nInitialized, 1);
+  }
   return;
 }
 

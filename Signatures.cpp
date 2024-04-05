@@ -156,6 +156,8 @@ namespace Signatures {
 
 HRESULT Initialize()
 {
+  static LONG volatile nInitialized = 0;
+  static LONG volatile nMutex = 0;
   static const WCHAR strW_WinTrustDll[] = {
     X_WCHAR_ENC(L'w',  0), X_WCHAR_ENC(L'i',  1), X_WCHAR_ENC(L'n',  2), X_WCHAR_ENC(L't',  3),
     X_WCHAR_ENC(L'r',  4), X_WCHAR_ENC(L'u',  5), X_WCHAR_ENC(L's',  6), X_WCHAR_ENC(L't',  7),
@@ -336,121 +338,132 @@ HRESULT Initialize()
     X_CHAR_ENC('o', 28), X_CHAR_ENC('n', 29), X_CHAR_ENC('t', 30), X_CHAR_ENC('e', 31),
     X_CHAR_ENC('x', 32), X_CHAR_ENC('t', 33), X_CHAR_ENC(0, 34)
   };
-  CHAR szTempA[128];
-  WCHAR szTempW[128];
-  SIZE_T i;
-  HRESULT hRes = S_OK;
 
-  _EXPAND_W(strW_WinTrustDll);
-  if (SUCCEEDED(System::LoadSystem32Dll(szTempW, &hWinTrustDll)))
+  if (__InterlockedRead(&nInitialized) == 0)
   {
-    _EXPAND_A(strA_WinVerifyTrustEx);
-    fnWinVerifyTrustEx = (lpfnWinVerifyTrustEx)::GetProcAddress(hWinTrustDll, szTempA);
-    _EXPAND_A(strA_WTHelperProvDataFromStateData);
-    fnWTHelperProvDataFromStateData = (lpfnWTHelperProvDataFromStateData)::GetProcAddress(hWinTrustDll, szTempA);
-    _EXPAND_A(strA_WTHelperGetProvSignerFromChain);
-    fnWTHelperGetProvSignerFromChain = (lpfnWTHelperGetProvSignerFromChain)::GetProcAddress(hWinTrustDll, szTempA);
+    MX::CFastLock cLock(&nMutex);
 
-    _EXPAND_A(strA_CryptCATAdminAcquireContext);
-    fnCryptCATAdminAcquireContext = (lpfnCryptCATAdminAcquireContext)::GetProcAddress(hWinTrustDll, szTempA);
-    _EXPAND_A(strA_CryptCATAdminAcquireContext2);
-    fnCryptCATAdminAcquireContext2 = (lpfnCryptCATAdminAcquireContext2)::GetProcAddress(hWinTrustDll, szTempA);
-    _EXPAND_A(strA_CryptCATAdminCalcHashFromFileHandle);
-    fnCryptCATAdminCalcHashFromFileHandle = (lpfnCryptCATAdminCalcHashFromFileHandle)::GetProcAddress(hWinTrustDll,
-                                                                                                      szTempA);
-    _EXPAND_A(strA_CryptCATAdminCalcHashFromFileHandle2);
-    fnCryptCATAdminCalcHashFromFileHandle2 = (lpfnCryptCATAdminCalcHashFromFileHandle2)::GetProcAddress(hWinTrustDll,
-                                                                                                        szTempA);
-    _EXPAND_A(strA_CryptCATAdminEnumCatalogFromHash);
-    fnCryptCATAdminEnumCatalogFromHash = (lpfnCryptCATAdminEnumCatalogFromHash)::GetProcAddress(hWinTrustDll, szTempA);
-    _EXPAND_A(strA_CryptCATAdminReleaseContext);
-    fnCryptCATAdminReleaseContext = (lpfnCryptCATAdminReleaseContext)::GetProcAddress(hWinTrustDll, szTempA);
-    _EXPAND_A(strA_CryptCATCatalogInfoFromContext);
-    fnCryptCATCatalogInfoFromContext = (lpfnCryptCATCatalogInfoFromContext)::GetProcAddress(hWinTrustDll, szTempA);
-    _EXPAND_A(strA_CryptCATAdminReleaseCatalogContext);
-    fnCryptCATAdminReleaseCatalogContext = (lpfnCryptCATAdminReleaseCatalogContext)::GetProcAddress(hWinTrustDll,
-                                                                                                    szTempA);
-
-    if (fnCryptCATAdminAcquireContext2 == NULL || fnCryptCATAdminCalcHashFromFileHandle2 == NULL)
+    if (__InterlockedRead(&nInitialized) == 0)
     {
-      fnCryptCATAdminAcquireContext2 = NULL;
-      fnCryptCATAdminCalcHashFromFileHandle2 = NULL;
-    }
-    if (fnCryptCATAdminAcquireContext == NULL || fnCryptCATAdminCalcHashFromFileHandle == NULL ||
-        fnCryptCATAdminEnumCatalogFromHash == NULL || fnCryptCATAdminReleaseContext == NULL ||
-        fnCryptCATCatalogInfoFromContext == NULL || fnCryptCATAdminReleaseCatalogContext == NULL)
-    {
-      fnCryptCATAdminAcquireContext = NULL;
-      fnCryptCATAdminAcquireContext2 = NULL;
-      fnCryptCATAdminCalcHashFromFileHandle = NULL;
-      fnCryptCATAdminCalcHashFromFileHandle2 = NULL;
-      fnCryptCATAdminEnumCatalogFromHash = NULL;
-      fnCryptCATAdminReleaseContext = NULL;
-      fnCryptCATCatalogInfoFromContext = NULL;
-      fnCryptCATAdminReleaseCatalogContext = NULL;
-    }
-  }
-  _EXPAND_W(strW_Crypt32Dll);
-  if (SUCCEEDED(System::LoadSystem32Dll(szTempW, &hCrypt32Dll)))
-  {
-    _EXPAND_A(strA_CertGetNameStringW);
-    fnCertGetNameStringW = (lpfnCertGetNameStringW)::GetProcAddress(hCrypt32Dll, szTempA);
+      CHAR szTempA[128];
+      WCHAR szTempW[128];
+      SIZE_T i;
+      HRESULT hRes = S_OK;
 
-    _EXPAND_A(strA_CertDuplicateCertificateContext);
-    fnCertDuplicateCertificateContext = (lpfnCertDuplicateCertificateContext)::GetProcAddress(hCrypt32Dll, szTempA);
-    _EXPAND_A(strA_CertFreeCertificateContext);
-    fnCertFreeCertificateContext = (lpfnCertFreeCertificateContext)::GetProcAddress(hCrypt32Dll, szTempA);
-  }
-  if (fnWinVerifyTrustEx == NULL || fnCertGetNameStringW == NULL ||
-      fnWTHelperProvDataFromStateData == NULL || fnWTHelperGetProvSignerFromChain == NULL ||
-      fnCertDuplicateCertificateContext == NULL || fnCertFreeCertificateContext == NULL)
-  {
-    hRes = MX_HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
-  }
-  if (SUCCEEDED(hRes))
-  {
-    HINSTANCE hDll[2];
+      _EXPAND_W(strW_WinTrustDll);
+      if (SUCCEEDED(System::LoadSystem32Dll(szTempW, &hWinTrustDll)))
+      {
+        _EXPAND_A(strA_WinVerifyTrustEx);
+        fnWinVerifyTrustEx = (lpfnWinVerifyTrustEx)::GetProcAddress(hWinTrustDll, szTempA);
+        _EXPAND_A(strA_WTHelperProvDataFromStateData);
+        fnWTHelperProvDataFromStateData = (lpfnWTHelperProvDataFromStateData)::GetProcAddress(hWinTrustDll, szTempA);
+        _EXPAND_A(strA_WTHelperGetProvSignerFromChain);
+        fnWTHelperGetProvSignerFromChain = (lpfnWTHelperGetProvSignerFromChain)::GetProcAddress(hWinTrustDll, szTempA);
 
-    _EXPAND_W(strW_KernelbaseDll);
-    hDll[0] = ::GetModuleHandleW(szTempW);
-    _EXPAND_W(strW_Kernel32Dll);
-    hDll[1] = ::GetModuleHandleW(szTempW);
-    if (hDll[0] != NULL && hDll[1] != NULL)
-    {
-      _EXPAND_A(strA_GetPackageFullName);
-      fnGetPackageFullName = (lpfnGetPackageFullName)::GetProcAddress(hDll[0], szTempA);
-      if (fnGetPackageFullName == NULL)
-        fnGetPackageFullName = (lpfnGetPackageFullName)::GetProcAddress(hDll[1], szTempA);
-      _EXPAND_A(strA_GetPackagePath);
-      fnGetPackagePath = (lpfnGetPackagePath)::GetProcAddress(hDll[0], szTempA);
-      if (fnGetPackagePath == NULL)
-        fnGetPackagePath = (lpfnGetPackagePath)::GetProcAddress(hDll[1], szTempA);
-      _EXPAND_A(strA_PackageIdFromFullName);
-      fnPackageIdFromFullName = (lpfnPackageIdFromFullName)::GetProcAddress(hDll[0], szTempA);
-      if (fnPackageIdFromFullName == NULL)
-        fnPackageIdFromFullName = (lpfnPackageIdFromFullName)::GetProcAddress(hDll[1], szTempA);
-    }
-    if (fnGetPackageFullName == NULL || fnGetPackagePath == NULL || fnPackageIdFromFullName == NULL)
-    {
-      fnGetPackageFullName = NULL;
-      fnGetPackagePath = NULL;
-      fnPackageIdFromFullName = NULL;
+        _EXPAND_A(strA_CryptCATAdminAcquireContext);
+        fnCryptCATAdminAcquireContext = (lpfnCryptCATAdminAcquireContext)::GetProcAddress(hWinTrustDll, szTempA);
+        _EXPAND_A(strA_CryptCATAdminAcquireContext2);
+        fnCryptCATAdminAcquireContext2 = (lpfnCryptCATAdminAcquireContext2)::GetProcAddress(hWinTrustDll, szTempA);
+        _EXPAND_A(strA_CryptCATAdminCalcHashFromFileHandle);
+        fnCryptCATAdminCalcHashFromFileHandle = (lpfnCryptCATAdminCalcHashFromFileHandle)::GetProcAddress(hWinTrustDll, szTempA);
+        _EXPAND_A(strA_CryptCATAdminCalcHashFromFileHandle2);
+        fnCryptCATAdminCalcHashFromFileHandle2 = (lpfnCryptCATAdminCalcHashFromFileHandle2)::GetProcAddress(hWinTrustDll, szTempA);
+        _EXPAND_A(strA_CryptCATAdminEnumCatalogFromHash);
+        fnCryptCATAdminEnumCatalogFromHash = (lpfnCryptCATAdminEnumCatalogFromHash)::GetProcAddress(hWinTrustDll, szTempA);
+        _EXPAND_A(strA_CryptCATAdminReleaseContext);
+        fnCryptCATAdminReleaseContext = (lpfnCryptCATAdminReleaseContext)::GetProcAddress(hWinTrustDll, szTempA);
+        _EXPAND_A(strA_CryptCATCatalogInfoFromContext);
+        fnCryptCATCatalogInfoFromContext = (lpfnCryptCATCatalogInfoFromContext)::GetProcAddress(hWinTrustDll, szTempA);
+        _EXPAND_A(strA_CryptCATAdminReleaseCatalogContext);
+        fnCryptCATAdminReleaseCatalogContext = (lpfnCryptCATAdminReleaseCatalogContext)::GetProcAddress(hWinTrustDll, szTempA);
+        if (fnCryptCATAdminAcquireContext2 == NULL || fnCryptCATAdminCalcHashFromFileHandle2 == NULL)
+        {
+          fnCryptCATAdminAcquireContext2 = NULL;
+          fnCryptCATAdminCalcHashFromFileHandle2 = NULL;
+        }
+        if (fnCryptCATAdminAcquireContext == NULL || fnCryptCATAdminCalcHashFromFileHandle == NULL ||
+            fnCryptCATAdminEnumCatalogFromHash == NULL || fnCryptCATAdminReleaseContext == NULL ||
+            fnCryptCATCatalogInfoFromContext == NULL || fnCryptCATAdminReleaseCatalogContext == NULL)
+        {
+          fnCryptCATAdminAcquireContext = NULL;
+          fnCryptCATAdminAcquireContext2 = NULL;
+          fnCryptCATAdminCalcHashFromFileHandle = NULL;
+          fnCryptCATAdminCalcHashFromFileHandle2 = NULL;
+          fnCryptCATAdminEnumCatalogFromHash = NULL;
+          fnCryptCATAdminReleaseContext = NULL;
+          fnCryptCATCatalogInfoFromContext = NULL;
+          fnCryptCATAdminReleaseCatalogContext = NULL;
+        }
+      }
+      _EXPAND_W(strW_Crypt32Dll);
+      if (SUCCEEDED(System::LoadSystem32Dll(szTempW, &hCrypt32Dll)))
+      {
+        _EXPAND_A(strA_CertGetNameStringW);
+        fnCertGetNameStringW = (lpfnCertGetNameStringW)::GetProcAddress(hCrypt32Dll, szTempA);
+
+        _EXPAND_A(strA_CertDuplicateCertificateContext);
+        fnCertDuplicateCertificateContext = (lpfnCertDuplicateCertificateContext)::GetProcAddress(hCrypt32Dll, szTempA);
+        _EXPAND_A(strA_CertFreeCertificateContext);
+        fnCertFreeCertificateContext = (lpfnCertFreeCertificateContext)::GetProcAddress(hCrypt32Dll, szTempA);
+      }
+      if (fnWinVerifyTrustEx == NULL || fnCertGetNameStringW == NULL ||
+          fnWTHelperProvDataFromStateData == NULL || fnWTHelperGetProvSignerFromChain == NULL ||
+          fnCertDuplicateCertificateContext == NULL || fnCertFreeCertificateContext == NULL)
+      {
+        hRes = MX_HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
+      }
+      if (SUCCEEDED(hRes))
+      {
+        HINSTANCE hDll[2];
+
+        _EXPAND_W(strW_KernelbaseDll);
+        hDll[0] = ::GetModuleHandleW(szTempW);
+        _EXPAND_W(strW_Kernel32Dll);
+        hDll[1] = ::GetModuleHandleW(szTempW);
+        if (hDll[0] != NULL && hDll[1] != NULL)
+        {
+          _EXPAND_A(strA_GetPackageFullName);
+          fnGetPackageFullName = (lpfnGetPackageFullName)::GetProcAddress(hDll[0], szTempA);
+          if (fnGetPackageFullName == NULL)
+            fnGetPackageFullName = (lpfnGetPackageFullName)::GetProcAddress(hDll[1], szTempA);
+          _EXPAND_A(strA_GetPackagePath);
+          fnGetPackagePath = (lpfnGetPackagePath)::GetProcAddress(hDll[0], szTempA);
+          if (fnGetPackagePath == NULL)
+            fnGetPackagePath = (lpfnGetPackagePath)::GetProcAddress(hDll[1], szTempA);
+          _EXPAND_A(strA_PackageIdFromFullName);
+          fnPackageIdFromFullName = (lpfnPackageIdFromFullName)::GetProcAddress(hDll[0], szTempA);
+          if (fnPackageIdFromFullName == NULL)
+            fnPackageIdFromFullName = (lpfnPackageIdFromFullName)::GetProcAddress(hDll[1], szTempA);
+        }
+        if (fnGetPackageFullName == NULL || fnGetPackagePath == NULL || fnPackageIdFromFullName == NULL)
+        {
+          fnGetPackageFullName = NULL;
+          fnGetPackagePath = NULL;
+          fnPackageIdFromFullName = NULL;
+        }
+      }
+
+      //register finalizer
+      if (SUCCEEDED(hRes))
+        hRes = RegisterFinalizer(&EndSignaturesAndInfo, 3);
+
+      ::MxMemSet(szTempA, 0, sizeof(szTempA));
+      ::MxMemSet(szTempW, 0, sizeof(szTempW));
+
+      if (FAILED(hRes))
+      {
+        EndSignaturesAndInfo();
+        return hRes;
+      }
+
+      //done
+      _InterlockedExchange(&nInitialized, 1);
     }
   }
-  //register finalizer
-  if (SUCCEEDED(hRes))
-  {
-    hRes = RegisterFinalizer(&EndSignaturesAndInfo, 3);
-  }
-  //done
-  if (FAILED(hRes))
-    EndSignaturesAndInfo();
-  ::MxMemSet(szTempA, 0, sizeof(szTempA));
-  ::MxMemSet(szTempW, 0, sizeof(szTempW));
-  return hRes;
+  return S_OK;
 }
 
-HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_opt_ HANDLE hProcess,
+HRESULT GetPeSignature(_In_opt_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_opt_ HANDLE hProcess,
                        _In_opt_ HANDLE hCancelEvent, _Out_ PCERT_CONTEXT *lplpCertCtx, _Out_ PFILETIME lpTimeStamp)
 {
   static const WCHAR strW_AppxMetadata_CodeIntegrity_cat[] = {
@@ -473,10 +486,14 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_
     lpTimeStamp->dwLowDateTime = lpTimeStamp->dwHighDateTime = 0;
   if (lplpCertCtx == NULL || lpTimeStamp == NULL)
     return E_POINTER;
-  if (szPeFileNameW == NULL)
-    return E_POINTER;
-  if (*szPeFileNameW == 0)
-    return E_INVALIDARG;
+  if (hFile == NULL || hFile == INVALID_HANDLE_VALUE)
+  {
+    if (szPeFileNameW == NULL)
+      return E_POINTER;
+    if (*szPeFileNameW == 0)
+      return E_INVALIDARG;
+    hFile = NULL;
+  }
 
   if (fnWinVerifyTrustEx == NULL)
     return MX_E_Cancelled;
@@ -523,13 +540,13 @@ HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_
         goto done;
       }
       dwLen = 1024;
-      hRes = MX_HRESULT_FROM_WIN32(fnPackageIdFromFullName((LPCWSTR)cStrPackageFullPathW, PACKAGE_INFORMATION_BASIC,
-                                   &dwLen, (PBYTE)(aPackageId.Get())));
+      hRes = MX_HRESULT_FROM_WIN32(fnPackageIdFromFullName((LPCWSTR)cStrPackageFullPathW, PACKAGE_INFORMATION_BASIC, &dwLen,
+                                                           (PBYTE)(aPackageId.Get())));
       if (hRes == HRESULT_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER))
       {
         aPackageId.Attach((PACKAGE_ID*)MX_MALLOC((SIZE_T)dwLen));
-        hRes = MX_HRESULT_FROM_WIN32(fnPackageIdFromFullName((LPCWSTR)cStrPackageFullPathW, PACKAGE_INFORMATION_BASIC,
-                                     &dwLen, (PBYTE)(aPackageId.Get())));
+        hRes = MX_HRESULT_FROM_WIN32(fnPackageIdFromFullName((LPCWSTR)cStrPackageFullPathW, PACKAGE_INFORMATION_BASIC, &dwLen,
+                                                             (PBYTE)(aPackageId.Get())));
       }
       if (SUCCEEDED(hRes))
       {

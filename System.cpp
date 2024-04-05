@@ -57,8 +57,7 @@ static VOID InitializeApis();
 
 namespace MX {
 
-namespace System
-{
+namespace System {
 
 HRESULT GetOpSystemInfo(_Out_ CStringW &cStrOpSystemW)
 {

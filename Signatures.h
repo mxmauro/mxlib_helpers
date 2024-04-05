@@ -51,7 +51,7 @@ HRESULT Initialize();
 //NOTE: Returns TRUST_E_NOSIGNATURE if no certificates are found.
 //      If an error is returned, check 'lplpCertCtx' and 'lpTimeStamp' might contain valid data. In this
 //      scenario, the file contains a certificate but it is untrusted for some reason.
-HRESULT GetPeSignature(_In_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_opt_ HANDLE hProcess,
+HRESULT GetPeSignature(_In_opt_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_opt_ HANDLE hProcess,
                        _In_opt_ HANDLE hCancelEvent, _Out_ PCERT_CONTEXT *lplpCertCtx, _Out_ PFILETIME lpTimeStamp);
 VOID FreeCertificate(_In_opt_ PCCERT_CONTEXT lpCertCtx);
 PCCERT_CONTEXT DuplicateCertificate(_In_ PCCERT_CONTEXT lpCertCtx);

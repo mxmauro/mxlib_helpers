@@ -46,6 +46,7 @@ typedef BOOL (WINAPI *lpfnMiniDumpWriteDump)(_In_ HANDLE hProcess, _In_ DWORD Pr
 
 //-----------------------------------------------------------
 
+static LONG volatile nInitialized = 0;
 static LONG volatile nMutex = 0;
 static LPTOP_LEVEL_EXCEPTION_FILTER lpPrevExceptionFilter = NULL;
 
@@ -66,9 +67,19 @@ namespace CrashReport {
 
 VOID Initialize()
 {
-  //set unhandled exception filter
-  lpPrevExceptionFilter = ::SetUnhandledExceptionFilter(&OnUnhandledExceptionFilter);
-  //done
+  if (__InterlockedRead(&nInitialized) == 0)
+  {
+    MX::CFastLock cLock(&nMutex);
+
+    if (__InterlockedRead(&nInitialized) == 0)
+    {
+      //set unhandled exception filter
+      lpPrevExceptionFilter = ::SetUnhandledExceptionFilter(&OnUnhandledExceptionFilter);
+    }
+
+    // done
+    _InterlockedExchange(&nInitialized, 1);
+  }
   return;
 }
 
