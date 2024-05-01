@@ -390,10 +390,10 @@ BOOL CLightJSonBuilder::AddObjectLongLong(_In_z_ LPCSTR szNameA, _In_ LONGLONG n
     return FALSE;
   if (EscapeString(cStrJsonA, szNameA, StrLenA(szNameA), TRUE) == FALSE)
     return FALSE;
-  return cStrJsonA.AppendFormat("\": \"%I64d\"", nValue);
+  return cStrJsonA.AppendFormat("\": %I64d", nValue);
 }
 
-BOOL CLightJSonBuilder::AddObjectULongLong(_In_z_ LPCSTR szNameA, _In_ ULONGLONG nValue, _In_opt_ BOOL bAsHexa)
+BOOL CLightJSonBuilder::AddObjectULongLong(_In_z_ LPCSTR szNameA, _In_ ULONGLONG nValue)
 {
   MX_ASSERT(szNameA != NULL);
   MX_ASSERT(*szNameA != 0);
@@ -416,7 +416,7 @@ BOOL CLightJSonBuilder::AddObjectULongLong(_In_z_ LPCSTR szNameA, _In_ ULONGLONG
     return FALSE;
   if (EscapeString(cStrJsonA, szNameA, StrLenA(szNameA), TRUE) == FALSE)
     return FALSE;
-  return cStrJsonA.AppendFormat(((bAsHexa == FALSE) ? "\": \"%I64u\"" : "\": \"0x%016I64X\""), nValue);
+  return cStrJsonA.AppendFormat("\": %I64u", nValue);
 }
 
 BOOL CLightJSonBuilder::AddObjectObject(_In_z_ LPCSTR szNameA, _In_ CLightJSonBuilder &cSrc)
@@ -622,10 +622,10 @@ BOOL CLightJSonBuilder::AddArrayLongLong(_In_ LONGLONG nValue)
   }
 
   //insert text
-  return cStrJsonA.AppendFormat("\"%I64d\"", nValue);
+  return cStrJsonA.AppendFormat("%I64d", nValue);
 }
 
-BOOL CLightJSonBuilder::AddArrayULongLong(_In_ ULONGLONG nValue, _In_opt_ BOOL bAsHexa)
+BOOL CLightJSonBuilder::AddArrayULongLong(_In_ ULONGLONG nValue)
 {
   MX_ASSERT(aNestedTypes.GetCount() > 0);
   MX_ASSERT(aNestedTypes.GetElementAt(aNestedTypes.GetCount() - 1) == _IS_ARRAY);
@@ -642,7 +642,7 @@ BOOL CLightJSonBuilder::AddArrayULongLong(_In_ ULONGLONG nValue, _In_opt_ BOOL b
   }
 
   //insert text
-  return cStrJsonA.AppendFormat((bAsHexa == FALSE) ? "\"%I64u\"" : "\"0x%016I64X\"", nValue);
+  return cStrJsonA.AppendFormat("%I64u", nValue);
 }
 
 BOOL CLightJSonBuilder::AddArrayObject(_In_ CLightJSonBuilder &cSrc)

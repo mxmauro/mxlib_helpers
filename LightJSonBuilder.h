@@ -51,10 +51,10 @@ public:
   BOOL AddObjectString(_In_z_ LPCSTR szNameA, _In_ PUNICODE_STRING Value);
   BOOL AddObjectLong(_In_z_ LPCSTR szNameA, _In_ LONG nValue);
   BOOL AddObjectULong(_In_z_ LPCSTR szNameA, _In_ ULONG nValue, _In_opt_ BOOL bAsHexa = FALSE);
-  //IMPORTANT: Stored as strings because ECMA-262 Sec 8.5 states max number is 9007199254740990
+  //IMPORTANT: ECMA-262 Sec 8.5 states max number is 9007199254740990 so, if larger, it is recommended to store it as string
+  //           to maximize compatibility, mainly, with javascript.
   BOOL AddObjectLongLong(_In_z_ LPCSTR szNameA, _In_ LONGLONG nValue);
-  //IMPORTANT: Stored as strings because ECMA-262 Sec 8.5 states max number is 9007199254740990
-  BOOL AddObjectULongLong(_In_z_ LPCSTR szNameA, _In_ ULONGLONG nValue, _In_opt_ BOOL bAsHexa = FALSE);
+  BOOL AddObjectULongLong(_In_z_ LPCSTR szNameA, _In_ ULONGLONG nValue);
   BOOL AddObjectObject(_In_z_ LPCSTR szNameA, _In_ CLightJSonBuilder &cSrc);
 
   BOOL AddArrayBoolean(_In_ BOOL bValue);
@@ -64,10 +64,10 @@ public:
   BOOL AddArrayFormattedString(_Printf_format_string_ LPCWSTR szFormatW, ...);
   BOOL AddArrayLong(_In_ LONG nValue);
   BOOL AddArrayULong(_In_ ULONG nValue, _In_opt_ BOOL bAsHexa = FALSE);
-  //IMPORTANT: Stored as strings because ECMA-262 Sec 8.5 states max number is 9007199254740990
+  //IMPORTANT: ECMA-262 Sec 8.5 states max number is 9007199254740990 so, if larger, it is recommended to store it as string
+  //           to maximize compatibility, mainly, with javascript.
   BOOL AddArrayLongLong(_In_ LONGLONG nValue);
-  //IMPORTANT: Stored as strings because ECMA-262 Sec 8.5 states max number is 9007199254740990
-  BOOL AddArrayULongLong(_In_ ULONGLONG nValue, _In_opt_ BOOL bAsHexa = FALSE);
+  BOOL AddArrayULongLong(_In_ ULONGLONG nValue);
   BOOL AddArrayObject(_In_ CLightJSonBuilder &cSrc);
 
   BOOL AddRaw(_In_ LPCSTR szStrA, _In_opt_ SIZE_T nStrLen = (SIZE_T)-1);
