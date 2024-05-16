@@ -26,16 +26,11 @@
 #include "FileVersionInfo.h"
 #include <WaitableObjects.h>
 #include <Finalizer.h>
+#include <intsafe.h>
 
 #pragma comment(lib, "Shell32.lib")
 
 //-----------------------------------------------------------
-
-#ifdef _DEBUG
-  #define DEBUGOUTPUT_LOG
-#else //_DEBUG
-  //#define DEBUGOUTPUT_LOG
-#endif //_DEBUG
 
 #define LOGFLAG_Initialized                           0x0001
 #define LOGFLAG_LogFileOpenProcessed                  0x0002
@@ -50,17 +45,17 @@ static MX::CWindowsHandle cLogH;
 static MX::CStringW cStrLogFileNameBaseW;
 static MX::CStringW cStrLogFolderW;
 static DWORD dwLogKeepDays = 0;
+static BOOL bDebugOutput = FALSE;
 static WCHAR szTempBufW[8192];
 static WORD wLastDate[3] = { 0 };
+static DWORD dwProductVersionMS = 0;
+static DWORD dwProductVersionLS = 0;
 
 //-----------------------------------------------------------
 
 static VOID ShutdownLogger();
 
-static VOID RemoveOldFiles(_In_ DWORD dwKeepDays, _In_z_ LPCWSTR szLogFolderW, _In_z_ LPCWSTR szLogBaseFileNameW);
-
-static HRESULT GetLogKeepDays(_In_z_ LPCWSTR szRegistryKeyW, _In_z_ LPCWSTR szRegistryValueW,
-                              _In_ DWORD dwDefaultKeepDays, _Out_ DWORD &dwKeepDays);
+static VOID RemoveOldFiles();
 
 static HRESULT OpenLog(_In_ LPSYSTEMTIME lpSystemTime);
 static HRESULT InitLogCommon(_Out_ LPSYSTEMTIME lpSystemTime);
@@ -75,16 +70,18 @@ namespace MX {
 
 namespace EventLogger {
 
-HRESULT Initialize(_In_z_ LPCWSTR szApplicationNameW, _In_z_ LPCWSTR szModuleNameW, _In_z_ LPCWSTR szRegistryKeyW,
-                   _In_z_ LPCWSTR szRegistryValueW, _In_ DWORD dwDefaultKeepDays)
+HRESULT Initialize(_In_z_ LPCWSTR szApplicationNameW, _In_z_ LPCWSTR szModuleNameW, _In_ DWORD dwKeepDays, _In_opt_ BOOL _bDebugOutput)
 {
   CFastLock cLock(&nMutex);
+  CFileVersionInfo cVersionInfo;
   HRESULT hRes;
 
-  if (szModuleNameW == NULL || szRegistryKeyW == NULL || szRegistryValueW == NULL)
+  if (szModuleNameW == NULL)
     return E_POINTER;
-  if (*szModuleNameW == 0 || *szRegistryKeyW == 0 || *szRegistryValueW == 0 || dwDefaultKeepDays < 1)
+  if (*szModuleNameW == 0 || dwKeepDays < 1)
     return E_INVALIDARG;
+  if (dwKeepDays > 180)
+    dwKeepDays = 180;
 
   ShutdownLogger();
 
@@ -93,17 +90,19 @@ HRESULT Initialize(_In_z_ LPCWSTR szApplicationNameW, _In_z_ LPCWSTR szModuleNam
     return E_OUTOFMEMORY;
 
   //setup log folder
-  hRes = FileRoutines::GetCommonAppDataFolderPath(cStrLogFolderW);
-  if (SUCCEEDED(hRes))
+  if (StrChrW(szApplicationNameW, L'\\') == NULL)
   {
-    if (cStrLogFolderW.AppendFormat(L"%s\\Logs\\", szApplicationNameW) == FALSE)
-      hRes = E_OUTOFMEMORY;
+    hRes = FileRoutines::GetCommonAppDataFolderPath(cStrLogFolderW);
+    if (SUCCEEDED(hRes))
+    {
+      if (cStrLogFolderW.AppendFormat(L"%s\\Logs\\", szApplicationNameW) == FALSE)
+        hRes = E_OUTOFMEMORY;
+    }
   }
-
-  //get settings from registry
-  if (SUCCEEDED(hRes))
+  else
   {
-    hRes = GetLogKeepDays(szRegistryKeyW, szRegistryValueW, dwDefaultKeepDays, dwLogKeepDays);
+    if (cStrLogFolderW.Copy(szApplicationNameW) == FALSE)
+      hRes = E_OUTOFMEMORY;
   }
 
   //register finalizer
@@ -119,8 +118,23 @@ HRESULT Initialize(_In_z_ LPCWSTR szApplicationNameW, _In_z_ LPCWSTR szModuleNam
     return hRes;
   }
 
+  //set some options
+  dwLogKeepDays = dwKeepDays;
+  bDebugOutput = _bDebugOutput;
+
+  //write file version
+  if (SUCCEEDED(cVersionInfo.InitializeFromProcessHandle(NULL)))
+  {
+    dwProductVersionMS = cVersionInfo->dwProductVersionMS;
+    dwProductVersionLS = cVersionInfo->dwProductVersionLS;
+  }
+  else
+  {
+    dwProductVersionMS = dwProductVersionLS = 0;
+  }
+
   //delete old files
-  RemoveOldFiles(dwLogKeepDays, (LPCWSTR)cStrLogFolderW, (LPCWSTR)cStrLogFileNameBaseW);
+  RemoveOldFiles();
 
   //done
   _InterlockedOr(&nInitializedFlags, LOGFLAG_Initialized);
@@ -222,10 +236,12 @@ HRESULT LogRaw(_In_z_ LPCWSTR szTextW)
   //write log
   ::WriteFile(cLogH, szTextW, dwLen * 2, &dwWritten, NULL);
   ::WriteFile(cLogH, L"\r\n", 4, &dwWritten, NULL);
-#ifdef DEBUGOUTPUT_LOG
-  ::OutputDebugStringW(szTextW);
-  ::OutputDebugStringW(L"\r\n");
-#endif //DEBUGOUTPUT_LOG
+  if (bDebugOutput != FALSE)
+  {
+    ::OutputDebugStringW(szTextW);
+    ::OutputDebugStringW(L"\r\n");
+  }
+
   //done
   return S_OK;
 }
@@ -273,55 +289,60 @@ static VOID ShutdownLogger()
   cStrLogFolderW.Empty();
   cStrLogFileNameBaseW.Empty();
   dwLogKeepDays = 0;
+  bDebugOutput = FALSE;
+  ::MxMemSet(wLastDate, 0, sizeof(wLastDate));
+  dwProductVersionMS = dwProductVersionLS = 0;
   _InterlockedAnd(&nInitializedFlags, ~LOGFLAG_Initialized);
   return;
 }
 
-static VOID RemoveOldFiles(_In_ DWORD dwKeepDays, _In_z_ LPCWSTR szLogFolderW, _In_z_ LPCWSTR szLogBaseFileNameW)
+static VOID RemoveOldFiles()
 {
-  ULONGLONG nDueTime, nTimeToSub, nFileTime;
   WIN32_FIND_DATAW sFindDataW;
   HANDLE hFindFile;
   MX::CStringW cStrTempW;
-  FILETIME sFt;
-  SIZE_T nBaseNameLen;
-
-  if (dwKeepDays == 0)
-    return;
-
-  //calculate due time
-  ::GetSystemTimeAsFileTime(&sFt);
-  nDueTime = ((ULONGLONG)(sFt.dwHighDateTime) << 32) | (ULONGLONG)(sFt.dwLowDateTime);
-  nTimeToSub = MX_MILLISECONDS_TO_100NS((ULONGLONG)dwKeepDays * 86400000ui64);
-  nDueTime = (nDueTime > nTimeToSub) ? (nDueTime - nTimeToSub) : 0ui64;
 
   //scan folder
-  if (cStrTempW.Copy(szLogFolderW) == FALSE || cStrTempW.ConcatN(L"*", 1) == FALSE)
+  if (cStrTempW.CopyN((LPCWSTR)cStrLogFolderW, cStrLogFolderW.GetLength()) == FALSE ||
+      cStrTempW.ConcatN(L"*", 1) == FALSE)
+  {
     return;
+  }
 
   hFindFile = ::FindFirstFileW((LPCWSTR)cStrTempW, &sFindDataW);
   if (hFindFile != INVALID_HANDLE_VALUE)
   {
-    nBaseNameLen = MX::StrLenW(szLogBaseFileNameW);
+    LPCWSTR szBaseNameW = (LPCWSTR)cStrLogFileNameBaseW;
+    SIZE_T nBaseNameLen = cStrLogFileNameBaseW.GetLength();
+    FILETIME sFt;
 
+    //calculate due time
+    ::GetSystemTimeAsFileTime(&sFt);
+    ULONGLONG ullDueTime = ((ULONGLONG)(sFt.dwHighDateTime) << 32) | (ULONGLONG)(sFt.dwLowDateTime);
+    ULONGLONG ullTimeToSub = MX_MILLISECONDS_TO_100NS((ULONGLONG)dwLogKeepDays * 86400000ui64);
+    ullDueTime = (ullDueTime > ullTimeToSub) ? (ullDueTime - ullTimeToSub) : 0ui64;
+
+    //loop
     do
     {
       if ((sFindDataW.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0)
       {
-        if (MX::StrNCompareW(szLogBaseFileNameW, sFindDataW.cFileName, nBaseNameLen, TRUE) == 0 &&
+        if (MX::StrNCompareW(szBaseNameW, sFindDataW.cFileName, nBaseNameLen, TRUE) == 0 &&
             sFindDataW.cFileName[nBaseNameLen] == L'-')
         {
+          ULONGLONG ullFileTime;
+
 #ifdef USE_FILE_CREATION_TIMESTAMP
 
-          nFileTime = ((ULONGLONG)(sFindDataW.ftCreationTime.dwHighDateTime) << 32) |
-                       (ULONGLONG)(sFindDataW.ftCreationTime.dwLowDateTime);
+          ullFileTime = ((ULONGLONG)(sFindDataW.ftCreationTime.dwHighDateTime) << 32) |
+                        (ULONGLONG)(sFindDataW.ftCreationTime.dwLowDateTime);
 
 #else //USE_FILE_CREATION_TIMESTAMP
 
           SYSTEMTIME sSt;
           SIZE_T i;
 
-          nFileTime = ULONG64_MAX;
+          ullFileTime = ULONG64_MAX;
 
           for (i = 0; i < 8; i++)
           {
@@ -347,7 +368,7 @@ static VOID RemoveOldFiles(_In_ DWORD dwKeepDays, _In_z_ LPCWSTR szLogFolderW, _
             {
               if (::SystemTimeToFileTime(&sSt, &sFt) != FALSE)
               {
-                nFileTime = ((ULONGLONG)(sFt.dwHighDateTime) << 32) | (ULONGLONG)(sFt.dwLowDateTime);
+                ullFileTime = ((ULONGLONG)(sFt.dwHighDateTime) << 32) | (ULONGLONG)(sFt.dwLowDateTime);
               }
             }
           }
@@ -355,7 +376,7 @@ static VOID RemoveOldFiles(_In_ DWORD dwKeepDays, _In_z_ LPCWSTR szLogFolderW, _
 #endif //USE_FILE_CREATION_TIMESTAMP
 
           //too old?
-          if (nFileTime <= nDueTime)
+          if (ullFileTime <= ullDueTime)
           {
             if (cStrTempW.Copy((LPCWSTR)cStrLogFolderW) != FALSE &&
                 cStrTempW.Concat(sFindDataW.cFileName) != FALSE)
@@ -374,70 +395,9 @@ static VOID RemoveOldFiles(_In_ DWORD dwKeepDays, _In_z_ LPCWSTR szLogFolderW, _
   return;
 }
 
-static HRESULT GetLogKeepDays(_In_z_ LPCWSTR szRegistryKeyW, _In_z_ LPCWSTR szRegistryValueW,
-                              _In_ DWORD dwDefaultKeepDays, _Out_ DWORD &dwKeepDays)
-{
-  MX::CWindowsRegistry cWinReg;
-  HKEY hKeyBase = HKEY_LOCAL_MACHINE;
-  HRESULT hRes;
-
-  dwKeepDays = dwDefaultKeepDays;
-
-  if (MX::StrNCompareW(szRegistryKeyW, L"HKLM\\", 5, TRUE) == 0)
-  {
-    szRegistryKeyW += 5;
-  }
-  else if (MX::StrNCompareW(szRegistryKeyW, L"HKEY_LOCAL_MACHINE\\", 19, TRUE) == 0)
-  {
-    szRegistryKeyW += 19;
-  }
-  else if (MX::StrNCompareW(szRegistryKeyW, L"HKCU\\", 5, TRUE) == 0)
-  {
-    szRegistryKeyW += 5;
-    hKeyBase = HKEY_CURRENT_USER;
-  }
-  else if (MX::StrNCompareW(szRegistryKeyW, L"HKEY_CURRENT_USER\\", 18, TRUE) == 0)
-  {
-    szRegistryKeyW += 18;
-    hKeyBase = HKEY_CURRENT_USER;
-  }
-  else
-  {
-    return E_INVALIDARG;
-  }
-
-  hRes = cWinReg.Open(hKeyBase, szRegistryKeyW);
-  if (SUCCEEDED(hRes))
-  {
-    //get log keep days
-    hRes = cWinReg.ReadDWord(szRegistryValueW, dwLogKeepDays);
-    if (SUCCEEDED(hRes))
-    {
-      if (dwLogKeepDays < 1)
-        dwLogKeepDays = 1;
-      else if (dwLogKeepDays > 180)
-        dwLogKeepDays = 180;
-    }
-    else if (hRes == MX_E_FileNotFound || hRes == MX_E_PathNotFound)
-    {
-      dwLogKeepDays = dwDefaultKeepDays;
-      hRes = S_OK;
-    }
-  }
-  else if (hRes == MX_E_FileNotFound || hRes == MX_E_PathNotFound)
-  {
-    dwLogKeepDays = dwDefaultKeepDays;
-    hRes = S_OK;
-  }
-
-  //done
-  return hRes;
-}
-
 static HRESULT OpenLog(_In_ LPSYSTEMTIME lpSystemTime)
 {
   MX::CStringW cStrTempW, cStrOpSystemW;
-  MX::CFileVersionInfo cVersionInfo;
   WCHAR szBufW[256];
   DWORD dw, dwWritten;
   MEMORYSTATUSEX sMemStatusEx;
@@ -471,13 +431,11 @@ static HRESULT OpenLog(_In_ LPSYSTEMTIME lpSystemTime)
   }
 
   //write file version
-  if (SUCCEEDED(cVersionInfo.InitializeFromProcessHandle(NULL)))
+  if (dwProductVersionMS != 0 || dwProductVersionLS != 0)
   {
     if (cStrTempW.Format(L"     From: %s (v%u.%u.%u.%u)\r\n", (LPCWSTR)cStrLogFileNameBaseW,
-                        (WORD)(cVersionInfo->dwProductVersionMS >> 16),
-                        (WORD)(cVersionInfo->dwProductVersionMS & 0xFFFF),
-                        (WORD)(cVersionInfo->dwProductVersionLS >> 16),
-                        (WORD)(cVersionInfo->dwProductVersionLS & 0xFFFF)) == FALSE)
+                        (WORD)(dwProductVersionMS >> 16), (WORD)(dwProductVersionMS & 0xFFFF),
+                        (WORD)(dwProductVersionLS >> 16), (WORD)(dwProductVersionLS & 0xFFFF)) == FALSE)
     {
       return E_OUTOFMEMORY;
     }
@@ -586,7 +544,7 @@ static HRESULT InitLogCommon(_Out_ LPSYSTEMTIME lpSystemTime)
     if ((_InterlockedOr(&nInitializedFlags, LOGFLAG_LogFileOpenProcessed) & LOGFLAG_LogFileOpenProcessed) != 0)
       return E_FAIL;
 
-    RemoveOldFiles(dwLogKeepDays, (LPCWSTR)cStrLogFolderW, (LPCWSTR)cStrLogFileNameBaseW);
+    RemoveOldFiles();
     hRes = OpenLog(lpSystemTime);
     if (FAILED(hRes))
       return hRes;

@@ -31,8 +31,9 @@ namespace MX {
 
 namespace EventLogger {
 
-HRESULT Initialize(_In_z_ LPCWSTR szApplicationNameW, _In_z_ LPCWSTR szModuleNameW, _In_z_ LPCWSTR szRegistryKeyW,
-                   _In_z_ LPCWSTR szRegistryValueW, _In_ DWORD dwDefaultKeepDays);
+// NOTE: If szApplicationNameW is only a name without a full path, logs will be stored in "Common AppData\Logs"
+HRESULT Initialize(_In_z_ LPCWSTR szApplicationNameW, _In_z_ LPCWSTR szModuleNameW, _In_ DWORD dwKeepDays,
+                   _In_opt_ BOOL bDebugOutput = FALSE);
 
 HRESULT Log(_Printf_format_string_ LPCWSTR szFormatW, ...);
 HRESULT LogIfError(_In_ HRESULT hResError, _Printf_format_string_ LPCWSTR szFormatW, ...);
