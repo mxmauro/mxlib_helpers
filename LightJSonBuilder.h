@@ -22,6 +22,7 @@
 
 #include "Defines.h"
 #include <Windows.h>
+#include <AutoPtr.h>
 #include <ArrayList.h>
 #include <Strings\Strings.h>
 #include <winternl.h>
@@ -75,14 +76,16 @@ public:
 
   operator LPCSTR() const
     {
+    LPCSTR sA;
+
     MX_ASSERT(aNestedTypes.GetCount() == 0); //ensure is closed
-    return (LPCSTR)cStrJsonA;
+    sA = (LPCSTR)(const_cast<TAutoFreePtr<BYTE>&>(aBuffer).Get());
+    return (sA != NULL) ? sA : "";
     };
 
   SIZE_T GetLength() const
     {
-    MX_ASSERT(aNestedTypes.GetCount() == 0); //ensure is closed
-    return cStrJsonA.GetLength();
+    return nBufferLen;
     };
 
   LPCSTR Detach()
@@ -90,21 +93,26 @@ public:
     LPCSTR sA;
 
     MX_ASSERT(aNestedTypes.GetCount() == 0); //ensure is closed
-    sA = cStrJsonA.Detach();
+    sA = (LPCSTR)(aBuffer.Detach());
     Reset();
     return sA;
     };
 
   //NOTE: Assume value is in UTF-8 format
-  static BOOL EscapeString(_Inout_ CStringA &cStrA, _In_ LPCSTR szValueA, _In_ SIZE_T nValueLen,
-                           _In_opt_ BOOL bAppend = FALSE);
-  static BOOL EscapeString(_Inout_ CStringA &cStrA, _In_ LPCWSTR szValueW, _In_ SIZE_T nValueLen,
-                           _In_opt_ BOOL bAppend = FALSE);
+  static BOOL EscapeString(_Inout_ CStringA &cStrA, _In_ LPCSTR szStrA, _In_ SIZE_T nStrLen, _In_opt_ BOOL bAppend = FALSE);
+  static BOOL EscapeString(_Inout_ CStringA &cStrA, _In_ LPCWSTR szStrW, _In_ SIZE_T nStrLen, _In_opt_ BOOL bAppend = FALSE);
 
 private:
-  CStringA cStrJsonA;
+  BOOL AddToBuffer(_In_ LPCSTR szStrA, _In_ SIZE_T nStrLen);
+  BOOL AddEscapeStringToBuffer(_In_ LPCSTR szStrA, _In_ SIZE_T nStrLen);
+  BOOL AddEscapeStringToBuffer(_In_ LPCWSTR szStrW, _In_ SIZE_T nStrLen);
+
+private:
+  TAutoFreePtr<BYTE> aBuffer;
+  SIZE_T nBufferLen{ 0 };
+  SIZE_T nBufferSize{ 0 };
   TArrayList<BYTE> aNestedTypes;
-  BOOL bIsFirstItem;
+  BOOL bIsFirstItem{ TRUE };
 };
 
 }; //namespace MX
