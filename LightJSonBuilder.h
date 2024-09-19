@@ -47,8 +47,10 @@ public:
   BOOL AddObjectBoolean(_In_z_ LPCSTR szNameA, _In_ BOOL bValue);
   BOOL AddObjectString(_In_z_ LPCSTR szNameA, _In_ LPCSTR szValueA, _In_opt_ SIZE_T nValueLen = (SIZE_T)-1);
   BOOL AddObjectFormattedString(_In_z_ LPCSTR szNameA, _Printf_format_string_ LPCSTR szFormatA, ...);
+  BOOL AddObjectFormattedStringV(_In_z_ LPCSTR szNameA, _Printf_format_string_ LPCSTR szFormatA, _In_ va_list argptr);
   BOOL AddObjectString(_In_z_ LPCSTR szNameA, _In_ LPCWSTR szValueW, _In_opt_ SIZE_T nValueLen = (SIZE_T)-1);
   BOOL AddObjectFormattedString(_In_z_ LPCSTR szNameA, _Printf_format_string_ LPCWSTR szFormatW, ...);
+  BOOL AddObjectFormattedStringV(_In_z_ LPCSTR szNameA, _Printf_format_string_ LPCWSTR szFormatW, _In_ va_list argptr);
   BOOL AddObjectString(_In_z_ LPCSTR szNameA, _In_ PUNICODE_STRING Value);
   BOOL AddObjectLong(_In_z_ LPCSTR szNameA, _In_ LONG nValue);
   BOOL AddObjectULong(_In_z_ LPCSTR szNameA, _In_ ULONG nValue, _In_opt_ BOOL bAsHexa = FALSE);
@@ -61,8 +63,10 @@ public:
   BOOL AddArrayBoolean(_In_ BOOL bValue);
   BOOL AddArrayString(_In_ LPCSTR szValueA, _In_opt_ SIZE_T nValueLen = (SIZE_T)-1);
   BOOL AddArrayFormattedString(_Printf_format_string_ LPCSTR szFormatA, ...);
+  BOOL AddArrayFormattedStringV(_Printf_format_string_ LPCSTR szFormatA, _In_ va_list argptr);
   BOOL AddArrayString(_In_ LPCWSTR szValueW, _In_opt_ SIZE_T nValueLen = (SIZE_T)-1);
   BOOL AddArrayFormattedString(_Printf_format_string_ LPCWSTR szFormatW, ...);
+  BOOL AddArrayFormattedStringV(_Printf_format_string_ LPCWSTR szFormatW, _In_ va_list argptr);
   BOOL AddArrayLong(_In_ LONG nValue);
   BOOL AddArrayULong(_In_ ULONG nValue, _In_opt_ BOOL bAsHexa = FALSE);
   //IMPORTANT: ECMA-262 Sec 8.5 states max number is 9007199254740990 so, if larger, it is recommended to store it as string
