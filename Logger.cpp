@@ -54,6 +54,7 @@ static DWORD dwProductVersionLS = 0;
 //-----------------------------------------------------------
 
 static VOID ShutdownLogger();
+static VOID ShutdownLoggerNoLock();
 
 static VOID RemoveOldFiles();
 
@@ -83,7 +84,7 @@ HRESULT Initialize(_In_z_ LPCWSTR szApplicationNameW, _In_z_ LPCWSTR szModuleNam
   if (dwKeepDays > 180)
     dwKeepDays = 180;
 
-  ShutdownLogger();
+  ShutdownLoggerNoLock();
 
   //copy base module name
   if (cStrLogFileNameBaseW.Copy(szModuleNameW) == FALSE)
@@ -101,8 +102,19 @@ HRESULT Initialize(_In_z_ LPCWSTR szApplicationNameW, _In_z_ LPCWSTR szModuleNam
   }
   else
   {
-    if (cStrLogFolderW.Copy(szApplicationNameW) == FALSE)
+    if (cStrLogFolderW.Copy(szApplicationNameW) != FALSE)
+    {
+      hRes = S_OK;
+      if (((LPCWSTR)cStrLogFolderW)[cStrLogFolderW.GetLength() - 1] != L'\\')
+      {
+        if (cStrLogFolderW.ConcatN(L"\\", 1) == FALSE)
+          hRes = E_OUTOFMEMORY;
+      }
+    }
+    else
+    {
       hRes = E_OUTOFMEMORY;
+    }
   }
 
   //register finalizer
@@ -114,7 +126,7 @@ HRESULT Initialize(_In_z_ LPCWSTR szApplicationNameW, _In_z_ LPCWSTR szModuleNam
   //failure?
   if (FAILED(hRes))
   {
-    ShutdownLogger();
+    ShutdownLoggerNoLock();
     return hRes;
   }
 
@@ -141,6 +153,12 @@ HRESULT Initialize(_In_z_ LPCWSTR szApplicationNameW, _In_z_ LPCWSTR szModuleNam
   return hRes;
 }
 
+VOID Finalize()
+{
+  ShutdownLogger();
+  return;
+}
+
 HRESULT Log(_Printf_format_string_ LPCWSTR szFormatW, ...)
 {
   CFastLock cLock(&nMutex);
@@ -152,13 +170,13 @@ HRESULT Log(_Printf_format_string_ LPCWSTR szFormatW, ...)
     return E_POINTER;
 
   //initialize logger on first access
-  hRes = InitLogCommon(&sSt);
+  hRes = ::InitLogCommon(&sSt);
   if (FAILED(hRes))
     return hRes;
 
   //write log
   va_start(argptr, szFormatW);
-  WriteLogCommon(FALSE, S_OK, &sSt, szFormatW, argptr);
+  ::WriteLogCommon(FALSE, S_OK, &sSt, szFormatW, argptr);
   va_end(argptr);
 
   //done
@@ -178,12 +196,12 @@ HRESULT LogIfError(_In_ HRESULT hResError, _Printf_format_string_ LPCWSTR szForm
       return E_POINTER;
 
     //initialize logger on first access
-    hRes = InitLogCommon(&sSt);
+    hRes = ::InitLogCommon(&sSt);
     if (FAILED(hRes))
       return hRes;
     //write log
     va_start(argptr, szFormatW);
-    WriteLogCommon(TRUE, hResError, &sSt, szFormatW, argptr);
+    ::WriteLogCommon(TRUE, hResError, &sSt, szFormatW, argptr);
     va_end(argptr);
   }
 
@@ -202,13 +220,13 @@ HRESULT LogAlways(_In_ HRESULT hResError, _Printf_format_string_ LPCWSTR szForma
     return E_POINTER;
 
   //initialize logger on first access
-  hRes = InitLogCommon(&sSt);
+  hRes = ::InitLogCommon(&sSt);
   if (FAILED(hRes))
     return hRes;
 
   //write log
   va_start(argptr, szFormatW);
-  WriteLogCommon(TRUE, hResError, &sSt, szFormatW, argptr);
+  ::WriteLogCommon(TRUE, hResError, &sSt, szFormatW, argptr);
   va_end(argptr);
 
   //done
@@ -229,7 +247,7 @@ HRESULT LogRaw(_In_z_ LPCWSTR szTextW)
     return S_OK;
 
   //initialize logger on first access
-  hRes = InitLogCommon(&sSt);
+  hRes = ::InitLogCommon(&sSt);
   if (FAILED(hRes))
     return hRes;
 
@@ -272,7 +290,7 @@ HRESULT GetLogFileName(_Out_ CStringW &cStrFileNameW, _In_opt_ BOOL bCreateFolde
     MX::FileRoutines::CreateDirectoryRecursive((LPCWSTR)cStrLogFolderW);
   }
   ::GetSystemTime(&sSystemTime);
-  if (GenerateLogFileName(&sSystemTime, cStrFileNameW) == FALSE)
+  if (::GenerateLogFileName(&sSystemTime, cStrFileNameW) == FALSE)
     return E_OUTOFMEMORY;
   return S_OK;
 }
@@ -285,6 +303,15 @@ HRESULT GetLogFileName(_Out_ CStringW &cStrFileNameW, _In_opt_ BOOL bCreateFolde
 
 static VOID ShutdownLogger()
 {
+  MX::CFastLock cLock(&nMutex);
+
+  ShutdownLoggerNoLock();
+  return;
+}
+
+static VOID ShutdownLoggerNoLock()
+{
+
   cLogH.Close();
   cStrLogFolderW.Empty();
   cStrLogFileNameBaseW.Empty();
