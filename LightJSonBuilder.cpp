@@ -236,6 +236,19 @@ BOOL CLightJSonBuilder::AddObjectFormattedString(_In_z_ LPCSTR szNameA, _Printf_
   return AddObjectString(szNameA, (LPCSTR)cStrTempA, cStrTempA.GetLength());
 }
 
+BOOL CLightJSonBuilder::AddObjectFormattedStringV(_In_z_ LPCSTR szNameA, _Printf_format_string_ LPCSTR szFormatA, _In_ va_list argptr)
+{
+  CStringA cStrTempA;
+
+  MX_ASSERT(szFormatA != NULL);
+
+  if (cStrTempA.FormatV(szFormatA, argptr) == FALSE)
+    return FALSE;
+
+  //done
+  return AddObjectString(szNameA, (LPCSTR)cStrTempA, cStrTempA.GetLength());
+}
+
 BOOL CLightJSonBuilder::AddObjectString(_In_z_ LPCSTR szNameA, _In_ LPCWSTR szValueW, _In_opt_ SIZE_T nValueLen)
 {
   MX_ASSERT(szNameA != NULL);
@@ -281,6 +294,19 @@ BOOL CLightJSonBuilder::AddObjectFormattedString(_In_z_ LPCSTR szNameA, _Printf_
   if (cStrTempW.FormatV(szFormatW, argptr) == FALSE)
     return FALSE;
   va_end(argptr);
+
+  //done
+  return AddObjectString(szNameA, (LPCWSTR)cStrTempW, cStrTempW.GetLength());
+}
+
+BOOL CLightJSonBuilder::AddObjectFormattedStringV(_In_z_ LPCSTR szNameA, _Printf_format_string_ LPCWSTR szFormatW, _In_ va_list argptr)
+{
+  CStringW cStrTempW;
+
+  MX_ASSERT(szFormatW != NULL);
+
+  if (cStrTempW.FormatV(szFormatW, argptr) == FALSE)
+    return FALSE;
 
   //done
   return AddObjectString(szNameA, (LPCWSTR)cStrTempW, cStrTempW.GetLength());
@@ -540,6 +566,19 @@ BOOL CLightJSonBuilder::AddArrayFormattedString(_Printf_format_string_ LPCSTR sz
   return AddArrayString((LPCSTR)cStrTempA, cStrTempA.GetLength());
 }
 
+BOOL CLightJSonBuilder::AddArrayFormattedStringV(_Printf_format_string_ LPCSTR szFormatA, _In_ va_list argptr)
+{
+  CStringA cStrTempA;
+
+  MX_ASSERT(szFormatA != NULL);
+
+  if (cStrTempA.FormatV(szFormatA, argptr) == FALSE)
+    return FALSE;
+
+  //done
+  return AddArrayString((LPCSTR)cStrTempA, cStrTempA.GetLength());
+}
+
 BOOL CLightJSonBuilder::AddArrayString(_In_ LPCWSTR szValueW, _In_opt_ SIZE_T nValueLen)
 {
   MX_ASSERT(aNestedTypes.GetCount() > 0);
@@ -579,6 +618,19 @@ BOOL CLightJSonBuilder::AddArrayFormattedString(_Printf_format_string_ LPCWSTR s
   if (cStrTempW.FormatV(szFormatW, argptr) == FALSE)
     return FALSE;
   va_end(argptr);
+
+  //done
+  return AddArrayString((LPCWSTR)cStrTempW, cStrTempW.GetLength());
+}
+
+BOOL CLightJSonBuilder::AddArrayFormattedStringV(_Printf_format_string_ LPCWSTR szFormatW, _In_ va_list argptr)
+{
+  CStringW cStrTempW;
+
+  MX_ASSERT(szFormatW != NULL);
+
+  if (cStrTempW.FormatV(szFormatW, argptr) == FALSE)
+    return FALSE;
 
   //done
   return AddArrayString((LPCWSTR)cStrTempW, cStrTempW.GetLength());
