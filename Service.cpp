@@ -362,7 +362,6 @@ static HRESULT _UpdateServiceStatus()
   HRESULT hRes;
 
   hRes = (::SetServiceStatus(hServiceStatus, &sServiceStatus) != FALSE) ? S_OK : MX_HRESULT_FROM_LASTERROR();
-  MX_DEBUGPRINT(("Setting service status to %lu. [Error:0x%08X]", sServiceStatus.dwCurrentState, hRes));
   return hRes;
 }
 

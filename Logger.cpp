@@ -34,13 +34,14 @@
 
 #define LOGFLAG_Initialized                           0x0001
 #define LOGFLAG_LogFileOpenProcessed                  0x0002
+#define LOGFLAG_FinalizerInstalled                    0x0004
 
 #define USE_FILE_CREATION_TIMESTAMP
 
 //-----------------------------------------------------------
 
 static LONG volatile nMutex = 0;
-static LONG volatile nInitializedFlags = 0;
+static LONG volatile nFlags = 0;
 static MX::CWindowsHandle cLogH;
 static MX::CStringW cStrLogFileNameBaseW;
 static MX::CStringW cStrLogFolderW;
@@ -118,9 +119,11 @@ HRESULT Initialize(_In_z_ LPCWSTR szApplicationNameW, _In_z_ LPCWSTR szModuleNam
   }
 
   //register finalizer
-  if (SUCCEEDED(hRes))
+  if (SUCCEEDED(hRes) && (__InterlockedRead(&nFlags) & LOGFLAG_FinalizerInstalled) == 0)
   {
     hRes = RegisterFinalizer(&ShutdownLogger, 1);
+    if (SUCCEEDED(hRes))
+      _InterlockedOr(&nFlags, LOGFLAG_FinalizerInstalled);
   }
 
   //failure?
@@ -149,7 +152,7 @@ HRESULT Initialize(_In_z_ LPCWSTR szApplicationNameW, _In_z_ LPCWSTR szModuleNam
   RemoveOldFiles();
 
   //done
-  _InterlockedOr(&nInitializedFlags, LOGFLAG_Initialized);
+  _InterlockedOr(&nFlags, LOGFLAG_Initialized);
   return hRes;
 }
 
@@ -267,7 +270,7 @@ HRESULT LogRaw(_In_z_ LPCWSTR szTextW)
 HRESULT GetLogFolder(_Out_ CStringW &_cStrLogFolderW, _In_opt_ BOOL bCreate)
 {
   _cStrLogFolderW.Empty();
-  if ((__InterlockedRead(&nInitializedFlags) & LOGFLAG_Initialized) == 0)
+  if ((__InterlockedRead(&nFlags) & LOGFLAG_Initialized) == 0)
     return MX_E_NotReady;
   if (bCreate != FALSE)
   {
@@ -283,7 +286,7 @@ HRESULT GetLogFileName(_Out_ CStringW &cStrFileNameW, _In_opt_ BOOL bCreateFolde
   SYSTEMTIME sSystemTime;
 
   cStrFileNameW.Empty();
-  if ((__InterlockedRead(&nInitializedFlags) & LOGFLAG_Initialized) == 0)
+  if ((__InterlockedRead(&nFlags) & LOGFLAG_Initialized) == 0)
     return MX_E_NotReady;
   if (bCreateFolder != FALSE)
   {
@@ -319,7 +322,7 @@ static VOID ShutdownLoggerNoLock()
   bDebugOutput = FALSE;
   ::MxMemSet(wLastDate, 0, sizeof(wLastDate));
   dwProductVersionMS = dwProductVersionLS = 0;
-  _InterlockedAnd(&nInitializedFlags, ~LOGFLAG_Initialized);
+  _InterlockedAnd(&nFlags, ~(LOGFLAG_Initialized | LOGFLAG_LogFileOpenProcessed));
   return;
 }
 
@@ -563,12 +566,12 @@ static HRESULT InitLogCommon(_Out_ LPSYSTEMTIME lpSystemTime)
 
     cLogH.Close();
 
-    _InterlockedAnd(&nInitializedFlags, ~LOGFLAG_LogFileOpenProcessed);
+    _InterlockedAnd(&nFlags, ~LOGFLAG_LogFileOpenProcessed);
   }
 
   if (!cLogH)
   {
-    if ((_InterlockedOr(&nInitializedFlags, LOGFLAG_LogFileOpenProcessed) & LOGFLAG_LogFileOpenProcessed) != 0)
+    if ((_InterlockedOr(&nFlags, LOGFLAG_LogFileOpenProcessed) & LOGFLAG_LogFileOpenProcessed) != 0)
       return E_FAIL;
 
     RemoveOldFiles();
