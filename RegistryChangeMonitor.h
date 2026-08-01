@@ -28,35 +28,36 @@
 
 //-----------------------------------------------------------
 
-namespace MX {
+namespace MX
+{
 
 class CRegistryChangeMonitor : public CBaseMemObj, public CNonCopyableObj
 {
-public:
-  typedef Callback<VOID(_In_ LPVOID lpUserParam)> OnRegistryChangedCallback;
+  public:
+    typedef Callback<VOID(_In_ LPVOID lpUserParam)> OnRegistryChangedCallback;
 
-public:
-  CRegistryChangeMonitor();
-  ~CRegistryChangeMonitor();
+  public:
+    CRegistryChangeMonitor();
+    ~CRegistryChangeMonitor();
 
-  HRESULT Start(_In_ HKEY hRootKey, _In_z_ LPCWSTR szSubkeyW, _In_ BOOL bWatchSubtree,
-                _In_ OnRegistryChangedCallback cCallback, _In_opt_ LPVOID lpUserParam = NULL);
-  VOID Stop();
+    HRESULT Start(_In_ HKEY hRootKey, _In_z_ LPCWSTR szSubkeyW, _In_ BOOL bWatchSubtree,
+                  _In_ OnRegistryChangedCallback cCallback, _In_opt_ LPVOID lpUserParam = NULL);
+    VOID Stop();
 
-private:
-  VOID WorkerThread();
+  private:
+    VOID WorkerThread();
 
-private:
-  HKEY hRootKey;
-  CStringW cStrSubKeyW;
-  BOOL bWatchSubtree;
-  HANDLE hEvent;
-  OnRegistryChangedCallback cCallback;
-  LPVOID lpUserParam;
-  TClassWorkerThread<CRegistryChangeMonitor> cWorkerThread;
+  private:
+    HKEY hRootKey;
+    CStringW cStrSubKeyW;
+    BOOL bWatchSubtree;
+    HANDLE hEvent;
+    OnRegistryChangedCallback cCallback;
+    LPVOID lpUserParam;
+    TClassWorkerThread<CRegistryChangeMonitor> cWorkerThread;
 };
 
-}; //namespace MX
+}; // namespace MX
 
 //-----------------------------------------------------------
 

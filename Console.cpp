@@ -32,77 +32,83 @@ static int nOldStdOutMode = 0;
 
 //-----------------------------------------------------------
 
-namespace MX {
+namespace MX
+{
 
-namespace Console {
+namespace Console
+{
 
 VOID Initialize()
 {
-  if (__InterlockedRead(&nInitialized) == 0)
-  {
-    MX::CFastLock cLock(&nMutex);
-
     if (__InterlockedRead(&nInitialized) == 0)
     {
-      nOldStdOutMode = _setmode(_fileno(stdout), _O_U16TEXT);
-      hConsoleOut = ::GetStdHandle(STD_OUTPUT_HANDLE);
-    }
+        MX::CFastLock cLock(&nMutex);
 
-    // done
-    _InterlockedExchange(&nInitialized, 1);
-  }
-  return;
+        if (__InterlockedRead(&nInitialized) == 0)
+        {
+            nOldStdOutMode = _setmode(_fileno(stdout), _O_U16TEXT);
+            hConsoleOut = ::GetStdHandle(STD_OUTPUT_HANDLE);
+        }
+
+        // done
+        _InterlockedExchange(&nInitialized, 1);
+    }
+    return;
 }
 
 VOID Print(_In_ Console::eColor nColor, _In_ LPCWSTR szFormatW, ...)
 {
-  if (__InterlockedRead(&nInitialized) != 0)
-  {
-    CFastLock cLock(&nMutex);
-    CONSOLE_SCREEN_BUFFER_INFO sCsbi;
-    va_list args;
-
-    if (nColor != Console::eColor::Normal)
+    if (__InterlockedRead(&nInitialized) != 0)
     {
-      ::GetConsoleScreenBufferInfo(hConsoleOut, &sCsbi);
-      switch (nColor)
-      {
-        case Console::eColor::Error:
-          ::SetConsoleTextAttribute(hConsoleOut, FOREGROUND_RED | FOREGROUND_INTENSITY);
-          break;
-        case Console::eColor::Success:
-          ::SetConsoleTextAttribute(hConsoleOut, FOREGROUND_GREEN | FOREGROUND_INTENSITY);
-          break;
-        case Console::eColor::Yellow:
-          ::SetConsoleTextAttribute(hConsoleOut, FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_INTENSITY);
-          break;
-        case Console::eColor::Blue:
-          ::SetConsoleTextAttribute(hConsoleOut, FOREGROUND_BLUE | FOREGROUND_INTENSITY);
-          break;
-      }
-    }
+        CFastLock cLock(&nMutex);
+        CONSOLE_SCREEN_BUFFER_INFO sCsbi;
+        va_list args;
 
-    va_start(args, szFormatW);
-    vwprintf_s(szFormatW, args);
-    va_end(args);
+        if (nColor != Console::eColor::Normal)
+        {
+            ::GetConsoleScreenBufferInfo(hConsoleOut, &sCsbi);
+            switch (nColor)
+            {
+            case Console::eColor::Error:
+                ::SetConsoleTextAttribute(hConsoleOut, FOREGROUND_RED | FOREGROUND_INTENSITY);
+                break;
+            case Console::eColor::Success:
+                ::SetConsoleTextAttribute(hConsoleOut, FOREGROUND_GREEN | FOREGROUND_INTENSITY);
+                break;
+            case Console::eColor::Yellow:
+                ::SetConsoleTextAttribute(hConsoleOut, FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_INTENSITY);
+                break;
+            case Console::eColor::Blue:
+                ::SetConsoleTextAttribute(hConsoleOut, FOREGROUND_BLUE | FOREGROUND_INTENSITY);
+                break;
+            }
+        }
 
-    if (nColor != Console::eColor::Normal)
-    {
-      ::SetConsoleTextAttribute(hConsoleOut, sCsbi.wAttributes);
+        va_start(args, szFormatW);
+        vwprintf_s(szFormatW, args);
+        va_end(args);
+
+        if (nColor != Console::eColor::Normal)
+        {
+            ::SetConsoleTextAttribute(hConsoleOut, sCsbi.wAttributes);
+        }
     }
-  }
-  return;
+    return;
 }
 
 VOID PrintError(_In_ HRESULT hRes)
 {
-  if (SUCCEEDED(hRes))
-    Console::Print(Console::eColor::Success, L"OK");
-  else
-    Console::Print(Console::eColor::Error, L"ERROR: 0x%08X", hRes);
-  return;
+    if (SUCCEEDED(hRes))
+    {
+        Console::Print(Console::eColor::Success, L"OK");
+    }
+    else
+    {
+        Console::Print(Console::eColor::Error, L"ERROR: 0x%08X", hRes);
+    }
+    return;
 }
 
-}; //namespace Console
+}; // namespace Console
 
-}; //namespace MX
+}; // namespace MX

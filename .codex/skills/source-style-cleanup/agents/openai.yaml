@@ -1,0 +1,4 @@
+interface:
+  display_name: "Source Style Cleanup"
+  short_description: "Format first-party source safely."
+  default_prompt: "Use $source-style-cleanup to improve first-party source readability."

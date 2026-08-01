@@ -1,0 +1,90 @@
+# EditorConfig helps developers define and maintain consistent
+# coding styles between different editors and IDEs
+# http://editorconfig.org
+
+root = true
+
+[*]
+indent_style = space
+indent_size = 4
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[{Makefile,*.mk,*.bat}]
+indent_style = tab
+indent_size = 2
+
+[{*.cmake,CMakeLists.txt}]
+indent_style = space
+indent_size = 4
+max_line_length = 120
+
+[{*.cpp,*.cxx,*.cc,*.c}]
+indent_style = space
+indent_size = 4
+end_of_line = crlf
+charset = latin1
+
+[{*.h,*.hpp,*.hxx,*.inl}]
+indent_style = space
+indent_size = 4
+end_of_line = crlf
+charset = latin1
+
+[*.asm]
+indent_style = space
+indent_size = 4
+end_of_line = crlf
+charset = latin1
+
+[*.def]
+indent_style = space
+indent_size = 4
+end_of_line = crlf
+charset = latin1
+
+[{*.ixx,*.cppm}]
+indent_style = space
+indent_size = 4
+end_of_line = crlf
+charset = latin1
+
+[{*.rc,*.rc2}]
+indent_style = space
+indent_size = 4
+end_of_line = crlf
+charset = latin1
+
+[*.manifest]
+indent_style = tab
+indent_size = 4
+end_of_line = crlf
+charset = utf-8-bom
+
+[{*.sln,*.slnx,*.vcxproj,*.vcxproj.filters,*.vcxproj.user}]
+indent_style = tab
+indent_size = 4
+end_of_line = crlf
+charset = utf-8-bom
+
+[{*.props,*.targets}]
+indent_style = tab
+indent_size = 4
+end_of_line = crlf
+charset = utf-8-bom
+
+[{*.sh,*.yml}]
+indent_style = space
+indent_size = 2
+
+[*.ini]
+indent_style = space
+indent_size = 2
+
+[{*.md,*.rst}]
+trim_trailing_whitespace = false
+
+[*.pem]
+insert_final_newline = false

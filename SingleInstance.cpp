@@ -28,28 +28,37 @@ static MX::CWindowsMutex cSingleInstanceMutex;
 
 //-----------------------------------------------------------
 
-namespace MX {
+namespace MX
+{
 
 HRESULT SingleInstanceCheck(_In_z_ LPCWSTR szNameW)
 {
-  CStringW cStrTempW;
-  Fnv64_t nHash;
-  HRESULT hRes;
-  BOOL b;
+    CStringW cStrTempW;
+    Fnv64_t nHash;
+    HRESULT hRes;
+    BOOL b;
 
-  if (szNameW == NULL)
-    return E_POINTER;
-  if (*szNameW == 0)
-    return E_INVALIDARG;
-  //check for single instance
-  nHash = fnv_64a_buf(szNameW, StrLenW(szNameW) * sizeof(WCHAR), FNV1A_64_INIT);
-  if (cStrTempW.Format(L"%s_%16IX", szNameW, nHash) == FALSE)
-    return E_OUTOFMEMORY;
-  hRes = cSingleInstanceMutex.Create((LPCWSTR)cStrTempW, TRUE, NULL, &b);
-  if (FAILED(hRes))
-    return hRes;
-  //done
-  return (b == FALSE) ? S_OK : S_FALSE;
+    if (szNameW == NULL)
+    {
+        return E_POINTER;
+    }
+    if (*szNameW == 0)
+    {
+        return E_INVALIDARG;
+    }
+    // check for single instance
+    nHash = fnv_64a_buf(szNameW, StrLenW(szNameW) * sizeof(WCHAR), FNV1A_64_INIT);
+    if (cStrTempW.Format(L"%s_%16IX", szNameW, nHash) == FALSE)
+    {
+        return E_OUTOFMEMORY;
+    }
+    hRes = cSingleInstanceMutex.Create((LPCWSTR)cStrTempW, TRUE, NULL, &b);
+    if (FAILED(hRes))
+    {
+        return hRes;
+    }
+    // done
+    return (b == FALSE) ? S_OK : S_FALSE;
 }
 
-}; //namespace MX
+}; // namespace MX

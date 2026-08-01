@@ -25,75 +25,78 @@
 
 //-----------------------------------------------------------
 
-namespace MX {
+namespace MX
+{
 
 class CServiceManager : public virtual CBaseMemObj, public CNonCopyableObj
 {
-public:
-  enum class eServiceType
-  {
-    LocalSystem,
-    NetworkService,
-    KernelDriver,
-    FileSystemDriver
-  };
-
-  enum class eStartMode
-  {
-    Auto,
-    Boot,
-    System,
-    Manual,
-    Disabled
-  };
-
-public:
-  typedef struct tagCREATEINFO {
-    eServiceType nServiceType;
-    LPCWSTR szServiceDisplayNameW;
-    LPCWSTR szFileNameW;
-    eStartMode nStartMode;
-    LPCWSTR szLoadOrderGroupW;
-    LPCWSTR szDependenciesW;
-    LPCWSTR szRequiredPrivilegesW;
-    LPCWSTR szDescriptionW;
-    struct {
-      BOOL bAutoRestart;
-      DWORD dwRestartDelayMs;
-    } sFailureControl;
-  } CREATEINFO, *LPCREATEINFO;
-
-public:
-  CServiceManager();
-  ~CServiceManager();
-
-  HRESULT OpenManager(_In_ BOOL bFullAccess, _In_opt_z_ LPCWSTR szServerW = NULL);
-  VOID CloseManager();
-
-  //NOTE: If service already exists, it's configuration will be updated
-  HRESULT Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO lpCreateInfo);
-  HRESULT Open(_In_z_ LPCWSTR szServiceNameW, _In_ DWORD dwDesiredAccess);
-  VOID Close();
-
-  HRESULT Start(_In_ DWORD dwTimeoutMs);
-  HRESULT Stop(_In_opt_ DWORD dwTimeoutMs = INFINITE);
-
-  HRESULT Delete(_In_opt_ BOOL bDoStop = TRUE, _In_opt_ DWORD dwStopTimeoutMs = INFINITE);
-
-  HRESULT QueryStatus(_Out_ SERVICE_STATUS &sSvcStatus);
-
-  SC_HANDLE Get() const
+  public:
+    enum class eServiceType
     {
-    return hServ;
+        LocalSystem,
+        NetworkService,
+        KernelDriver,
+        FileSystemDriver
     };
 
-  HRESULT ChangeStartMode(_In_ CServiceManager::eStartMode nStartMode);
+    enum class eStartMode
+    {
+        Auto,
+        Boot,
+        System,
+        Manual,
+        Disabled
+    };
 
-private:
-  SC_HANDLE hServMgr{ NULL }, hServ{ NULL };
+  public:
+    typedef struct tagCREATEINFO
+    {
+        eServiceType nServiceType;
+        LPCWSTR szServiceDisplayNameW;
+        LPCWSTR szFileNameW;
+        eStartMode nStartMode;
+        LPCWSTR szLoadOrderGroupW;
+        LPCWSTR szDependenciesW;
+        LPCWSTR szRequiredPrivilegesW;
+        LPCWSTR szDescriptionW;
+        struct
+        {
+            BOOL bAutoRestart;
+            DWORD dwRestartDelayMs;
+        } sFailureControl;
+    } CREATEINFO, *LPCREATEINFO;
+
+  public:
+    CServiceManager();
+    ~CServiceManager();
+
+    HRESULT OpenManager(_In_ BOOL bFullAccess, _In_opt_z_ LPCWSTR szServerW = NULL);
+    VOID CloseManager();
+
+    // NOTE: If service already exists, it's configuration will be updated
+    HRESULT Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO lpCreateInfo);
+    HRESULT Open(_In_z_ LPCWSTR szServiceNameW, _In_ DWORD dwDesiredAccess);
+    VOID Close();
+
+    HRESULT Start(_In_ DWORD dwTimeoutMs);
+    HRESULT Stop(_In_opt_ DWORD dwTimeoutMs = INFINITE);
+
+    HRESULT Delete(_In_opt_ BOOL bDoStop = TRUE, _In_opt_ DWORD dwStopTimeoutMs = INFINITE);
+
+    HRESULT QueryStatus(_Out_ SERVICE_STATUS &sSvcStatus);
+
+    SC_HANDLE Get() const
+    {
+        return hServ;
+    };
+
+    HRESULT ChangeStartMode(_In_ CServiceManager::eStartMode nStartMode);
+
+  private:
+    SC_HANDLE hServMgr{NULL}, hServ{NULL};
 };
 
-}; //namespace MX
+}; // namespace MX
 
 //-----------------------------------------------------------
 

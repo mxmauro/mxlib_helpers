@@ -27,46 +27,49 @@
 
 //-----------------------------------------------------------
 
-namespace MX {
+namespace MX
+{
 
 class CMemoryPackage : public virtual CBaseMemObj, public CNonCopyableObj
 {
-public:
-  CMemoryPackage();
-  ~CMemoryPackage();
+  public:
+    CMemoryPackage();
+    ~CMemoryPackage();
 
-  HRESULT OpenPackage(_In_ LPCVOID lpData, _In_ SIZE_T nDataSize, _In_ ULONGLONG nPasswordHash);
-  VOID ClosePackage();
+    HRESULT OpenPackage(_In_ LPCVOID lpData, _In_ SIZE_T nDataSize, _In_ ULONGLONG nPasswordHash);
+    VOID ClosePackage();
 
-  HRESULT GetStream(_In_z_ LPCWSTR szFileNameW, _Deref_out_ CStream **lplpStream);
+    HRESULT GetStream(_In_z_ LPCWSTR szFileNameW, _Deref_out_ CStream **lplpStream);
 
-  HRESULT GetFiles(_In_z_ LPCWSTR szFolderNameW, _Out_ TArrayListWithFree<LPCWSTR> &aFilesList);
-  HRESULT GetFolders(_In_z_ LPCWSTR szFolderNameW, _Out_ TArrayListWithFree<LPCWSTR> &aFoldersList);
+    HRESULT GetFiles(_In_z_ LPCWSTR szFolderNameW, _Out_ TArrayListWithFree<LPCWSTR> &aFilesList);
+    HRESULT GetFolders(_In_z_ LPCWSTR szFolderNameW, _Out_ TArrayListWithFree<LPCWSTR> &aFoldersList);
 
-private:
-  typedef struct {
-    union {
-      LPBYTE lpCompressedData;
-      LPCWSTR szSearchNameW;
-    };
-    SIZE_T nCompressedSize;
-    DWORD dwUncompressedSize;
-    ULONGLONG nHash;
-    WCHAR szNameW[1];
-  } FILEITEM, *LPFILEITEM;
+  private:
+    typedef struct
+    {
+        union
+        {
+            LPBYTE lpCompressedData;
+            LPCWSTR szSearchNameW;
+        };
+        SIZE_T nCompressedSize;
+        DWORD dwUncompressedSize;
+        ULONGLONG nHash;
+        WCHAR szNameW[1];
+    } FILEITEM, *LPFILEITEM;
 
-  static int FileItemCompare(void *lpContext, const FILEITEM **lplpItem1, const FILEITEM **lplpItem2);
-  static int FileItemSearch(void *lpContext, const LPCWSTR szSearchNameW, const FILEITEM **lplpItem);
+    static int FileItemCompare(void *lpContext, const FILEITEM **lplpItem1, const FILEITEM **lplpItem2);
+    static int FileItemSearch(void *lpContext, const LPCWSTR szSearchNameW, const FILEITEM **lplpItem);
 
-  static int ListFilesInsert(_In_ LPVOID lpContext, _In_ LPCWSTR *lpszElem1, _In_ LPCWSTR *lpszElem2);
+    static int ListFilesInsert(_In_ LPVOID lpContext, _In_ LPCWSTR *lpszElem1, _In_ LPCWSTR *lpszElem2);
 
-  static int FileSpecCompare(_In_ LPCWSTR *lpszStrW_1, _In_ LPCWSTR *lpszStrW_2, _In_ SIZE_T nLen);
+    static int FileSpecCompare(_In_ LPCWSTR *lpszStrW_1, _In_ LPCWSTR *lpszStrW_2, _In_ SIZE_T nLen);
 
-private:
-  TArrayListWithFree<LPFILEITEM, 256> aFileItemsList;
+  private:
+    TArrayListWithFree<LPFILEITEM, 256> aFileItemsList;
 };
 
-}; //namespace MX
+}; // namespace MX
 
 //-----------------------------------------------------------
 

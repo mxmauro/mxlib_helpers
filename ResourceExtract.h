@@ -27,9 +27,11 @@
 
 //-----------------------------------------------------------
 
-namespace MX {
+namespace MX
+{
 
-namespace PEResource {
+namespace PEResource
+{
 
 HRESULT ExtractToFile(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _In_ LPCWSTR szResTypeW, _In_ HANDLE hFile);
 HRESULT ExtractToMemory(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _In_ LPCWSTR szResTypeW,
@@ -37,9 +39,9 @@ HRESULT ExtractToMemory(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _In_ LPCW
 HRESULT ExtractToStream(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _In_ LPCWSTR szResTypeW,
                         _COM_Outptr_opt_result_maybenull_ MX::CMemoryStream **lplpStream);
 
-}; //namespace PEResource
+}; // namespace PEResource
 
-}; //namespace MX
+}; // namespace MX
 
 //-----------------------------------------------------------
 

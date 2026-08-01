@@ -26,9 +26,11 @@
 
 //-----------------------------------------------------------
 
-namespace MX {
+namespace MX
+{
 
-namespace System {
+namespace System
+{
 
 HRESULT GetOpSystemInfo(_Out_ CStringW &cStrOpSystemW);
 
@@ -42,9 +44,9 @@ VOID RegisterAppInRestartManager();
 HRESULT GetAllUsers(_Inout_ TArrayListWithFree<LPWSTR> &aUsersList);
 HRESULT GetAllGroups(_Inout_ TArrayListWithFree<LPWSTR> &aGroupsList);
 
-}; //System
+}; // namespace System
 
-}; //MX
+}; // namespace MX
 
 //-----------------------------------------------------------
 

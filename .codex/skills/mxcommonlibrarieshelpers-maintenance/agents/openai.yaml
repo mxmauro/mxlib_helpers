@@ -1,0 +1,4 @@
+interface:
+  display_name: "MXCommonLibrariesHelpers Maintenance"
+  short_description: "Safely maintain helper libraries."
+  default_prompt: "Use $mxcommonlibrarieshelpers-maintenance to make a safe change in this repository."

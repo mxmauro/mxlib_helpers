@@ -25,9 +25,11 @@
 
 //-----------------------------------------------------------
 
-namespace MX {
+namespace MX
+{
 
-namespace Misc {
+namespace Misc
+{
 
 BOOL WildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR szPatternW, _In_ SIZE_T nPatternLen);
 BOOL GitWildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR szPatternW, _In_ SIZE_T nPatternLen);
@@ -39,9 +41,9 @@ HRESULT ExecuteApp(_In_ BOOL bWait, _In_ BOOL bHide, _In_z_ LPCWSTR szAppNameW, 
 
 HRESULT SelfDeleteApp(_In_ DWORD dwAfterSeconds = 5);
 
-}; //namespace Misc
+}; // namespace Misc
 
-}; //namespace MX
+}; // namespace MX
 
 //-----------------------------------------------------------
 

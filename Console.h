@@ -24,33 +24,41 @@
 
 //-----------------------------------------------------------
 
-namespace MX {
+namespace MX
+{
 
-namespace Console {
+namespace Console
+{
 
 enum class eColor
 {
-  Normal, Error, Success, Yellow, Blue
-} ;
+    Normal,
+    Error,
+    Success,
+    Yellow,
+    Blue
+};
 
-}; //namespace Console
+}; // namespace Console
 
-}; //namespace MX
+}; // namespace MX
 
 //-----------------------------------------------------------
 
-namespace MX {
+namespace MX
+{
 
-namespace Console {
+namespace Console
+{
 
 VOID Initialize();
 
 VOID Print(_In_ Console::eColor nColor, _In_ LPCWSTR szFormatW, ...);
 VOID PrintError(_In_ HRESULT hRes);
 
-}; //namespace Console
+}; // namespace Console
 
-}; //namespace MX
+}; // namespace MX
 
 //-----------------------------------------------------------
 

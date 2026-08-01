@@ -25,34 +25,37 @@
 
 //-----------------------------------------------------------
 
-namespace MX {
+namespace MX
+{
 
 class CAutoComInit
 {
-public:
-  CAutoComInit()
+  public:
+    CAutoComInit()
     {
-    hRes = ::CoInitializeEx(NULL, COINIT_MULTITHREADED);
-    return;
+        hRes = ::CoInitializeEx(NULL, COINIT_MULTITHREADED);
+        return;
     };
 
-  ~CAutoComInit()
+    ~CAutoComInit()
     {
-    if (SUCCEEDED(hRes))
-      ::CoUninitialize();
-    return;
+        if (SUCCEEDED(hRes))
+        {
+            ::CoUninitialize();
+        }
+        return;
     };
 
-  HRESULT InitResult() const
+    HRESULT InitResult() const
     {
-    return (SUCCEEDED(hRes) || hRes == RPC_E_CHANGED_MODE) ? S_OK : hRes;
+        return (SUCCEEDED(hRes) || hRes == RPC_E_CHANGED_MODE) ? S_OK : hRes;
     };
 
-private:
-  HRESULT hRes;
+  private:
+    HRESULT hRes;
 };
 
-}; //namespace MX
+}; // namespace MX
 
 //-----------------------------------------------------------
 

@@ -26,52 +26,54 @@
 
 //-----------------------------------------------------------
 
-namespace MX {
+namespace MX
+{
 
 class CFileVersionInfo : public CBaseMemObj, public CNonCopyableObj
 {
-public:
-  CFileVersionInfo();
+  public:
+    CFileVersionInfo();
 
-  HRESULT InitializeFromFileName(_In_z_ LPCWSTR szFileNameW);
-  HRESULT InitializeFromFileHandle(_In_ HANDLE hFile);
-  HRESULT InitializeFromProcessHandle(_In_opt_ HANDLE hProc);
-  HRESULT InitializeFromMemory(_In_ LPCVOID lpBaseAddress, _In_ SIZE_T nImageSize, _In_ BOOL bImageIsMapped);
+    HRESULT InitializeFromFileName(_In_z_ LPCWSTR szFileNameW);
+    HRESULT InitializeFromFileHandle(_In_ HANDLE hFile);
+    HRESULT InitializeFromProcessHandle(_In_opt_ HANDLE hProc);
+    HRESULT InitializeFromMemory(_In_ LPCVOID lpBaseAddress, _In_ SIZE_T nImageSize, _In_ BOOL bImageIsMapped);
 
-  SIZE_T GetLanguagesCount() const
+    SIZE_T GetLanguagesCount() const
     {
-    return nTranslationBlocksCount;
+        return nTranslationBlocksCount;
     };
 
-  WORD GetLanguage(_In_opt_ SIZE_T nIndex) const;
-  WORD GetCharset(_In_opt_ SIZE_T nIndex) const;
+    WORD GetLanguage(_In_opt_ SIZE_T nIndex) const;
+    WORD GetCharset(_In_opt_ SIZE_T nIndex) const;
 
-  HRESULT GetString(_In_z_ LPCWSTR szFieldW, _Inout_ CStringW &cStrW, _In_opt_ SIZE_T nLangIndex=0);
-  MX_UNICODE_STRING GetString(_In_z_ LPCWSTR szFieldW, _In_opt_ SIZE_T nLangIndex=0);
+    HRESULT GetString(_In_z_ LPCWSTR szFieldW, _Inout_ CStringW &cStrW, _In_opt_ SIZE_T nLangIndex = 0);
+    MX_UNICODE_STRING GetString(_In_z_ LPCWSTR szFieldW, _In_opt_ SIZE_T nLangIndex = 0);
 
-  VS_FIXEDFILEINFO* operator->() const
+    VS_FIXEDFILEINFO *operator->() const
     {
-    return lpFfi;
+        return lpFfi;
     };
 
-private:
-  HRESULT AnalyzeVersionInfo(_In_ LPVOID lpPeParser);
+  private:
+    HRESULT AnalyzeVersionInfo(_In_ LPVOID lpPeParser);
 
-private:
+  private:
 #pragma pack(1)
-  typedef struct {
-    WORD wLang;
-    WORD wCharSet;
-  } TRANSLATION_BLOCK, *LPTRANSLATION_BLOCK;
+    typedef struct
+    {
+        WORD wLang;
+        WORD wCharSet;
+    } TRANSLATION_BLOCK, *LPTRANSLATION_BLOCK;
 #pragma pack()
 
-  TAutoFreePtr<BYTE> cVersionInfo;
-  VS_FIXEDFILEINFO *lpFfi;
-  LPTRANSLATION_BLOCK lpTranslationBlock;
-  SIZE_T nTranslationBlocksCount;
+    TAutoFreePtr<BYTE> cVersionInfo;
+    VS_FIXEDFILEINFO *lpFfi;
+    LPTRANSLATION_BLOCK lpTranslationBlock;
+    SIZE_T nTranslationBlocksCount;
 };
 
-}; //namespace MX
+}; // namespace MX
 
 //-----------------------------------------------------------
 

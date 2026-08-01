@@ -28,54 +28,57 @@
 
 //-----------------------------------------------------------
 
-namespace MX {
+namespace MX
+{
 
 class CSid : public virtual CBaseMemObj, public CNonCopyableObj
 {
-public:
-  CSid();
-  ~CSid();
+  public:
+    CSid();
+    ~CSid();
 
-  VOID Reset();
+    VOID Reset();
 
-  HRESULT Set(_In_ PSID lpSid);
-  HRESULT Set(_In_z_ LPCWSTR szAccountNameOrSidStringW);
+    HRESULT Set(_In_ PSID lpSid);
+    HRESULT Set(_In_z_ LPCWSTR szAccountNameOrSidStringW);
 
-  BOOL operator==(_In_ PSID lpSid) const;
+    BOOL operator==(_In_ PSID lpSid) const;
 
-  HRESULT FromToken(_In_ HANDLE hToken);
-  HRESULT FromProcess(_In_opt_ HANDLE hProc);
-  HRESULT FromThread(_In_opt_ HANDLE hThread);
-  HRESULT FromProcessId(_In_ DWORD dwPid);
-  HRESULT FromThreadId(_In_ DWORD dwTid);
+    HRESULT FromToken(_In_ HANDLE hToken);
+    HRESULT FromProcess(_In_opt_ HANDLE hProc);
+    HRESULT FromThread(_In_opt_ HANDLE hThread);
+    HRESULT FromProcessId(_In_ DWORD dwPid);
+    HRESULT FromThreadId(_In_ DWORD dwTid);
 
-  HRESULT SetCurrentUserSid();
-  HRESULT SetWellKnownAccount(_In_ WELL_KNOWN_SID_TYPE nSidType);
+    HRESULT SetCurrentUserSid();
+    HRESULT SetWellKnownAccount(_In_ WELL_KNOWN_SID_TYPE nSidType);
 
-  HRESULT GetStringSid(_Inout_ CStringW &cStrSidW);
-  HRESULT GetAccountName(_Inout_ CStringW &cStrNameW, _In_opt_ CStringW *lpStrDomainW=NULL);
+    HRESULT GetStringSid(_Inout_ CStringW &cStrSidW);
+    HRESULT GetAccountName(_Inout_ CStringW &cStrNameW, _In_opt_ CStringW *lpStrDomainW = NULL);
 
-  HRESULT GetCompatibleSidString(_Inout_ CStringW &cStrNameOrSidW, _In_opt_ CStringW *lpStrDomainW)
+    HRESULT GetCompatibleSidString(_Inout_ CStringW &cStrNameOrSidW, _In_opt_ CStringW *lpStrDomainW)
     {
-    if (lpStrDomainW != NULL)
-      lpStrDomainW->Empty();
-    return IsAnyWellKnownSid() ? GetStringSid(cStrNameOrSidW) : GetAccountName(cStrNameOrSidW, lpStrDomainW);
+        if (lpStrDomainW != NULL)
+        {
+            lpStrDomainW->Empty();
+        }
+        return IsAnyWellKnownSid() ? GetStringSid(cStrNameOrSidW) : GetAccountName(cStrNameOrSidW, lpStrDomainW);
     };
 
-  operator PSID() const
+    operator PSID() const
     {
-    return (PSID)(const_cast<TAutoFreePtr<BYTE>&>(cSid).Get());
+        return (PSID)(const_cast<TAutoFreePtr<BYTE> &>(cSid).Get());
     };
 
-  BOOL IsAnyWellKnownSid() const;
+    BOOL IsAnyWellKnownSid() const;
 
-  BOOL IsWellKnownSid(_In_ WELL_KNOWN_SID_TYPE nSidType) const;
+    BOOL IsWellKnownSid(_In_ WELL_KNOWN_SID_TYPE nSidType) const;
 
-private:
-  TAutoFreePtr<BYTE> cSid;
+  private:
+    TAutoFreePtr<BYTE> cSid;
 };
 
-}; //MXHelpers
+}; // namespace MX
 
 //-----------------------------------------------------------
 

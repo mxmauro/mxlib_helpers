@@ -26,27 +26,31 @@
 
 //-----------------------------------------------------------
 
-namespace MX {
+namespace MX
+{
 
-namespace Process {
+namespace Process
+{
 
 enum class eTokenGetMembershipType
 {
-  LimitedUser,
-  SystemAccount,
-  AdministratorsGroup,
-  AdministratorsGroupAndElevated
+    LimitedUser,
+    SystemAccount,
+    AdministratorsGroup,
+    AdministratorsGroupAndElevated
 };
 
-}; //Process
+}; // namespace Process
 
-}; //MX
+}; // namespace MX
 
 //-----------------------------------------------------------
 
-namespace MX {
+namespace MX
+{
 
-namespace Process {
+namespace Process
+{
 
 HRESULT ResolveChildProcessFileName(_Out_ CStringW &cStrFullNameW, _In_ LPCWSTR szApplicationNameW,
                                     _In_ LPCWSTR szCommandLineW);
@@ -61,9 +65,9 @@ HRESULT GetTokenMembershipType(_In_ HANDLE hToken, _Out_ Process::eTokenGetMembe
 
 HRESULT EnablePrivilege(_In_z_ LPCWSTR szPrivilegeW);
 
-}; //Process
+}; // namespace Process
 
-}; //MX
+}; // namespace MX
 
 //-----------------------------------------------------------
 

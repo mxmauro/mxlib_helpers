@@ -26,161 +26,167 @@
 
 //-----------------------------------------------------------
 
-namespace MX {
+namespace MX
+{
 
 class CSimpleCache : public virtual CBaseMemObj, public CNonCopyableObj
 {
-public:
-  class CValue : public TRefCounted<CBaseMemObj>, public CNonCopyableObj
-  {
-  private:
-    CValue(_In_ LPCVOID _lpData, _In_ SIZE_T _nDataSize, _In_ DWORD _dwExpireTimeMs,
-           _In_ DWORD _dwId) : TRefCounted<CBaseMemObj>(), CNonCopyableObj()
-      {
-      if (_nDataSize > 0)
-      {
-        lpData = MX_MALLOC(_nDataSize);
-        if (lpData != NULL)
-          ::MxMemCopy(lpData, _lpData, _nDataSize);
-      }
-      else
-      {
-        lpData = NULL;
-      }
-      nDataSize = _nDataSize;
-      dwExpireTimeMs = _dwExpireTimeMs;
-      dwId = _dwId;
-      return;
-      };
+  public:
+    class CValue : public TRefCounted<CBaseMemObj>, public CNonCopyableObj
+    {
+      private:
+        CValue(_In_ LPCVOID _lpData, _In_ SIZE_T _nDataSize, _In_ DWORD _dwExpireTimeMs, _In_ DWORD _dwId)
+            : TRefCounted<CBaseMemObj>(), CNonCopyableObj()
+        {
+            if (_nDataSize > 0)
+            {
+                lpData = MX_MALLOC(_nDataSize);
+                if (lpData != NULL)
+                {
+                    ::MxMemCopy(lpData, _lpData, _nDataSize);
+                }
+            }
+            else
+            {
+                lpData = NULL;
+            }
+            nDataSize = _nDataSize;
+            dwExpireTimeMs = _dwExpireTimeMs;
+            dwId = _dwId;
+            return;
+        };
+
+      public:
+        ~CValue()
+        {
+            MX_FREE(lpData);
+            return;
+        };
+
+        LPVOID GetData() const
+        {
+            return lpData;
+        };
+
+        SIZE_T GetDataSize() const
+        {
+            return nDataSize;
+        };
+
+      private:
+        friend class CSimpleCache;
+
+        LPVOID lpData;
+        SIZE_T nDataSize;
+        DWORD dwExpireTimeMs;
+        DWORD dwId;
+    };
 
   public:
-    ~CValue()
-      {
-      MX_FREE(lpData);
-      return;
-      };
-
-    LPVOID GetData() const
-      {
-      return lpData;
-      };
-
-    SIZE_T GetDataSize() const
-      {
-      return nDataSize;
-      };
-
-  private:
-    friend class CSimpleCache;
-
-    LPVOID lpData;
-    SIZE_T nDataSize;
-    DWORD dwExpireTimeMs;
-    DWORD dwId;
-  };
-
-public:
-  CSimpleCache()
+    CSimpleCache()
     {
-    SlimRWL_Initialize(&sRwMutex);
-    _InterlockedExchange(&nNextId, 0);
-    return;
+        SlimRWL_Initialize(&sRwMutex);
+        _InterlockedExchange(&nNextId, 0);
+        return;
     };
 
-  ~CSimpleCache()
+    ~CSimpleCache()
     {
-    Delete();
-    return;
+        Delete();
+        return;
     };
 
-  CValue* Get()
+    CValue *Get()
     {
-    TAutoRefCounted<CValue> cValue, cValueToDelete;
+        TAutoRefCounted<CValue> cValue, cValueToDelete;
 
-    {
-      CAutoSlimRWLShared cLock(&sRwMutex);
-
-      //find value
-      cValue = cStoredValue;
-    }
-
-    if (cValue)
-    {
-      if (cValue->dwExpireTimeMs > 0)
-      {
-        DWORD dwCurrentTimeMs = ::GetTickCount();
-
-        if (dwCurrentTimeMs >= cValue->dwExpireTimeMs)
         {
-          {
+            CAutoSlimRWLShared cLock(&sRwMutex);
+
+            // find value
+            cValue = cStoredValue;
+        }
+
+        if (cValue)
+        {
+            if (cValue->dwExpireTimeMs > 0)
+            {
+                DWORD dwCurrentTimeMs = ::GetTickCount();
+
+                if (dwCurrentTimeMs >= cValue->dwExpireTimeMs)
+                {
+                    {
+                        CAutoSlimRWLExclusive cLock(&sRwMutex);
+
+                        if (cStoredValue && cStoredValue->dwId == cValue->dwId)
+                        {
+                            // the stored object is the same we retrieved
+                            cValueToDelete.Attach(cStoredValue.Detach());
+                        }
+                    }
+
+                    // expired
+                    return NULL;
+                }
+            }
+        }
+
+        // done
+        return cValue.Detach();
+    };
+
+    HRESULT Put(_In_ LPCVOID lpValue, _In_ SIZE_T nValueSize, _In_opt_ DWORD dwExpireTimeMs = 0)
+    {
+        TAutoRefCounted<CValue> cNewValue, cValueToDelete;
+
+        MX_ASSERT(lpValue != NULL || nValueSize == 0);
+
+        if (dwExpireTimeMs > 0)
+        {
+            dwExpireTimeMs = ::GetTickCount() + dwExpireTimeMs;
+        }
+
+        // create new item
+        cNewValue.Attach(
+            MX_DEBUG_NEW CValue(lpValue, nValueSize, dwExpireTimeMs, (DWORD)_InterlockedIncrement(&nNextId)));
+        if ((!cNewValue) || (nValueSize > 0 && cNewValue->lpData == NULL))
+        {
+            return E_OUTOFMEMORY;
+        }
+
+        {
             CAutoSlimRWLExclusive cLock(&sRwMutex);
 
-            if (cStoredValue->dwId == cValue->dwId)
-            {
-              //the stored object is the same we retrieved
-              cValueToDelete.Attach(cStoredValue.Detach());
-            }
-          }
+            cValueToDelete.Attach(cStoredValue.Detach());
 
-          //expired
-          return NULL;
+            cStoredValue.Attach(cNewValue.Detach());
         }
-      }
+
+        // done
+        return S_OK;
     }
 
-    //done
-    return cValue.Detach();
+    HRESULT Delete()
+    {
+        TAutoRefCounted<CValue> cValueToDelete;
+
+        {
+            CAutoSlimRWLExclusive cLock(&sRwMutex);
+
+            cValueToDelete.Attach(cStoredValue.Detach());
+        }
+
+        // done
+        return (cValueToDelete) ? S_OK : MX_E_NotFound;
     };
 
-  HRESULT Put(_In_ LPCVOID lpValue, _In_ SIZE_T nValueSize, _In_opt_ DWORD dwExpireTimeMs = 0)
-    {
-    TAutoRefCounted<CValue> cNewValue, cValueToDelete;
-
-    MX_ASSERT(lpValue != NULL || nValueSize == 0);
-
-    if (dwExpireTimeMs > 0)
-    {
-      dwExpireTimeMs = ::GetTickCount() + dwExpireTimeMs;
-    }
-
-    //create new item
-    cNewValue.Attach(MX_DEBUG_NEW CValue(lpValue, nValueSize, dwExpireTimeMs, (DWORD)_InterlockedIncrement(&nNextId)));
-    if ((!cNewValue) || (nValueSize > 0 && cNewValue->lpData == NULL))
-      return E_OUTOFMEMORY;
-
-    {
-      CAutoSlimRWLExclusive cLock(&sRwMutex);
-
-      cValueToDelete.Attach(cStoredValue.Detach());
-
-      cStoredValue.Attach(cNewValue.Detach());
-    }
-
-    //done
-    return S_OK;
-    }
-
-  HRESULT Delete()
-    {
-    TAutoRefCounted<CValue> cValueToDelete;
-
-    {
-      CAutoSlimRWLExclusive cLock(&sRwMutex);
-
-      cValueToDelete.Attach(cStoredValue.Detach());
-    }
-
-    //done
-    return (cValueToDelete) ? S_OK : MX_E_NotFound;
-    };
-
-private:
-  RWLOCK sRwMutex;
-  TAutoRefCounted<CValue> cStoredValue;
-  LONG volatile nNextId;
+  private:
+    RWLOCK sRwMutex;
+    TAutoRefCounted<CValue> cStoredValue;
+    LONG volatile nNextId;
 };
 
-}; //namespace MX
+}; // namespace MX
 
 //-----------------------------------------------------------
 

@@ -24,11 +24,12 @@
 
 //-----------------------------------------------------------
 
-namespace MX {
+namespace MX
+{
 
 HRESULT SingleInstanceCheck(_In_z_ LPCWSTR szNameW);
 
-}; //namespace MX
+}; // namespace MX
 
 //-----------------------------------------------------------
 

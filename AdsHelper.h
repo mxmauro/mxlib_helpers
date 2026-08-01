@@ -30,52 +30,53 @@
 
 //-----------------------------------------------------------
 
-namespace MX {
+namespace MX
+{
 
 class CAdsHelper : public CBaseMemObj, public CNonCopyableObj
 {
-public:
-  CAdsHelper();
-  ~CAdsHelper();
+  public:
+    CAdsHelper();
+    ~CAdsHelper();
 
-  HRESULT Initialize(_In_opt_z_ LPCWSTR szServerAddressW=NULL, _In_opt_z_ LPCWSTR szUsernameW=NULL,
-                     _In_opt_z_ LPCWSTR szPasswordW=NULL);
+    HRESULT Initialize(_In_opt_z_ LPCWSTR szServerAddressW = NULL, _In_opt_z_ LPCWSTR szUsernameW = NULL,
+                       _In_opt_z_ LPCWSTR szPasswordW = NULL);
 
-  VOID SetCancelEvent(_In_ HANDLE hEvent);
-  VOID SetQueryTimeoutMs(_In_ DWORD dwTimeoutMs);
+    VOID SetCancelEvent(_In_ HANDLE hEvent);
+    VOID SetQueryTimeoutMs(_In_ DWORD dwTimeoutMs);
 
-  HRESULT GetAllUsers(_Inout_ TArrayListWithFree<LPWSTR> &aUsersList);
-  HRESULT GetAllGroups(_Inout_ TArrayListWithFree<LPWSTR> &aGroupsList);
-  HRESULT GetAllComputers(_Inout_ TArrayListWithFree<LPWSTR> &aComputersList);
+    HRESULT GetAllUsers(_Inout_ TArrayListWithFree<LPWSTR> &aUsersList);
+    HRESULT GetAllGroups(_Inout_ TArrayListWithFree<LPWSTR> &aGroupsList);
+    HRESULT GetAllComputers(_Inout_ TArrayListWithFree<LPWSTR> &aComputersList);
 
-  HRESULT GetSidFromADsPath(_In_z_ LPCWSTR szADsPathW, _Inout_ CSid &cSid);
-  HRESULT GetDomainFromUrl(_In_z_ LPCWSTR szUrlW, _Inout_ CStringW &cStrDomainW);
-  HRESULT GetDomainFromDn(_In_z_ LPCWSTR szDistinguishedNameW, _Inout_ CStringW &cStrDomainW);
+    HRESULT GetSidFromADsPath(_In_z_ LPCWSTR szADsPathW, _Inout_ CSid &cSid);
+    HRESULT GetDomainFromUrl(_In_z_ LPCWSTR szUrlW, _Inout_ CStringW &cStrDomainW);
+    HRESULT GetDomainFromDn(_In_z_ LPCWSTR szDistinguishedNameW, _Inout_ CStringW &cStrDomainW);
 
-  HRESULT GetRootADSPath(_Inout_ CStringW &cStrRootPathW);
+    HRESULT GetRootADSPath(_Inout_ CStringW &cStrRootPathW);
 
-  HRESULT GetComputerSids(_Out_ CSid **lplpComputerSid, _Inout_ TArrayListWithDelete<CSid*> &aGroupSids);
+    HRESULT GetComputerSids(_Out_ CSid **lplpComputerSid, _Inout_ TArrayListWithDelete<CSid *> &aGroupSids);
 
-  HRESULT EnumerateContainerFolders(_In_z_ LPCWSTR szParentW, _Inout_ TArrayListWithFree<LPWSTR> &aChildrenList);
-  HRESULT GetContainerMembers(_In_z_ LPCWSTR szParentW, _Inout_ TArrayListWithFree<LPWSTR> &aMembersList);
+    HRESULT EnumerateContainerFolders(_In_z_ LPCWSTR szParentW, _Inout_ TArrayListWithFree<LPWSTR> &aChildrenList);
+    HRESULT GetContainerMembers(_In_z_ LPCWSTR szParentW, _Inout_ TArrayListWithFree<LPWSTR> &aMembersList);
 
-  static HRESULT GetUrlFromDn(_In_ LPCWSTR szDnW, _Inout_ CStringW &cStrW);
-  static HRESULT GetUrlFromDn(_Inout_ CStringW &cStrW);
-  static LPCWSTR GetDnFromUrl(_In_ LPCWSTR szUrlW);
+    static HRESULT GetUrlFromDn(_In_ LPCWSTR szDnW, _Inout_ CStringW &cStrW);
+    static HRESULT GetUrlFromDn(_Inout_ CStringW &cStrW);
+    static LPCWSTR GetDnFromUrl(_In_ LPCWSTR szUrlW);
 
-private:
-  static BOOL EscapeSlashes(_Inout_ CStringW &cStrW);
-  HRESULT AdsOpen(_In_z_ LPCWSTR szPathNameW, _In_ REFIID riid, _Deref_out_ LPVOID *ppObject);
-  BOOL IsCancelled();
+  private:
+    static BOOL EscapeSlashes(_Inout_ CStringW &cStrW);
+    HRESULT AdsOpen(_In_z_ LPCWSTR szPathNameW, _In_ REFIID riid, _Deref_out_ LPVOID *ppObject);
+    BOOL IsCancelled();
 
-private:
-  CStringW cStrServerAddressW, cStrUserNameW, cStrPasswordW;
-  HRESULT hResComInit;
-  HANDLE hCancelEvent;
-  DWORD dwQueryTimeoutMs;
+  private:
+    CStringW cStrServerAddressW, cStrUserNameW, cStrPasswordW;
+    HRESULT hResComInit;
+    HANDLE hCancelEvent;
+    DWORD dwQueryTimeoutMs;
 };
 
-}; //namespace MX
+}; // namespace MX
 
 //-----------------------------------------------------------
 

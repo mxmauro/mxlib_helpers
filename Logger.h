@@ -27,9 +27,11 @@
 
 //-----------------------------------------------------------
 
-namespace MX {
+namespace MX
+{
 
-namespace EventLogger {
+namespace EventLogger
+{
 
 // NOTE: If szApplicationNameW is only a name without a full path, logs will be stored in "Common AppData\Logs"
 HRESULT Initialize(_In_z_ LPCWSTR szApplicationNameW, _In_z_ LPCWSTR szModuleNameW, _In_ DWORD dwKeepDays,
@@ -44,9 +46,9 @@ HRESULT LogRaw(_In_z_ LPCWSTR szTextW);
 HRESULT GetLogFolder(_Out_ CStringW &cStrLogFolderW, _In_opt_ BOOL bCreate = FALSE);
 HRESULT GetLogFileName(_Out_ CStringW &cStrFileNameW, _In_opt_ BOOL bCreateFolder = FALSE);
 
-}; //namespace EventLogger
+}; // namespace EventLogger
 
-}; //namespace MX
+}; // namespace MX
 
 //-----------------------------------------------------------
 
