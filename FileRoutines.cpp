@@ -23,7 +23,7 @@
 #include <fileapi.h>
 #include <Debug.h>
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
 #define CREATE_RETRIES_COUNT 600
 #define CREATE_RETRIES_DELAY_MS 15
@@ -67,23 +67,20 @@
 
 typedef HRESULT(__stdcall *lpfnSHGetKnownFolderPath)(_In_ const GUID &rfid, _In_ DWORD dwFlags, _In_opt_ HANDLE hToken,
                                                      _Out_ PWSTR *ppszPath);
-typedef HRESULT(__stdcall *lpfnSHGetFolderPathW)(_Reserved_ HWND hwnd, _In_ int csidl, _In_opt_ HANDLE hToken,
-                                                 _In_ DWORD dwFlags, _Out_writes_(MAX_PATH) LPWSTR pszPath);
+typedef HRESULT(__stdcall *lpfnSHGetFolderPathW)(_Reserved_ HWND hwnd, _In_ int csidl, _In_opt_ HANDLE hToken, _In_ DWORD dwFlags,
+                                                 _Out_writes_(MAX_PATH) LPWSTR pszPath);
 
 typedef VOID(__stdcall *lpfnCoTaskMemFree)(_In_opt_ LPVOID pv);
 
 //-----------------------------------------------------------
 
-static HRESULT _GetKnownFolderFolderPath(_In_ int csIdl, _In_ const GUID &sGuid, _In_ BOOL bCreate,
-                                         _Out_ MX::CStringW &cStrDestW);
+static HRESULT _GetKnownFolderFolderPath(_In_ int csIdl, _In_ const GUID &sGuid, _In_ BOOL bCreate, _Out_ MX::CStringW &cStrDestW);
 
 //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
-namespace FileRoutines
-{
+namespace FileRoutines {
 
 HRESULT GetAppFileName(_Out_ CStringW &cStrDestW)
 {
@@ -179,10 +176,8 @@ HRESULT GetProcessFileName(_In_ HANDLE hProc, _Out_ CStringW &cStrDestW)
     FileName->MaximumLength = 256;
 
     RetLength = 0;
-    nNtStatus = ::MxNtQueryInformationProcess(hProc, MxProcessImageFileName, FileName,
-                                              (ULONG)sizeof(MX_UNICODE_STRING) + 256, &RetLength);
-    if (nNtStatus == STATUS_INFO_LENGTH_MISMATCH || nNtStatus == STATUS_BUFFER_TOO_SMALL ||
-        nNtStatus == STATUS_BUFFER_OVERFLOW)
+    nNtStatus = ::MxNtQueryInformationProcess(hProc, MxProcessImageFileName, FileName, (ULONG)sizeof(MX_UNICODE_STRING) + 256, &RetLength);
+    if (nNtStatus == STATUS_INFO_LENGTH_MISMATCH || nNtStatus == STATUS_BUFFER_TOO_SMALL || nNtStatus == STATUS_BUFFER_OVERFLOW)
     {
         MX_FREE(FileName);
 
@@ -238,14 +233,14 @@ HRESULT GetProcessFileName(_In_ HANDLE hProc, _Out_ CStringW &cStrDestW)
 HRESULT GetCommonAppDataFolderPath(_Out_ CStringW &cStrDestW)
 {
     static const GUID __FOLDERID_ProgramData = {
-        0x62AB5D82, 0xFDC1, 0x4DC3, {0xA9, 0xDD, 0x07, 0x0D, 0x1D, 0x49, 0x5D, 0x97}};
+        0x62AB5D82, 0xFDC1, 0x4DC3, {0xA9, 0xDD, 0x07, 0x0D, 0x1D, 0x49, 0x5D, 0x97} };
     return _GetKnownFolderFolderPath(CSIDL_COMMON_APPDATA, __FOLDERID_ProgramData, TRUE, cStrDestW);
 }
 
 HRESULT GetProgramFilesFolderPath(_Out_ CStringW &cStrDestW)
 {
     static const GUID __FOLDERID_ProgramFiles = {
-        0x905E63B6, 0xC1BF, 0x494E, {0xB2, 0x9C, 0x65, 0xB7, 0x32, 0xD3, 0xD2, 0x1A}};
+        0x905E63B6, 0xC1BF, 0x494E, {0xB2, 0x9C, 0x65, 0xB7, 0x32, 0xD3, 0xD2, 0x1A} };
     return _GetKnownFolderFolderPath(CSIDL_PROGRAM_FILES, __FOLDERID_ProgramFiles, TRUE, cStrDestW);
 }
 
@@ -253,7 +248,7 @@ HRESULT GetProgramFilesFolderPath(_Out_ CStringW &cStrDestW)
 HRESULT GetProgramFilesX86FolderPath(_Out_ CStringW &cStrDestW)
 {
     static const GUID __FOLDERID_ProgramFilesX86 = {
-        0x7C5A40EF, 0xA0FB, 0x4BFC, {0x87, 0x4A, 0xC0, 0xF2, 0xE0, 0xB9, 0xFA, 0x8E}};
+        0x7C5A40EF, 0xA0FB, 0x4BFC, {0x87, 0x4A, 0xC0, 0xF2, 0xE0, 0xB9, 0xFA, 0x8E} };
     return _GetKnownFolderFolderPath(CSIDL_PROGRAM_FILESX86, __FOLDERID_ProgramFilesX86, TRUE, cStrDestW);
 }
 #endif //_M_X64
@@ -344,7 +339,7 @@ HRESULT GetWindowsSystemPath(_Out_ CStringW &cStrDestW)
 HRESULT GetWindowsSysWow64Path(_Out_ CStringW &cStrDestW)
 {
     static const GUID __FOLDERID_SystemX86 = {
-        0xD65231B0, 0xB2F1, 0x4857, {0xA4, 0xCE, 0xA8, 0xE7, 0xC6, 0xEA, 0x7D, 0x27}};
+        0xD65231B0, 0xB2F1, 0x4857, {0xA4, 0xCE, 0xA8, 0xE7, 0xC6, 0xEA, 0x7D, 0x27} };
     return _GetKnownFolderFolderPath(CSIDL_SYSTEMX86, __FOLDERID_SystemX86, TRUE, cStrDestW);
 }
 #endif //_M_X64
@@ -416,8 +411,7 @@ HRESULT CreateDirectoryRecursive(_In_ LPCWSTR szFolderNameW)
     else
     {
         if ((szFolderNameW[0] != L'\\' && szFolderNameW[0] != L'/') ||
-            (szFolderNameW[1] != L'\\' && szFolderNameW[1] != L'/') || szFolderNameW[2] == L'\\' ||
-            szFolderNameW[2] == L'/')
+            (szFolderNameW[1] != L'\\' && szFolderNameW[1] != L'/') || szFolderNameW[2] == L'\\' || szFolderNameW[2] == L'/')
         {
             return E_INVALIDARG;
         }
@@ -614,7 +608,8 @@ HRESULT RemoveDirectoryRecursive(_In_ LPCWSTR szFolderNameW, _In_opt_ FileRoutin
                 return hRes;
             }
         }
-    } while (::FindNextFileW(hFind, &sFfData) != FALSE);
+    }
+    while (::FindNextFileW(hFind, &sFfData) != FALSE);
     ::FindClose(hFind);
     // remove directory
     cStrTempW.Delete(nBaseLen - 1, (SIZE_T)-1); // remove trailing slash
@@ -642,8 +637,7 @@ HRESULT RemoveDirectoryRecursive(_In_ LPCWSTR szFolderNameW, _In_opt_ FileRoutin
                 break;
             }
             if (hRes != MX_HRESULT_FROM_WIN32(ERROR_DIR_NOT_EMPTY) && hRes != E_ACCESSDENIED &&
-                hRes != MX_HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION) &&
-                hRes != MX_HRESULT_FROM_WIN32(ERROR_LOCK_VIOLATION))
+                hRes != MX_HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION) && hRes != MX_HRESULT_FROM_WIN32(ERROR_LOCK_VIOLATION))
             {
                 return hRes;
             }
@@ -793,7 +787,8 @@ HRESULT DeleteDirectoryFiles(_In_ LPCWSTR szFolderNameW, _In_opt_ eDelayedDelete
                 return hRes;
             }
         }
-    } while (::FindNextFileW(hFind, &sFfData) != FALSE);
+    }
+    while (::FindNextFileW(hFind, &sFfData) != FALSE);
     ::FindClose(hFind);
     return S_OK;
 }
@@ -848,8 +843,7 @@ VOID NormalizePath(_Inout_ CStringW &cStrPathW)
                 {
                     szStartW += 2;
                 }
-                else if (((szStartW[0] >= L'A' && szStartW[0] <= L'Z') ||
-                          (szStartW[0] >= L'a' && szStartW[0] <= L'z')) &&
+                else if (((szStartW[0] >= L'A' && szStartW[0] <= L'Z') || (szStartW[0] >= L'a' && szStartW[0] <= L'z')) &&
                          szStartW[1] == L':' && szStartW[2] == L'\\')
                 {
                     szStartW += 3;
@@ -922,8 +916,7 @@ HRESULT ConvertToLongPath(_Inout_ CStringW &cStrPathW)
     if (sW[0] == L'\\' && (sW[1] == L'\\' || sW[1] == L'?') && (sW[2] == L'.' || sW[2] == L'?') && sW[3] == L'\\')
     {
         // nt path provided
-        if ((sW[0] == L'U' || sW[0] == L'u') && (sW[1] == L'N' || sW[1] == L'n') && (sW[2] == L'C' || sW[2] == L'c') &&
-            sW[3] == L'\\')
+        if ((sW[0] == L'U' || sW[0] == L'u') && (sW[1] == L'N' || sW[1] == L'n') && (sW[2] == L'C' || sW[2] == L'c') && sW[3] == L'\\')
         {
             return S_OK; // skip network folders
         }
@@ -1089,8 +1082,7 @@ HRESULT ConvertToWin32(_Inout_ CStringW &cStrPathW)
     // can convert to DOS volume?
     if (StrNCompareW(sW, L"\\Device\\", 8, TRUE) == 0)
     {
-        nNtStatus = ::MxNtQueryInformationProcess(MX_CURRENTPROCESS, MxProcessDeviceMap, &(sPdmi.Query),
-                                                  (ULONG)sizeof(sPdmi.Query), NULL);
+        nNtStatus = ::MxNtQueryInformationProcess(MX_CURRENTPROCESS, MxProcessDeviceMap, &(sPdmi.Query), (ULONG)sizeof(sPdmi.Query), NULL);
         if (!NT_SUCCESS(nNtStatus))
         {
             return MX_HRESULT_FROM_WIN32(::MxRtlNtStatusToDosError(nNtStatus));
@@ -1223,8 +1215,7 @@ HRESULT ResolveSymbolicLink(_Inout_ CStringW &cStrPathW)
         CurrName.Buffer = (LPWSTR)cStrTempPathW;
         CurrName.Length = CurrName.MaximumLength = (USHORT)(cStrTempPathW.GetLength() * 2);
     }
-    else if (cStrPathW.GetLength() >= 4 && (sW[1] == L'\\' || sW[1] == L'?') && (sW[2] == L'.' || sW[2] == L'?') &&
-             sW[3] == L'\\')
+    else if (cStrPathW.GetLength() >= 4 && (sW[1] == L'\\' || sW[1] == L'?') && (sW[2] == L'.' || sW[2] == L'?') && sW[3] == L'\\')
     {
         if (cStrTempPathW.Format(L"\\??\\%s", sW + 4) == FALSE)
         {
@@ -1365,8 +1356,8 @@ HRESULT GetFileNameFromHandle(_In_ HANDLE hFile, _Out_ CStringW &cStrFileNameW)
         {
             nNtStatus = STATUS_INSUFFICIENT_RESOURCES;
         }
-    } while (nNtStatus == STATUS_BUFFER_OVERFLOW || nNtStatus == STATUS_BUFFER_TOO_SMALL ||
-             nNtStatus == STATUS_INFO_LENGTH_MISMATCH);
+    }
+    while (nNtStatus == STATUS_BUFFER_OVERFLOW || nNtStatus == STATUS_BUFFER_TOO_SMALL || nNtStatus == STATUS_INFO_LENGTH_MISMATCH);
     if (NT_SUCCESS(nNtStatus))
     {
         if (cStrFileNameW.CopyN(lpNameInfo->Name.Buffer, (SIZE_T)(lpNameInfo->Name.Length) / 2) == FALSE)
@@ -1384,9 +1375,8 @@ HRESULT GetFileNameFromHandle(_In_ HANDLE hFile, _Out_ CStringW &cStrFileNameW)
 
 HRESULT OpenFileWithEscalatingSharing(_In_z_ LPCWSTR szFileNameW, _Out_ HANDLE *lphFile)
 {
-    static const BYTE aShareMode[4] = {FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                                       FILE_SHARE_READ | FILE_SHARE_DELETE, FILE_SHARE_READ | FILE_SHARE_WRITE,
-                                       FILE_SHARE_READ};
+    static const BYTE aShareMode[4] = { FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, FILE_SHARE_READ | FILE_SHARE_DELETE,
+                                       FILE_SHARE_READ | FILE_SHARE_WRITE, FILE_SHARE_READ };
     DWORD i, dwRetry;
     HRESULT hRes = S_OK;
 
@@ -1413,17 +1403,15 @@ HRESULT OpenFileWithEscalatingSharing(_In_z_ LPCWSTR szFileNameW, _Out_ HANDLE *
             for (i = 0; i < 4; i++)
             {
                 ::MxMemSet(&sIoStatus, 0, sizeof(sIoStatus));
-                nNtStatus =
-                    ::MxNtCreateFile(lphFile, FILE_GENERIC_READ, &sObjAttrib, &sIoStatus, NULL, 0, (ULONG)aShareMode[i],
-                                     FILE_OPEN, FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT, NULL, 0);
+                nNtStatus = ::MxNtCreateFile(lphFile, FILE_GENERIC_READ, &sObjAttrib, &sIoStatus, NULL, 0, (ULONG)aShareMode[i], FILE_OPEN,
+                                     FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT, NULL, 0);
                 if (NT_SUCCESS(nNtStatus))
                 {
                     return S_OK;
                 }
                 hRes = MX_HRESULT_FROM_WIN32(::MxRtlNtStatusToDosError(nNtStatus));
                 *lphFile = NULL;
-                if (hRes != HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION) &&
-                    hRes != HRESULT_FROM_WIN32(ERROR_LOCK_VIOLATION))
+                if (hRes != HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION) && hRes != HRESULT_FROM_WIN32(ERROR_LOCK_VIOLATION))
                 {
                     break;
                 }
@@ -1453,8 +1441,7 @@ HRESULT OpenFileWithEscalatingSharing(_In_z_ LPCWSTR szFileNameW, _Out_ HANDLE *
                 }
                 hRes = MX_HRESULT_FROM_LASTERROR();
                 *lphFile = NULL;
-                if (hRes != HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION) &&
-                    hRes != HRESULT_FROM_WIN32(ERROR_LOCK_VIOLATION))
+                if (hRes != HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION) && hRes != HRESULT_FROM_WIN32(ERROR_LOCK_VIOLATION))
                 {
                     break;
                 }
@@ -1544,8 +1531,7 @@ HRESULT CreateFileWithOptions(_In_z_ LPCWSTR szFileNameW, _Out_ HANDLE *lphFile,
                 ::Sleep(CREATE_RETRIES_DELAY_MS);
             }
 
-            *lphFile =
-                ::CreateFileW(szFileNameW, GENERIC_READ | GENERIC_WRITE, (DWORD)dwSharedMode, NULL,
+            *lphFile = ::CreateFileW(szFileNameW, GENERIC_READ | GENERIC_WRITE, (DWORD)dwSharedMode, NULL,
                               ((bReplaceExisting != FALSE) ? CREATE_ALWAYS : CREATE_NEW), FILE_ATTRIBUTE_NORMAL, NULL);
             if ((*lphFile) != NULL && (*lphFile) != INVALID_HANDLE_VALUE)
             {
@@ -1571,8 +1557,7 @@ HRESULT CreateFileWithOptions(_In_z_ LPCWSTR szFileNameW, _Out_ HANDLE *lphFile,
 
 //-----------------------------------------------------------
 
-static HRESULT _GetKnownFolderFolderPath(_In_ int csIdl, _In_ const GUID &sGuid, _In_ BOOL bCreate,
-                                         _Out_ MX::CStringW &cStrDestW)
+static HRESULT _GetKnownFolderFolderPath(_In_ int csIdl, _In_ const GUID &sGuid, _In_ BOOL bCreate, _Out_ MX::CStringW &cStrDestW)
 {
     static LONG volatile nInitLock = 0;
     static HINSTANCE volatile hShell32Dll = NULL;

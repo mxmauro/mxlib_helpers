@@ -23,7 +23,7 @@
 #include <io.h>
 #include <fcntl.h>
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
 static LONG volatile nInitialized = 0;
 static LONG volatile nMutex = 0;
@@ -32,11 +32,9 @@ static int nOldStdOutMode = 0;
 
 //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
-namespace Console
-{
+namespace Console {
 
 VOID Initialize()
 {
@@ -69,18 +67,18 @@ VOID Print(_In_ Console::eColor nColor, _In_ LPCWSTR szFormatW, ...)
             ::GetConsoleScreenBufferInfo(hConsoleOut, &sCsbi);
             switch (nColor)
             {
-            case Console::eColor::Error:
-                ::SetConsoleTextAttribute(hConsoleOut, FOREGROUND_RED | FOREGROUND_INTENSITY);
-                break;
-            case Console::eColor::Success:
-                ::SetConsoleTextAttribute(hConsoleOut, FOREGROUND_GREEN | FOREGROUND_INTENSITY);
-                break;
-            case Console::eColor::Yellow:
-                ::SetConsoleTextAttribute(hConsoleOut, FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_INTENSITY);
-                break;
-            case Console::eColor::Blue:
-                ::SetConsoleTextAttribute(hConsoleOut, FOREGROUND_BLUE | FOREGROUND_INTENSITY);
-                break;
+                case Console::eColor::Error:
+                    ::SetConsoleTextAttribute(hConsoleOut, FOREGROUND_RED | FOREGROUND_INTENSITY);
+                    break;
+                case Console::eColor::Success:
+                    ::SetConsoleTextAttribute(hConsoleOut, FOREGROUND_GREEN | FOREGROUND_INTENSITY);
+                    break;
+                case Console::eColor::Yellow:
+                    ::SetConsoleTextAttribute(hConsoleOut, FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_INTENSITY);
+                    break;
+                case Console::eColor::Blue:
+                    ::SetConsoleTextAttribute(hConsoleOut, FOREGROUND_BLUE | FOREGROUND_INTENSITY);
+                    break;
             }
         }
 

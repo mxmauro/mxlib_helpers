@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <winternl.h>
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
 #define MAX_EXPORTS_COUNT 65536
 #define MAX_EXPORTS_FUNCTION_NAME_LENGTH 512
@@ -40,8 +40,7 @@
 
 //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
 CPEParser::CPEParser() : CBaseMemObj(), CNonCopyableObj()
 {
@@ -83,8 +82,7 @@ HRESULT CPEParser::InitializeFromFileHandle(_In_ HANDLE _hFile, _In_opt_ DWORD d
 
     Finalize();
 
-    if (::DuplicateHandle(::GetCurrentProcess(), _hFile, ::GetCurrentProcess(), &hFile, 0, FALSE,
-                          DUPLICATE_SAME_ACCESS) == FALSE)
+    if (::DuplicateHandle(::GetCurrentProcess(), _hFile, ::GetCurrentProcess(), &hFile, 0, FALSE, DUPLICATE_SAME_ACCESS) == FALSE)
     {
         return MX_HRESULT_FROM_LASTERROR();
     }
@@ -150,8 +148,7 @@ HRESULT CPEParser::InitializeFromProcessHandle(_In_opt_ HANDLE _hProc, _In_opt_ 
         ULONG k;
         NTSTATUS nNtStatus;
 
-        if (::DuplicateHandle(::GetCurrentProcess(), _hProc, ::GetCurrentProcess(), &hProc, 0, FALSE,
-                              DUPLICATE_SAME_ACCESS) == FALSE)
+        if (::DuplicateHandle(::GetCurrentProcess(), _hProc, ::GetCurrentProcess(), &hProc, 0, FALSE, DUPLICATE_SAME_ACCESS) == FALSE)
         {
             hRes = MX_HRESULT_FROM_LASTERROR();
             Finalize();
@@ -193,8 +190,7 @@ HRESULT CPEParser::InitializeFromProcessHandle(_In_opt_ HANDLE _hProc, _In_opt_ 
 
         if (hProc != NULL)
         {
-            if (::ReadProcessMemory(hProc, lpPeb + 0x10, &qwTemp, sizeof(qwTemp), &nRead) == FALSE ||
-                nRead != sizeof(qwTemp))
+            if (::ReadProcessMemory(hProc, lpPeb + 0x10, &qwTemp, sizeof(qwTemp), &nRead) == FALSE || nRead != sizeof(qwTemp))
             {
                 Finalize();
                 return MX_E_ReadFault;
@@ -215,8 +211,7 @@ HRESULT CPEParser::InitializeFromProcessHandle(_In_opt_ HANDLE _hProc, _In_opt_ 
 #endif //_M_X64
         if (hProc != NULL)
         {
-            if (::ReadProcessMemory(hProc, lpPeb + 0x08, &dwTemp, sizeof(dwTemp), &nRead) == FALSE ||
-                nRead != sizeof(dwTemp))
+            if (::ReadProcessMemory(hProc, lpPeb + 0x08, &dwTemp, sizeof(dwTemp), &nRead) == FALSE || nRead != sizeof(dwTemp))
             {
                 Finalize();
                 return MX_E_ReadFault;
@@ -233,7 +228,7 @@ HRESULT CPEParser::InitializeFromProcessHandle(_In_opt_ HANDLE _hProc, _In_opt_ 
 #if defined(_M_X64)
         lpBaseAddress = (LPBYTE)UlongToPtr(dwTemp);
 #else  //_M_X64
-    lpBaseAddress = (LPBYTE)dwTemp;
+        lpBaseAddress = (LPBYTE)dwTemp;
 #endif //_M_X64
 #if defined(_M_X64)
     }
@@ -320,14 +315,13 @@ LPBYTE CPEParser::RvaToVa(_In_ DWORD dwVirtualAddress)
             dwVirtualAddress < lpFileImgSect[i].VirtualAddress + lpFileImgSect[i].Misc.VirtualSize)
         {
             return lpBaseAddress + (SIZE_T)dwVirtualAddress - (SIZE_T)(lpFileImgSect[i].VirtualAddress) +
-                   (SIZE_T)(lpFileImgSect[i].PointerToRawData);
+                (SIZE_T)(lpFileImgSect[i].PointerToRawData);
         }
     }
     return NULL;
 }
 
-_Success_(return != FALSE) BOOL CPEParser::ReadRaw(_Out_writes_bytes_(nBytes) LPVOID lpDest, _In_ LPCVOID lpSrc,
-                                                   _In_ SIZE_T nBytes)
+_Success_(return != FALSE) BOOL CPEParser::ReadRaw(_Out_writes_bytes_(nBytes) LPVOID lpDest, _In_ LPCVOID lpSrc, _In_ SIZE_T nBytes)
 {
     SIZE_T nOffset;
 
@@ -376,8 +370,8 @@ _Success_(return != FALSE) BOOL CPEParser::ReadRaw(_Out_writes_bytes_(nBytes) LP
 
                 // read from file
                 ::MxMemSet(&sIoStatus, 0, sizeof(sIoStatus));
-                nNtStatus = ::MxNtReadFile(hFile, NULL, NULL, NULL, &sIoStatus, sFileCache.aBuffer,
-                                           (ULONG)sizeof(sFileCache.aBuffer), &liOffset, NULL);
+                nNtStatus = ::MxNtReadFile(hFile, NULL, NULL, NULL, &sIoStatus, sFileCache.aBuffer, (ULONG)sizeof(sFileCache.aBuffer),
+                                           &liOffset, NULL);
                 if (nNtStatus == STATUS_PENDING)
                 {
                     nNtStatus = ::MxNtWaitForSingleObject(hFile, FALSE, NULL);
@@ -534,250 +528,234 @@ HRESULT CPEParser::DoParse(_In_ DWORD dwParseFlags)
     // check machine
     switch (wMachine = sFileHeader.Machine)
     {
-    case IMAGE_FILE_MACHINE_I386:
-        if (ReadRaw(&(uNtHdr.s32), lpNtHdr, sizeof(uNtHdr.s32)) == FALSE)
-        {
-            return MX_E_ReadFault;
-        }
-
-        // get original image base address
-        lpOriginalImageBaseAddress = UlongToPtr(uNtHdr.s32.OptionalHeader.ImageBase);
-
-        // get PE sections
-        nSectionsCount = (SIZE_T)(uNtHdr.s32.FileHeader.NumberOfSections);
-        if (nSectionsCount > 0)
-        {
-            cFileImgSect.Attach((PIMAGE_SECTION_HEADER)MX_MALLOC(nSectionsCount * sizeof(IMAGE_SECTION_HEADER)));
-            if (!cFileImgSect)
-            {
-                return E_OUTOFMEMORY;
-            }
-            if (ReadRaw(cFileImgSect.Get(), (PIMAGE_SECTION_HEADER)(lpNtHdr + sizeof(uNtHdr.s32)),
-                        nSectionsCount * sizeof(IMAGE_SECTION_HEADER)) == FALSE)
+        case IMAGE_FILE_MACHINE_I386:
+            if (ReadRaw(&(uNtHdr.s32), lpNtHdr, sizeof(uNtHdr.s32)) == FALSE)
             {
                 return MX_E_ReadFault;
             }
-        }
 
-        // parse import table
-        if ((dwParseFlags & MX_PEPARSER_FLAG_ParseImportTables) != 0)
-        {
-            if (DATADIR32(IMAGE_DIRECTORY_ENTRY_IMPORT).VirtualAddress != 0 &&
-                DATADIR32(IMAGE_DIRECTORY_ENTRY_IMPORT).Size != 0)
+            // get original image base address
+            lpOriginalImageBaseAddress = UlongToPtr(uNtHdr.s32.OptionalHeader.ImageBase);
+
+            // get PE sections
+            nSectionsCount = (SIZE_T)(uNtHdr.s32.FileHeader.NumberOfSections);
+            if (nSectionsCount > 0)
             {
-                PIMAGE_IMPORT_DESCRIPTOR lpImportDesc;
-
-                lpImportDesc =
-                    (PIMAGE_IMPORT_DESCRIPTOR)RvaToVa(DATADIR32(IMAGE_DIRECTORY_ENTRY_IMPORT).VirtualAddress);
-                if (lpImportDesc != NULL)
+                cFileImgSect.Attach((PIMAGE_SECTION_HEADER)MX_MALLOC(nSectionsCount * sizeof(IMAGE_SECTION_HEADER)));
+                if (!cFileImgSect)
                 {
-                    hRes = DoParseImportTable(lpImportDesc);
+                    return E_OUTOFMEMORY;
                 }
-                else
+                if (ReadRaw(cFileImgSect.Get(), (PIMAGE_SECTION_HEADER)(lpNtHdr + sizeof(uNtHdr.s32)),
+                            nSectionsCount * sizeof(IMAGE_SECTION_HEADER)) == FALSE)
                 {
-                    hRes = MX_E_InvalidData;
-                }
-                if (FAILED(hRes))
-                {
-                    if ((hRes != MX_E_InvalidData && hRes != MX_E_ReadFault) ||
-                        (dwParseFlags & MX_PEPARSER_FLAG_IgnoreMalformed) == 0)
-                    {
-                        return hRes;
-                    }
-                    sImportsInfo.aDllList.RemoveAllElements();
+                    return MX_E_ReadFault;
                 }
             }
-        }
 
-        // parse export table
-        if ((dwParseFlags & MX_PEPARSER_FLAG_ParseExportTable) != 0)
-        {
-            if (DATADIR32(IMAGE_DIRECTORY_ENTRY_EXPORT).VirtualAddress != 0 &&
-                DATADIR32(IMAGE_DIRECTORY_ENTRY_EXPORT).Size != 0)
+            // parse import table
+            if ((dwParseFlags & MX_PEPARSER_FLAG_ParseImportTables) != 0)
             {
-                PIMAGE_EXPORT_DIRECTORY lpExportDir;
+                if (DATADIR32(IMAGE_DIRECTORY_ENTRY_IMPORT).VirtualAddress != 0 && DATADIR32(IMAGE_DIRECTORY_ENTRY_IMPORT).Size != 0)
+                {
+                    PIMAGE_IMPORT_DESCRIPTOR lpImportDesc;
 
-                lpExportDir = (PIMAGE_EXPORT_DIRECTORY)RvaToVa(DATADIR32(IMAGE_DIRECTORY_ENTRY_EXPORT).VirtualAddress);
-                if (lpExportDir != NULL)
-                {
-                    hRes = DoParseExportTable(lpExportDir, DATADIR32(IMAGE_DIRECTORY_ENTRY_EXPORT).VirtualAddress,
-                                              DATADIR32(IMAGE_DIRECTORY_ENTRY_EXPORT).VirtualAddress +
-                                                  DATADIR32(IMAGE_DIRECTORY_ENTRY_EXPORT).Size);
-                }
-                else
-                {
-                    hRes = MX_E_InvalidData;
-                }
-                if (FAILED(hRes))
-                {
-                    if ((hRes != MX_E_InvalidData && hRes != MX_E_ReadFault) ||
-                        (dwParseFlags & MX_PEPARSER_FLAG_IgnoreMalformed) == 0)
+                    lpImportDesc = (PIMAGE_IMPORT_DESCRIPTOR)RvaToVa(DATADIR32(IMAGE_DIRECTORY_ENTRY_IMPORT).VirtualAddress);
+                    if (lpImportDesc != NULL)
                     {
-                        return hRes;
+                        hRes = DoParseImportTable(lpImportDesc);
                     }
-                    sExportsInfo.dwCharacteristics = 0;
-                    sExportsInfo.wMajorVersion = 0;
-                    sExportsInfo.wMinorVersion = 0;
-                    sExportsInfo.aEntries.RemoveAllElements();
+                    else
+                    {
+                        hRes = MX_E_InvalidData;
+                    }
+                    if (FAILED(hRes))
+                    {
+                        if ((hRes != MX_E_InvalidData && hRes != MX_E_ReadFault) || (dwParseFlags & MX_PEPARSER_FLAG_IgnoreMalformed) == 0)
+                        {
+                            return hRes;
+                        }
+                        sImportsInfo.aDllList.RemoveAllElements();
+                    }
                 }
             }
-        }
 
-        // parse resources
-        if ((dwParseFlags & MX_PEPARSER_FLAG_ParseResources) != 0)
-        {
-            if (DATADIR32(IMAGE_DIRECTORY_ENTRY_RESOURCE).VirtualAddress != 0 &&
-                DATADIR32(IMAGE_DIRECTORY_ENTRY_RESOURCE).Size != 0)
+            // parse export table
+            if ((dwParseFlags & MX_PEPARSER_FLAG_ParseExportTable) != 0)
             {
-                lpResourceDir =
-                    (PIMAGE_RESOURCE_DIRECTORY)RvaToVa(DATADIR32(IMAGE_DIRECTORY_ENTRY_RESOURCE).VirtualAddress);
-                if (lpResourceDir != NULL)
+                if (DATADIR32(IMAGE_DIRECTORY_ENTRY_EXPORT).VirtualAddress != 0 && DATADIR32(IMAGE_DIRECTORY_ENTRY_EXPORT).Size != 0)
                 {
-                    hRes = DoParseResources();
-                }
-                else
-                {
-                    hRes = MX_E_InvalidData;
-                }
-                if (FAILED(hRes))
-                {
-                    if ((hRes != MX_E_InvalidData && hRes != MX_E_ReadFault) ||
-                        (dwParseFlags & MX_PEPARSER_FLAG_IgnoreMalformed) == 0)
+                    PIMAGE_EXPORT_DIRECTORY lpExportDir;
+
+                    lpExportDir = (PIMAGE_EXPORT_DIRECTORY)RvaToVa(DATADIR32(IMAGE_DIRECTORY_ENTRY_EXPORT).VirtualAddress);
+                    if (lpExportDir != NULL)
                     {
-                        return hRes;
+                        hRes = DoParseExportTable(lpExportDir, DATADIR32(IMAGE_DIRECTORY_ENTRY_EXPORT).VirtualAddress,
+                                                  DATADIR32(IMAGE_DIRECTORY_ENTRY_EXPORT).VirtualAddress +
+                                                      DATADIR32(IMAGE_DIRECTORY_ENTRY_EXPORT).Size);
                     }
-                    lpResourceDir = NULL;
-                    cVersionInfo.Reset();
-                    nVersionInfoSize = 0;
+                    else
+                    {
+                        hRes = MX_E_InvalidData;
+                    }
+                    if (FAILED(hRes))
+                    {
+                        if ((hRes != MX_E_InvalidData && hRes != MX_E_ReadFault) || (dwParseFlags & MX_PEPARSER_FLAG_IgnoreMalformed) == 0)
+                        {
+                            return hRes;
+                        }
+                        sExportsInfo.dwCharacteristics = 0;
+                        sExportsInfo.wMajorVersion = 0;
+                        sExportsInfo.wMinorVersion = 0;
+                        sExportsInfo.aEntries.RemoveAllElements();
+                    }
                 }
             }
-        }
-        break;
+
+            // parse resources
+            if ((dwParseFlags & MX_PEPARSER_FLAG_ParseResources) != 0)
+            {
+                if (DATADIR32(IMAGE_DIRECTORY_ENTRY_RESOURCE).VirtualAddress != 0 && DATADIR32(IMAGE_DIRECTORY_ENTRY_RESOURCE).Size != 0)
+                {
+                    lpResourceDir = (PIMAGE_RESOURCE_DIRECTORY)RvaToVa(DATADIR32(IMAGE_DIRECTORY_ENTRY_RESOURCE).VirtualAddress);
+                    if (lpResourceDir != NULL)
+                    {
+                        hRes = DoParseResources();
+                    }
+                    else
+                    {
+                        hRes = MX_E_InvalidData;
+                    }
+                    if (FAILED(hRes))
+                    {
+                        if ((hRes != MX_E_InvalidData && hRes != MX_E_ReadFault) || (dwParseFlags & MX_PEPARSER_FLAG_IgnoreMalformed) == 0)
+                        {
+                            return hRes;
+                        }
+                        lpResourceDir = NULL;
+                        cVersionInfo.Reset();
+                        nVersionInfoSize = 0;
+                    }
+                }
+            }
+            break;
 
 #if defined(_M_X64)
-    case IMAGE_FILE_MACHINE_AMD64:
-        if (ReadRaw(&(uNtHdr.s64), lpNtHdr, sizeof(uNtHdr.s64)) == FALSE)
-        {
-            return MX_E_ReadFault;
-        }
-
-        // get original image base address
-        lpOriginalImageBaseAddress = (LPVOID)(uNtHdr.s64.OptionalHeader.ImageBase);
-
-        // get PE sections
-        nSectionsCount = (SIZE_T)(uNtHdr.s64.FileHeader.NumberOfSections);
-        if (nSectionsCount > 0)
-        {
-            cFileImgSect.Attach((PIMAGE_SECTION_HEADER)MX_MALLOC(nSectionsCount * sizeof(IMAGE_SECTION_HEADER)));
-            if (!cFileImgSect)
-            {
-                return E_OUTOFMEMORY;
-            }
-            if (ReadRaw(cFileImgSect.Get(), (PIMAGE_SECTION_HEADER)(lpNtHdr + sizeof(uNtHdr.s64)),
-                        nSectionsCount * sizeof(IMAGE_SECTION_HEADER)) == FALSE)
+        case IMAGE_FILE_MACHINE_AMD64:
+            if (ReadRaw(&(uNtHdr.s64), lpNtHdr, sizeof(uNtHdr.s64)) == FALSE)
             {
                 return MX_E_ReadFault;
             }
-        }
 
-        // parse import table
-        if ((dwParseFlags & MX_PEPARSER_FLAG_ParseImportTables) != 0)
-        {
-            if (DATADIR64(IMAGE_DIRECTORY_ENTRY_IMPORT).VirtualAddress != 0 &&
-                DATADIR64(IMAGE_DIRECTORY_ENTRY_IMPORT).Size != 0)
+            // get original image base address
+            lpOriginalImageBaseAddress = (LPVOID)(uNtHdr.s64.OptionalHeader.ImageBase);
+
+            // get PE sections
+            nSectionsCount = (SIZE_T)(uNtHdr.s64.FileHeader.NumberOfSections);
+            if (nSectionsCount > 0)
             {
-                PIMAGE_IMPORT_DESCRIPTOR lpImportDesc;
-
-                lpImportDesc =
-                    (PIMAGE_IMPORT_DESCRIPTOR)RvaToVa(DATADIR64(IMAGE_DIRECTORY_ENTRY_IMPORT).VirtualAddress);
-                if (lpImportDesc != NULL)
+                cFileImgSect.Attach((PIMAGE_SECTION_HEADER)MX_MALLOC(nSectionsCount * sizeof(IMAGE_SECTION_HEADER)));
+                if (!cFileImgSect)
                 {
-                    hRes = DoParseImportTable(lpImportDesc);
+                    return E_OUTOFMEMORY;
                 }
-                else
+                if (ReadRaw(cFileImgSect.Get(), (PIMAGE_SECTION_HEADER)(lpNtHdr + sizeof(uNtHdr.s64)),
+                            nSectionsCount * sizeof(IMAGE_SECTION_HEADER)) == FALSE)
                 {
-                    hRes = MX_E_InvalidData;
-                }
-                if (FAILED(hRes))
-                {
-                    if ((hRes != MX_E_InvalidData && hRes != MX_E_ReadFault) ||
-                        (dwParseFlags & MX_PEPARSER_FLAG_IgnoreMalformed) == 0)
-                    {
-                        return hRes;
-                    }
-                    sImportsInfo.aDllList.RemoveAllElements();
+                    return MX_E_ReadFault;
                 }
             }
-        }
 
-        // parse export table
-        if ((dwParseFlags & MX_PEPARSER_FLAG_ParseExportTable) != 0)
-        {
-            if (DATADIR64(IMAGE_DIRECTORY_ENTRY_EXPORT).VirtualAddress != 0 &&
-                DATADIR64(IMAGE_DIRECTORY_ENTRY_EXPORT).Size != 0)
+            // parse import table
+            if ((dwParseFlags & MX_PEPARSER_FLAG_ParseImportTables) != 0)
             {
-                PIMAGE_EXPORT_DIRECTORY lpExportDir;
+                if (DATADIR64(IMAGE_DIRECTORY_ENTRY_IMPORT).VirtualAddress != 0 && DATADIR64(IMAGE_DIRECTORY_ENTRY_IMPORT).Size != 0)
+                {
+                    PIMAGE_IMPORT_DESCRIPTOR lpImportDesc;
 
-                lpExportDir = (PIMAGE_EXPORT_DIRECTORY)RvaToVa(DATADIR64(IMAGE_DIRECTORY_ENTRY_EXPORT).VirtualAddress);
-                if (lpExportDir != NULL)
-                {
-                    hRes = DoParseExportTable(lpExportDir, DATADIR32(IMAGE_DIRECTORY_ENTRY_EXPORT).VirtualAddress,
-                                              DATADIR32(IMAGE_DIRECTORY_ENTRY_EXPORT).VirtualAddress +
-                                                  DATADIR32(IMAGE_DIRECTORY_ENTRY_EXPORT).Size);
-                }
-                else
-                {
-                    hRes = MX_E_InvalidData;
-                }
-                if (FAILED(hRes))
-                {
-                    if ((hRes != MX_E_InvalidData && hRes != MX_E_ReadFault) ||
-                        (dwParseFlags & MX_PEPARSER_FLAG_IgnoreMalformed) == 0)
+                    lpImportDesc = (PIMAGE_IMPORT_DESCRIPTOR)RvaToVa(DATADIR64(IMAGE_DIRECTORY_ENTRY_IMPORT).VirtualAddress);
+                    if (lpImportDesc != NULL)
                     {
-                        return hRes;
+                        hRes = DoParseImportTable(lpImportDesc);
                     }
-                    sExportsInfo.dwCharacteristics = 0;
-                    sExportsInfo.wMajorVersion = 0;
-                    sExportsInfo.wMinorVersion = 0;
-                    sExportsInfo.aEntries.RemoveAllElements();
+                    else
+                    {
+                        hRes = MX_E_InvalidData;
+                    }
+                    if (FAILED(hRes))
+                    {
+                        if ((hRes != MX_E_InvalidData && hRes != MX_E_ReadFault) || (dwParseFlags & MX_PEPARSER_FLAG_IgnoreMalformed) == 0)
+                        {
+                            return hRes;
+                        }
+                        sImportsInfo.aDllList.RemoveAllElements();
+                    }
                 }
             }
-        }
 
-        // parse resources
-        if ((dwParseFlags & MX_PEPARSER_FLAG_ParseResources) != 0)
-        {
-            if (DATADIR64(IMAGE_DIRECTORY_ENTRY_RESOURCE).VirtualAddress != 0 &&
-                DATADIR64(IMAGE_DIRECTORY_ENTRY_RESOURCE).Size != 0)
+            // parse export table
+            if ((dwParseFlags & MX_PEPARSER_FLAG_ParseExportTable) != 0)
             {
-                lpResourceDir =
-                    (PIMAGE_RESOURCE_DIRECTORY)RvaToVa(DATADIR64(IMAGE_DIRECTORY_ENTRY_RESOURCE).VirtualAddress);
-                if (lpResourceDir != NULL)
+                if (DATADIR64(IMAGE_DIRECTORY_ENTRY_EXPORT).VirtualAddress != 0 && DATADIR64(IMAGE_DIRECTORY_ENTRY_EXPORT).Size != 0)
                 {
-                    hRes = DoParseResources();
-                }
-                else
-                {
-                    hRes = MX_E_InvalidData;
-                }
-                if (FAILED(hRes))
-                {
-                    if ((hRes != MX_E_InvalidData && hRes != MX_E_ReadFault) ||
-                        (dwParseFlags & MX_PEPARSER_FLAG_IgnoreMalformed) == 0)
+                    PIMAGE_EXPORT_DIRECTORY lpExportDir;
+
+                    lpExportDir = (PIMAGE_EXPORT_DIRECTORY)RvaToVa(DATADIR64(IMAGE_DIRECTORY_ENTRY_EXPORT).VirtualAddress);
+                    if (lpExportDir != NULL)
                     {
-                        return hRes;
+                        hRes = DoParseExportTable(lpExportDir, DATADIR32(IMAGE_DIRECTORY_ENTRY_EXPORT).VirtualAddress,
+                                                  DATADIR32(IMAGE_DIRECTORY_ENTRY_EXPORT).VirtualAddress +
+                                                      DATADIR32(IMAGE_DIRECTORY_ENTRY_EXPORT).Size);
                     }
-                    lpResourceDir = NULL;
-                    cVersionInfo.Reset();
-                    nVersionInfoSize = 0;
+                    else
+                    {
+                        hRes = MX_E_InvalidData;
+                    }
+                    if (FAILED(hRes))
+                    {
+                        if ((hRes != MX_E_InvalidData && hRes != MX_E_ReadFault) || (dwParseFlags & MX_PEPARSER_FLAG_IgnoreMalformed) == 0)
+                        {
+                            return hRes;
+                        }
+                        sExportsInfo.dwCharacteristics = 0;
+                        sExportsInfo.wMajorVersion = 0;
+                        sExportsInfo.wMinorVersion = 0;
+                        sExportsInfo.aEntries.RemoveAllElements();
+                    }
                 }
             }
-        }
-        break;
+
+            // parse resources
+            if ((dwParseFlags & MX_PEPARSER_FLAG_ParseResources) != 0)
+            {
+                if (DATADIR64(IMAGE_DIRECTORY_ENTRY_RESOURCE).VirtualAddress != 0 && DATADIR64(IMAGE_DIRECTORY_ENTRY_RESOURCE).Size != 0)
+                {
+                    lpResourceDir = (PIMAGE_RESOURCE_DIRECTORY)RvaToVa(DATADIR64(IMAGE_DIRECTORY_ENTRY_RESOURCE).VirtualAddress);
+                    if (lpResourceDir != NULL)
+                    {
+                        hRes = DoParseResources();
+                    }
+                    else
+                    {
+                        hRes = MX_E_InvalidData;
+                    }
+                    if (FAILED(hRes))
+                    {
+                        if ((hRes != MX_E_InvalidData && hRes != MX_E_ReadFault) || (dwParseFlags & MX_PEPARSER_FLAG_IgnoreMalformed) == 0)
+                        {
+                            return hRes;
+                        }
+                        lpResourceDir = NULL;
+                        cVersionInfo.Reset();
+                        nVersionInfoSize = 0;
+                    }
+                }
+            }
+            break;
 #endif //_M_X64
 
-    default:
-        return MX_E_Unsupported;
+        default:
+            return MX_E_Unsupported;
     }
 
     // done
@@ -861,158 +839,158 @@ restart:
 
     switch (wMachine)
     {
-    case IMAGE_FILE_MACHINE_I386:
-        while (1)
-        {
-            if (ReadRaw(&uThunkData, lpThunk, sizeof(uThunkData.s32)) == FALSE)
+        case IMAGE_FILE_MACHINE_I386:
+            while (1)
             {
-                return MX_E_ReadFault;
-            }
-            if (uThunkData.s32.u1.AddressOfData == 0)
-            {
-                break;
-            }
-
-            if (uThunkData.s32.u1.Ordinal & IMAGE_ORDINAL_FLAG32)
-            {
-                dwOrdinal = (DWORD)IMAGE_ORDINAL32(uThunkData.s32.u1.Ordinal);
-                cStrFuncNameA.Empty();
-            }
-            else
-            {
-                dwOrdinal = 0xFFFFFFFFUL;
-
+                if (ReadRaw(&uThunkData, lpThunk, sizeof(uThunkData.s32)) == FALSE)
+                {
+                    return MX_E_ReadFault;
+                }
                 if (uThunkData.s32.u1.AddressOfData == 0)
                 {
-                    return MX_E_InvalidData;
+                    break;
                 }
-                lpNameAddress = RvaToVa((DWORD)(uThunkData.s32.u1.AddressOfData));
-                if (lpNameAddress == NULL)
+
+                if (uThunkData.s32.u1.Ordinal & IMAGE_ORDINAL_FLAG32)
                 {
-                    return MX_E_InvalidData;
+                    dwOrdinal = (DWORD)IMAGE_ORDINAL32(uThunkData.s32.u1.Ordinal);
+                    cStrFuncNameA.Empty();
                 }
-
-                lpNameAddress += 2; // skip hint
-                hRes = ReadAnsiString(cStrFuncNameA, lpNameAddress, MAX_IMPORTS_FUNCTION_NAME_LENGTH);
-                if (FAILED(hRes))
+                else
                 {
-                    return hRes;
-                }
-            }
+                    dwOrdinal = 0xFFFFFFFFUL;
 
-            lpFuncAddress = NULL;
-            if (lpFunctionThunk != NULL)
-            {
-                if (ReadRaw(&uThunkData, lpFunctionThunk, sizeof(uThunkData.s32)) == FALSE)
+                    if (uThunkData.s32.u1.AddressOfData == 0)
+                    {
+                        return MX_E_InvalidData;
+                    }
+                    lpNameAddress = RvaToVa((DWORD)(uThunkData.s32.u1.AddressOfData));
+                    if (lpNameAddress == NULL)
+                    {
+                        return MX_E_InvalidData;
+                    }
+
+                    lpNameAddress += 2; // skip hint
+                    hRes = ReadAnsiString(cStrFuncNameA, lpNameAddress, MAX_IMPORTS_FUNCTION_NAME_LENGTH);
+                    if (FAILED(hRes))
+                    {
+                        return hRes;
+                    }
+                }
+
+                lpFuncAddress = NULL;
+                if (lpFunctionThunk != NULL)
                 {
-                    return MX_E_ReadFault;
+                    if (ReadRaw(&uThunkData, lpFunctionThunk, sizeof(uThunkData.s32)) == FALSE)
+                    {
+                        return MX_E_ReadFault;
+                    }
+                    lpFuncAddress = ULongToPtr(uThunkData.s32.u1.Function);
                 }
-                lpFuncAddress = ULongToPtr(uThunkData.s32.u1.Function);
-            }
 
-            // create new entry
-            lpNewEntry = (LPIMPORTED_FUNCTION)MX_MALLOC(sizeof(IMPORTED_FUNCTION) + cStrFuncNameA.GetLength());
-            if (lpNewEntry == NULL)
-            {
-                return E_OUTOFMEMORY;
-            }
-            lpNewEntry->dwOrdinal = dwOrdinal;
-            lpNewEntry->lpAddress = lpFuncAddress;
-            ::MxMemCopy(lpNewEntry->szNameA, (LPCSTR)cStrFuncNameA, cStrFuncNameA.GetLength());
-            lpNewEntry->szNameA[cStrFuncNameA.GetLength()] = 0;
+                // create new entry
+                lpNewEntry = (LPIMPORTED_FUNCTION)MX_MALLOC(sizeof(IMPORTED_FUNCTION) + cStrFuncNameA.GetLength());
+                if (lpNewEntry == NULL)
+                {
+                    return E_OUTOFMEMORY;
+                }
+                lpNewEntry->dwOrdinal = dwOrdinal;
+                lpNewEntry->lpAddress = lpFuncAddress;
+                ::MxMemCopy(lpNewEntry->szNameA, (LPCSTR)cStrFuncNameA, cStrFuncNameA.GetLength());
+                lpNewEntry->szNameA[cStrFuncNameA.GetLength()] = 0;
 
-            // add to list
-            if (cDllEntry->aEntries.AddElement(lpNewEntry) == FALSE)
-            {
-                MX_FREE(lpNewEntry);
-                return E_OUTOFMEMORY;
-            }
+                // add to list
+                if (cDllEntry->aEntries.AddElement(lpNewEntry) == FALSE)
+                {
+                    MX_FREE(lpNewEntry);
+                    return E_OUTOFMEMORY;
+                }
 
-            // advance to next
-            lpThunk += sizeof(uThunkData.s32);
-            if (lpFunctionThunk != NULL)
-            {
-                lpFunctionThunk += sizeof(uThunkData.s32);
+                // advance to next
+                lpThunk += sizeof(uThunkData.s32);
+                if (lpFunctionThunk != NULL)
+                {
+                    lpFunctionThunk += sizeof(uThunkData.s32);
+                }
             }
-        }
-        break;
+            break;
 
 #if defined(_M_X64)
-    case IMAGE_FILE_MACHINE_AMD64:
-        while (1)
-        {
-            if (ReadRaw(&uThunkData, lpThunk, sizeof(uThunkData.s64)) == FALSE)
+        case IMAGE_FILE_MACHINE_AMD64:
+            while (1)
             {
-                return MX_E_ReadFault;
-            }
-            if (uThunkData.s64.u1.AddressOfData == 0)
-            {
-                break;
-            }
-
-            if (uThunkData.s64.u1.Ordinal & IMAGE_ORDINAL_FLAG64)
-            {
-                dwOrdinal = (DWORD)IMAGE_ORDINAL64(uThunkData.s64.u1.Ordinal);
-                cStrFuncNameA.Empty();
-            }
-            else
-            {
-                dwOrdinal = 0xFFFFFFFFUL;
-
-                if (uThunkData.s64.u1.AddressOfData == 0)
-                {
-                    return MX_E_InvalidData;
-                }
-                lpNameAddress = RvaToVa((DWORD)(uThunkData.s64.u1.AddressOfData));
-                if (lpNameAddress == NULL)
-                {
-                    return MX_E_InvalidData;
-                }
-
-                lpNameAddress += 2; // skip hint
-                hRes = ReadAnsiString(cStrFuncNameA, lpNameAddress, MAX_IMPORTS_FUNCTION_NAME_LENGTH);
-                if (FAILED(hRes))
-                {
-                    return hRes;
-                }
-            }
-
-            lpFuncAddress = NULL;
-            if (lpFunctionThunk != NULL)
-            {
-                if (ReadRaw(&uThunkData, lpFunctionThunk, sizeof(uThunkData.s64)) == FALSE)
+                if (ReadRaw(&uThunkData, lpThunk, sizeof(uThunkData.s64)) == FALSE)
                 {
                     return MX_E_ReadFault;
                 }
-                lpFuncAddress = (LPVOID)(uThunkData.s64.u1.Function);
-            }
+                if (uThunkData.s64.u1.AddressOfData == 0)
+                {
+                    break;
+                }
 
-            // create new entry
-            lpNewEntry = (LPIMPORTED_FUNCTION)MX_MALLOC(sizeof(IMPORTED_FUNCTION) + cStrFuncNameA.GetLength());
-            if (lpNewEntry == NULL)
-            {
-                return E_OUTOFMEMORY;
-            }
-            lpNewEntry->dwOrdinal = dwOrdinal;
-            lpNewEntry->lpAddress = lpFuncAddress;
-            ::MxMemCopy(lpNewEntry->szNameA, (LPCSTR)cStrFuncNameA, cStrFuncNameA.GetLength());
-            lpNewEntry->szNameA[cStrFuncNameA.GetLength()] = 0;
+                if (uThunkData.s64.u1.Ordinal & IMAGE_ORDINAL_FLAG64)
+                {
+                    dwOrdinal = (DWORD)IMAGE_ORDINAL64(uThunkData.s64.u1.Ordinal);
+                    cStrFuncNameA.Empty();
+                }
+                else
+                {
+                    dwOrdinal = 0xFFFFFFFFUL;
 
-            // add to list
-            if (cDllEntry->aEntries.AddElement(lpNewEntry) == FALSE)
-            {
-                MX_FREE(lpNewEntry);
-                return E_OUTOFMEMORY;
-            }
+                    if (uThunkData.s64.u1.AddressOfData == 0)
+                    {
+                        return MX_E_InvalidData;
+                    }
+                    lpNameAddress = RvaToVa((DWORD)(uThunkData.s64.u1.AddressOfData));
+                    if (lpNameAddress == NULL)
+                    {
+                        return MX_E_InvalidData;
+                    }
 
-            // advance to next
-            lpThunk += sizeof(uThunkData.s64);
-            if (lpFunctionThunk != NULL)
-            {
-                lpFunctionThunk += sizeof(uThunkData.s64);
+                    lpNameAddress += 2; // skip hint
+                    hRes = ReadAnsiString(cStrFuncNameA, lpNameAddress, MAX_IMPORTS_FUNCTION_NAME_LENGTH);
+                    if (FAILED(hRes))
+                    {
+                        return hRes;
+                    }
+                }
+
+                lpFuncAddress = NULL;
+                if (lpFunctionThunk != NULL)
+                {
+                    if (ReadRaw(&uThunkData, lpFunctionThunk, sizeof(uThunkData.s64)) == FALSE)
+                    {
+                        return MX_E_ReadFault;
+                    }
+                    lpFuncAddress = (LPVOID)(uThunkData.s64.u1.Function);
+                }
+
+                // create new entry
+                lpNewEntry = (LPIMPORTED_FUNCTION)MX_MALLOC(sizeof(IMPORTED_FUNCTION) + cStrFuncNameA.GetLength());
+                if (lpNewEntry == NULL)
+                {
+                    return E_OUTOFMEMORY;
+                }
+                lpNewEntry->dwOrdinal = dwOrdinal;
+                lpNewEntry->lpAddress = lpFuncAddress;
+                ::MxMemCopy(lpNewEntry->szNameA, (LPCSTR)cStrFuncNameA, cStrFuncNameA.GetLength());
+                lpNewEntry->szNameA[cStrFuncNameA.GetLength()] = 0;
+
+                // add to list
+                if (cDllEntry->aEntries.AddElement(lpNewEntry) == FALSE)
+                {
+                    MX_FREE(lpNewEntry);
+                    return E_OUTOFMEMORY;
+                }
+
+                // advance to next
+                lpThunk += sizeof(uThunkData.s64);
+                if (lpFunctionThunk != NULL)
+                {
+                    lpFunctionThunk += sizeof(uThunkData.s64);
+                }
             }
-        }
-        break;
+            break;
 #endif //_M_X64
     }
 
@@ -1027,8 +1005,7 @@ restart:
     goto restart;
 }
 
-HRESULT CPEParser::DoParseExportTable(_In_ PIMAGE_EXPORT_DIRECTORY lpExportDir, _In_ DWORD dwStartRVA,
-                                      _In_ DWORD dwEndRVA)
+HRESULT CPEParser::DoParseExportTable(_In_ PIMAGE_EXPORT_DIRECTORY lpExportDir, _In_ DWORD dwStartRVA, _In_ DWORD dwEndRVA)
 {
     IMAGE_EXPORT_DIRECTORY sExportDir;
     LPEXPORTED_FUNCTION lpNewEntry;
@@ -1166,8 +1143,7 @@ HRESULT CPEParser::DoParseExportTable(_In_ PIMAGE_EXPORT_DIRECTORY lpExportDir, 
         }
 
         // create new entry
-        lpNewEntry = (LPEXPORTED_FUNCTION)MX_MALLOC(
-            sizeof(EXPORTED_FUNCTION) + cStrFuncNameA.GetLength() +
+        lpNewEntry = (LPEXPORTED_FUNCTION)MX_MALLOC(sizeof(EXPORTED_FUNCTION) + cStrFuncNameA.GetLength() +
             ((cStrForwardsToA.IsEmpty() == FALSE) ? (cStrForwardsToA.GetLength() + 1) : 0));
         if (lpNewEntry == NULL)
         {
@@ -1205,8 +1181,7 @@ HRESULT CPEParser::DoParseResources()
     SIZE_T nDataSize;
     HRESULT hRes;
 
-    hRes = _FindResource(MAKEINTRESOURCEW(VS_VERSION_INFO), VS_FILE_INFO, MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL),
-                         &lpData, &nDataSize);
+    hRes = _FindResource(MAKEINTRESOURCEW(VS_VERSION_INFO), VS_FILE_INFO, MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL), &lpData, &nDataSize);
     if (SUCCEEDED(hRes))
     {
         if (nDataSize > 0)
@@ -1295,8 +1270,7 @@ HRESULT CPEParser::_FindResource(_In_ LPCWSTR szNameW, _In_ LPCWSTR szTypeW, _In
     }
 
     // get data entry
-    if (ReadRaw(&sResDataEntry, (LPBYTE)lpResourceDir + (SIZE_T)(sDirEntry.OffsetToData & 0x7FFFFFFF),
-                sizeof(sResDataEntry)) == FALSE)
+    if (ReadRaw(&sResDataEntry, (LPBYTE)lpResourceDir + (SIZE_T)(sDirEntry.OffsetToData & 0x7FFFFFFF), sizeof(sResDataEntry)) == FALSE)
     {
         return MX_E_ReadFault;
     }
@@ -1310,8 +1284,8 @@ HRESULT CPEParser::_FindResource(_In_ LPCWSTR szNameW, _In_ LPCWSTR szTypeW, _In
     return S_OK;
 }
 
-HRESULT CPEParser::LookupResourceEntry(_In_ PIMAGE_RESOURCE_DIRECTORY lpRootDir, _In_ PIMAGE_RESOURCE_DIRECTORY lpDir,
-                                       _In_ LPCWSTR szKeyW, _Out_ PIMAGE_RESOURCE_DIRECTORY_ENTRY *lplpDirEntry)
+HRESULT CPEParser::LookupResourceEntry(_In_ PIMAGE_RESOURCE_DIRECTORY lpRootDir, _In_ PIMAGE_RESOURCE_DIRECTORY lpDir, _In_ LPCWSTR szKeyW,
+                                       _Out_ PIMAGE_RESOURCE_DIRECTORY_ENTRY *lplpDirEntry)
 {
     IMAGE_RESOURCE_DIRECTORY sResDir;
     IMAGE_RESOURCE_DIRECTORY_ENTRY sResDirEntry, *lpEntries;

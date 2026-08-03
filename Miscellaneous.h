@@ -23,13 +23,11 @@
 #include <Defines.h>
 #include <Strings\Strings.h>
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
-namespace Misc
-{
+namespace Misc {
 
 BOOL WildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR szPatternW, _In_ SIZE_T nPatternLen);
 BOOL GitWildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR szPatternW, _In_ SIZE_T nPatternLen);

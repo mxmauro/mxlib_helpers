@@ -23,23 +23,20 @@
 #include <search.h>
 #include <ZipLib\ZipLib.h>
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
-namespace MemoryPackage
-{
+namespace MemoryPackage {
 
-namespace Internals
-{
+namespace Internals {
 
 class CFileStream : public CStream
 {
-  private:
+private:
     CFileStream();
 
-  public:
+public:
     HRESULT Read(_Out_writes_bytes_(nRead) LPVOID lpDest, _In_ SIZE_T nBytes, _Out_ SIZE_T &nRead,
                  _In_opt_ ULONGLONG nStartOffset = ULONGLONG_MAX);
     HRESULT Write(_In_reads_bytes_(nBytes) LPCVOID lpSrc, _In_ SIZE_T nBytes, _Out_ SIZE_T &nWritten,
@@ -49,7 +46,7 @@ class CFileStream : public CStream
 
     ULONGLONG GetLength() const;
 
-  private:
+private:
     friend class CMemoryPackage;
 
     struct
@@ -70,8 +67,7 @@ class CFileStream : public CStream
 
 //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
 CMemoryPackage::CMemoryPackage() : CBaseMemObj(), CNonCopyableObj()
 {
@@ -155,77 +151,77 @@ HRESULT CMemoryPackage::OpenPackage(_In_ LPCVOID lpData, _In_ SIZE_T nDataSize, 
         // process byte
         switch (nState)
         {
-        case 0:
-        case 1:
-        case 2:
-        case 3:
-            dwFileDataOffset |= (DWORD)aByteValues[nDataPos++] << (nState << 3);
-            nState++;
-            break;
+            case 0:
+            case 1:
+            case 2:
+            case 3:
+                dwFileDataOffset |= (DWORD)aByteValues[nDataPos++] << (nState << 3);
+                nState++;
+                break;
 
-        case 4:
-        case 5:
-        case 6:
-        case 7:
-            dwFileSize |= (DWORD)aByteValues[nDataPos++] << ((nState - 4) << 3);
-            nState++;
-            break;
+            case 4:
+            case 5:
+            case 6:
+            case 7:
+                dwFileSize |= (DWORD)aByteValues[nDataPos++] << ((nState - 4) << 3);
+                nState++;
+                break;
 
-        case 8:
-        case 9:
-            dwNameLength |= (DWORD)aByteValues[nDataPos++] << ((nState - 8) << 3);
-            if ((++nState) == 10)
-            {
-                if (dwFileDataOffset > nDataSize || dwNameLength == 0 || dwNameLength >= 32768)
+            case 8:
+            case 9:
+                dwNameLength |= (DWORD)aByteValues[nDataPos++] << ((nState - 8) << 3);
+                if ((++nState) == 10)
                 {
-                    hRes = MX_E_InvalidData;
-                    break;
+                    if (dwFileDataOffset > nDataSize || dwNameLength == 0 || dwNameLength >= 32768)
+                    {
+                        hRes = MX_E_InvalidData;
+                        break;
+                    }
+                    cFileItem.Attach((LPFILEITEM)MX_MALLOC(sizeof(FILEITEM) + (SIZE_T)dwNameLength * sizeof(WCHAR)));
+                    if (!cFileItem)
+                    {
+                        hRes = E_OUTOFMEMORY;
+                        break;
+                    }
+                    cFileItem->lpCompressedData = (LPBYTE)lpData + (SIZE_T)dwFileDataOffset;
+                    cFileItem->nCompressedSize = 0;
+                    cFileItem->dwUncompressedSize = dwFileSize;
+                    cFileItem->nHash = nPasswordHash;
+                    szCurrFileNameW = cFileItem->szNameW;
                 }
-                cFileItem.Attach((LPFILEITEM)MX_MALLOC(sizeof(FILEITEM) + (SIZE_T)dwNameLength * sizeof(WCHAR)));
-                if (!cFileItem)
-                {
-                    hRes = E_OUTOFMEMORY;
-                    break;
-                }
-                cFileItem->lpCompressedData = (LPBYTE)lpData + (SIZE_T)dwFileDataOffset;
-                cFileItem->nCompressedSize = 0;
-                cFileItem->dwUncompressedSize = dwFileSize;
-                cFileItem->nHash = nPasswordHash;
-                szCurrFileNameW = cFileItem->szNameW;
-            }
-            break;
+                break;
 
-        case 10:
-            *szCurrFileNameW = (WCHAR)aByteValues[nDataPos++];
-            nState++;
-            break;
+            case 10:
+                *szCurrFileNameW = (WCHAR)aByteValues[nDataPos++];
+                nState++;
+                break;
 
-        case 11:
-            *szCurrFileNameW |= (WCHAR)aByteValues[nDataPos++] << 8;
-            cFileItem->nHash = fnv_64a_buf(szCurrFileNameW, sizeof(WCHAR), cFileItem->nHash);
-            szCurrFileNameW++;
-            if ((--dwNameLength) > 0)
-            {
-                nState = 10;
-            }
-            else
-            {
-                // zero-terminate filename string
-                *szCurrFileNameW = 0;
-                // add to file list
-                if (aFileItemsList.AddElement(cFileItem.Get()) == FALSE)
+            case 11:
+                *szCurrFileNameW |= (WCHAR)aByteValues[nDataPos++] << 8;
+                cFileItem->nHash = fnv_64a_buf(szCurrFileNameW, sizeof(WCHAR), cFileItem->nHash);
+                szCurrFileNameW++;
+                if ((--dwNameLength) > 0)
                 {
-                    hRes = E_OUTOFMEMORY;
-                    break;
+                    nState = 10;
                 }
-                cFileItem.Detach();
-                // reset state
-                nState = 0;
-                dwFileDataOffset = dwFileSize = dwNameLength = 0;
-                szCurrFileNameW = NULL;
-                dwFilesCount--;
-            }
-            break;
+                else
+                {
+                    // zero-terminate filename string
+                    *szCurrFileNameW = 0;
+                    // add to file list
+                    if (aFileItemsList.AddElement(cFileItem.Get()) == FALSE)
+                    {
+                        hRes = E_OUTOFMEMORY;
+                        break;
+                    }
+                    cFileItem.Detach();
+                    // reset state
+                    nState = 0;
+                    dwFileDataOffset = dwFileSize = dwNameLength = 0;
+                    szCurrFileNameW = NULL;
+                    dwFilesCount--;
+                }
+                break;
         }
     }
 
@@ -250,8 +246,7 @@ HRESULT CMemoryPackage::OpenPackage(_In_ LPCVOID lpData, _In_ SIZE_T nDataSize, 
     {
 #pragma warning(suppress : 6387)
         qsort_s(aFileItemsList.GetBuffer(), aFileItemsList.GetCount(), sizeof(FILEITEM *),
-                reinterpret_cast<int(__cdecl *)(void *, const void *, const void *)>(&CMemoryPackage::FileItemCompare),
-                NULL);
+                reinterpret_cast<int(__cdecl *)(void *, const void *, const void *)>(&CMemoryPackage::FileItemCompare), NULL);
     }
 
     // done
@@ -317,8 +312,7 @@ HRESULT CMemoryPackage::GetStream(_In_z_ LPCWSTR szFileNameW, _Deref_out_ CStrea
     }
     // locate the item
 #pragma warning(suppress : 6387)
-    lpPtr = bsearch_s(
-        (LPCWSTR)cStrFileNameW, aFileItemsList.GetBuffer(), aFileItemsList.GetCount(), sizeof(FILEITEM *),
+    lpPtr = bsearch_s((LPCWSTR)cStrFileNameW, aFileItemsList.GetBuffer(), aFileItemsList.GetCount(), sizeof(FILEITEM *),
         reinterpret_cast<int(__cdecl *)(void *, const void *, const void *)>(&CMemoryPackage::FileItemSearch), NULL);
     if (lpPtr == NULL)
     {
@@ -357,8 +351,7 @@ HRESULT CMemoryPackage::GetFiles(_In_z_ LPCWSTR szFolderNameW, _Out_ TArrayListW
         szFolderNameW++;
     }
     nFolderNameLen = StrLenW(szFolderNameW);
-    while (nFolderNameLen > 0 &&
-           (szFolderNameW[nFolderNameLen - 1] == L'/' || szFolderNameW[nFolderNameLen - 1] == L'\\'))
+    while (nFolderNameLen > 0 && (szFolderNameW[nFolderNameLen - 1] == L'/' || szFolderNameW[nFolderNameLen - 1] == L'\\'))
     {
         nFolderNameLen--;
     }
@@ -401,8 +394,7 @@ HRESULT CMemoryPackage::GetFiles(_In_z_ LPCWSTR szFolderNameW, _Out_ TArrayListW
         {
             return E_OUTOFMEMORY;
         }
-        if (aFilesList.SortedInsert((LPCWSTR)cStrTempW, &CMemoryPackage::ListFilesInsert, NULL, TRUE,
-                                    &bAlreadyOnList) != FALSE)
+        if (aFilesList.SortedInsert((LPCWSTR)cStrTempW, &CMemoryPackage::ListFilesInsert, NULL, TRUE, &bAlreadyOnList) != FALSE)
         {
             cStrTempW.Detach();
         }
@@ -436,8 +428,7 @@ HRESULT CMemoryPackage::GetFolders(_In_z_ LPCWSTR szFolderNameW, _Out_ TArrayLis
         szFolderNameW++;
     }
     nFolderNameLen = StrLenW(szFolderNameW);
-    while (nFolderNameLen > 0 &&
-           (szFolderNameW[nFolderNameLen - 1] == L'/' || szFolderNameW[nFolderNameLen - 1] == L'\\'))
+    while (nFolderNameLen > 0 && (szFolderNameW[nFolderNameLen - 1] == L'/' || szFolderNameW[nFolderNameLen - 1] == L'\\'))
     {
         nFolderNameLen--;
     }
@@ -484,8 +475,7 @@ HRESULT CMemoryPackage::GetFolders(_In_z_ LPCWSTR szFolderNameW, _Out_ TArrayLis
         {
             return E_OUTOFMEMORY;
         }
-        if (aFoldersList.SortedInsert((LPCWSTR)cStrTempW, &CMemoryPackage::ListFilesInsert, NULL, TRUE,
-                                      &bAlreadyOnList) != FALSE)
+        if (aFoldersList.SortedInsert((LPCWSTR)cStrTempW, &CMemoryPackage::ListFilesInsert, NULL, TRUE, &bAlreadyOnList) != FALSE)
         {
             cStrTempW.Detach();
         }
@@ -615,14 +605,11 @@ restart:
 
 //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
-namespace MemoryPackage
-{
+namespace MemoryPackage {
 
-namespace Internals
-{
+namespace Internals {
 
 CFileStream::CFileStream() : MX::CStream()
 {
@@ -632,8 +619,7 @@ CFileStream::CFileStream() : MX::CStream()
     return;
 }
 
-HRESULT CFileStream::Read(_Out_writes_bytes_(nRead) LPVOID lpDest, _In_ SIZE_T nBytes, _Out_ SIZE_T &nRead,
-                          _In_opt_ ULONGLONG nStartOffset)
+HRESULT CFileStream::Read(_Out_writes_bytes_(nRead) LPVOID lpDest, _In_ SIZE_T nBytes, _Out_ SIZE_T &nRead, _In_opt_ ULONGLONG nStartOffset)
 {
     union
     {
@@ -773,43 +759,43 @@ HRESULT CFileStream::Seek(_In_ ULONGLONG nPosition, _In_opt_ eSeekMethod nMethod
 {
     switch (nMethod)
     {
-    case eSeekMethod::Start:
-        if (nPosition > nUncompressedSize)
-        {
-            nPosition = nUncompressedSize;
-        }
-        break;
-
-    case eSeekMethod::Current:
-        if ((LONGLONG)nPosition >= 0)
-        {
-            if (nPosition > nUncompressedSize - nOffset)
+        case eSeekMethod::Start:
+            if (nPosition > nUncompressedSize)
             {
-                nPosition = nUncompressedSize - nOffset;
+                nPosition = nUncompressedSize;
             }
-            nPosition += nOffset;
-        }
-        else
-        {
-            nPosition = (~nPosition) + 1;
-            if (nPosition > nOffset)
+            break;
+
+        case eSeekMethod::Current:
+            if ((LONGLONG)nPosition >= 0)
             {
-                return E_FAIL;
+                if (nPosition > nUncompressedSize - nOffset)
+                {
+                    nPosition = nUncompressedSize - nOffset;
+                }
+                nPosition += nOffset;
             }
-            nPosition = nOffset - nPosition;
-        }
-        break;
+            else
+            {
+                nPosition = (~nPosition) + 1;
+                if (nPosition > nOffset)
+                {
+                    return E_FAIL;
+                }
+                nPosition = nOffset - nPosition;
+            }
+            break;
 
-    case eSeekMethod::End:
-        if (nPosition > nUncompressedSize)
-        {
-            nPosition = nUncompressedSize;
-        }
-        nPosition = nUncompressedSize - nPosition;
-        break;
+        case eSeekMethod::End:
+            if (nPosition > nUncompressedSize)
+            {
+                nPosition = nUncompressedSize;
+            }
+            nPosition = nUncompressedSize - nPosition;
+            break;
 
-    default:
-        return E_INVALIDARG;
+        default:
+            return E_INVALIDARG;
     }
     if (nPosition > nOffset)
     {
@@ -821,7 +807,7 @@ HRESULT CFileStream::Seek(_In_ ULONGLONG nPosition, _In_opt_ eSeekMethod nMethod
         while (nOffset < nPosition)
         {
             nToRead = ((nPosition - nOffset) > (ULONGLONG)sizeof(aTempBuf)) ? sizeof(aTempBuf)
-                                                                            : (SIZE_T)(nPosition - nOffset);
+                : (SIZE_T)(nPosition - nOffset);
             hRes = Read(aTempBuf, nToRead, nRead);
             if (FAILED(hRes))
             {

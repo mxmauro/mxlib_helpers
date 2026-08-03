@@ -30,7 +30,7 @@
 
 #pragma comment(lib, "Shell32.lib")
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
 #define LOGFLAG_Initialized 0x0001
 #define LOGFLAG_LogFileOpenProcessed 0x0002
@@ -48,7 +48,7 @@ static MX::CStringW cStrLogFolderW;
 static DWORD dwLogKeepDays = 0;
 static BOOL bDebugOutput = FALSE;
 static WCHAR szTempBufW[8192];
-static WORD wLastDate[3] = {0};
+static WORD wLastDate[3] = { 0 };
 static DWORD dwProductVersionMS = 0;
 static DWORD dwProductVersionLS = 0;
 
@@ -61,21 +61,18 @@ static VOID RemoveOldFiles();
 
 static HRESULT OpenLog(_In_ LPSYSTEMTIME lpSystemTime);
 static HRESULT InitLogCommon(_Out_ LPSYSTEMTIME lpSystemTime);
-static VOID WriteLogCommon(_In_ BOOL bAddError, _In_ HRESULT hResError, _In_ LPSYSTEMTIME lpSystemTime,
-                           _In_z_ LPCWSTR szFormatW, _In_ va_list argptr);
+static VOID WriteLogCommon(_In_ BOOL bAddError, _In_ HRESULT hResError, _In_ LPSYSTEMTIME lpSystemTime, _In_z_ LPCWSTR szFormatW,
+                           _In_ va_list argptr);
 
 static BOOL GenerateLogFileName(_In_ LPSYSTEMTIME lpSystemTime, _Out_ MX::CStringW &cStrFileNameW);
 
 //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
-namespace EventLogger
-{
+namespace EventLogger {
 
-HRESULT Initialize(_In_z_ LPCWSTR szApplicationNameW, _In_z_ LPCWSTR szModuleNameW, _In_ DWORD dwKeepDays,
-                   _In_opt_ BOOL _bDebugOutput)
+HRESULT Initialize(_In_z_ LPCWSTR szApplicationNameW, _In_z_ LPCWSTR szModuleNameW, _In_ DWORD dwKeepDays, _In_opt_ BOOL _bDebugOutput)
 {
     CFastLock cLock(&nMutex);
     CFileVersionInfo cVersionInfo;
@@ -384,8 +381,7 @@ static VOID RemoveOldFiles()
     MX::CStringW cStrTempW;
 
     // scan folder
-    if (cStrTempW.CopyN((LPCWSTR)cStrLogFolderW, cStrLogFolderW.GetLength()) == FALSE ||
-        cStrTempW.ConcatN(L"*", 1) == FALSE)
+    if (cStrTempW.CopyN((LPCWSTR)cStrLogFolderW, cStrLogFolderW.GetLength()) == FALSE || cStrTempW.ConcatN(L"*", 1) == FALSE)
     {
         return;
     }
@@ -416,7 +412,7 @@ static VOID RemoveOldFiles()
 #ifdef USE_FILE_CREATION_TIMESTAMP
 
                     ullFileTime = ((ULONGLONG)(sFindDataW.ftCreationTime.dwHighDateTime) << 32) |
-                                  (ULONGLONG)(sFindDataW.ftCreationTime.dwLowDateTime);
+                        (ULONGLONG)(sFindDataW.ftCreationTime.dwLowDateTime);
 
 #else // USE_FILE_CREATION_TIMESTAMP
 
@@ -427,8 +423,7 @@ static VOID RemoveOldFiles()
 
                     for (i = 0; i < 8; i++)
                     {
-                        if (sFindDataW.cFileName[nBaseNameLen + i + 1] < L'0' ||
-                            sFindDataW.cFileName[nBaseNameLen + i + 1] > L'9')
+                        if (sFindDataW.cFileName[nBaseNameLen + i + 1] < L'0' || sFindDataW.cFileName[nBaseNameLen + i + 1] > L'9')
                         {
                             break;
                         }
@@ -438,13 +433,13 @@ static VOID RemoveOldFiles()
                         // get file date from name
                         ::MxMemSet(&sSt, 0, sizeof(sSt));
                         sSt.wYear = (WORD)(sFindDataW.cFileName[nBaseNameLen + 1] - L'0') * 1000 +
-                                    (WORD)(sFindDataW.cFileName[nBaseNameLen + 2] - L'0') * 100 +
-                                    (WORD)(sFindDataW.cFileName[nBaseNameLen + 3] - L'0') * 10 +
-                                    (WORD)(sFindDataW.cFileName[nBaseNameLen + 4] - L'0');
+                            (WORD)(sFindDataW.cFileName[nBaseNameLen + 2] - L'0') * 100 +
+                            (WORD)(sFindDataW.cFileName[nBaseNameLen + 3] - L'0') * 10 +
+                            (WORD)(sFindDataW.cFileName[nBaseNameLen + 4] - L'0');
                         sSt.wMonth = (WORD)(sFindDataW.cFileName[nBaseNameLen + 5] - L'0') * 10 +
-                                     (WORD)(sFindDataW.cFileName[nBaseNameLen + 6] - L'0');
+                            (WORD)(sFindDataW.cFileName[nBaseNameLen + 6] - L'0');
                         sSt.wDay = (WORD)(sFindDataW.cFileName[nBaseNameLen + 7] - L'0') * 10 +
-                                   (WORD)(sFindDataW.cFileName[nBaseNameLen + 8] - L'0');
+                            (WORD)(sFindDataW.cFileName[nBaseNameLen + 8] - L'0');
                         if (sSt.wDay >= 1 && sSt.wDay <= 31 && sSt.wMonth >= 1 && sSt.wMonth <= 12)
                         {
                             if (::SystemTimeToFileTime(&sSt, &sFt) != FALSE)
@@ -459,15 +454,15 @@ static VOID RemoveOldFiles()
                     // too old?
                     if (ullFileTime <= ullDueTime)
                     {
-                        if (cStrTempW.Copy((LPCWSTR)cStrLogFolderW) != FALSE &&
-                            cStrTempW.Concat(sFindDataW.cFileName) != FALSE)
+                        if (cStrTempW.Copy((LPCWSTR)cStrLogFolderW) != FALSE && cStrTempW.Concat(sFindDataW.cFileName) != FALSE)
                         {
                             MX::FileRoutines::_DeleteFile((LPCWSTR)cStrTempW);
                         }
                     }
                 }
             }
-        } while (::FindNextFileW(hFindFile, &sFindDataW) != FALSE);
+        }
+        while (::FindNextFileW(hFindFile, &sFindDataW) != FALSE);
 
         // cleanup
         ::FindClose(hFindFile);
@@ -489,8 +484,7 @@ static HRESULT OpenLog(_In_ LPSYSTEMTIME lpSystemTime)
     {
         return E_OUTOFMEMORY;
     }
-    cLogH.Attach(::CreateFileW((LPCWSTR)cStrTempW, FILE_APPEND_DATA, FILE_SHARE_READ, NULL, OPEN_ALWAYS,
-                               FILE_ATTRIBUTE_NORMAL, NULL));
+    cLogH.Attach(::CreateFileW((LPCWSTR)cStrTempW, FILE_APPEND_DATA, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL));
     if (!cLogH)
     {
         return MX_HRESULT_FROM_LASTERROR();
@@ -503,14 +497,13 @@ static HRESULT OpenLog(_In_ LPSYSTEMTIME lpSystemTime)
     }
     else
     {
-        ::WriteFile(cLogH, L"--------------------------------------------------------------------------------\r\n",
-                    82 * 2, &dwWritten, NULL);
+        ::WriteFile(cLogH, L"--------------------------------------------------------------------------------\r\n", 82 * 2, &dwWritten,
+                    NULL);
     }
 
     // write header
-    if (cStrTempW.Format(L"Log start: %04u.%02u.%02u @ %02u:%02u:%02u\r\n", lpSystemTime->wYear, lpSystemTime->wMonth,
-                         lpSystemTime->wDay, lpSystemTime->wHour, lpSystemTime->wMinute,
-                         lpSystemTime->wSecond) != FALSE)
+    if (cStrTempW.Format(L"Log start: %04u.%02u.%02u @ %02u:%02u:%02u\r\n", lpSystemTime->wYear, lpSystemTime->wMonth, lpSystemTime->wDay,
+                         lpSystemTime->wHour, lpSystemTime->wMinute, lpSystemTime->wSecond) != FALSE)
     {
         ::WriteFile(cLogH, (LPCWSTR)cStrTempW, (DWORD)(cStrTempW.GetLength() * sizeof(WCHAR)), &dwWritten, NULL);
     }
@@ -518,9 +511,9 @@ static HRESULT OpenLog(_In_ LPSYSTEMTIME lpSystemTime)
     // write file version
     if (dwProductVersionMS != 0 || dwProductVersionLS != 0)
     {
-        if (cStrTempW.Format(L"     From: %s (v%u.%u.%u.%u)\r\n", (LPCWSTR)cStrLogFileNameBaseW,
-                             (WORD)(dwProductVersionMS >> 16), (WORD)(dwProductVersionMS & 0xFFFF),
-                             (WORD)(dwProductVersionLS >> 16), (WORD)(dwProductVersionLS & 0xFFFF)) == FALSE)
+        if (cStrTempW.Format(L"     From: %s (v%u.%u.%u.%u)\r\n", (LPCWSTR)cStrLogFileNameBaseW, (WORD)(dwProductVersionMS >> 16),
+                             (WORD)(dwProductVersionMS & 0xFFFF), (WORD)(dwProductVersionLS >> 16),
+                             (WORD)(dwProductVersionLS & 0xFFFF)) == FALSE)
         {
             return E_OUTOFMEMORY;
         }
@@ -547,8 +540,7 @@ static HRESULT OpenLog(_In_ LPSYSTEMTIME lpSystemTime)
 #elif defined(_M_X64)
         dw = 64;
 #endif
-        if (cStrTempW.Insert(L"Operating system: ", 0) == FALSE ||
-            cStrTempW.AppendFormat(L" (%lu-bit)\r\n", dw) == FALSE)
+        if (cStrTempW.Insert(L"Operating system: ", 0) == FALSE || cStrTempW.AppendFormat(L" (%lu-bit)\r\n", dw) == FALSE)
         {
             return E_OUTOFMEMORY;
         }
@@ -581,29 +573,29 @@ static HRESULT OpenLog(_In_ LPSYSTEMTIME lpSystemTime)
         ULONG nRem = (ULONG)(sMemStatusEx.ullTotalPhys & 0x3FFFFFFFui64);
         sMemStatusEx.ullTotalPhys >>= 30;
         nRem = (nRem * 10) / 1073741824;
-        _snwprintf_s(szBufW, _countof(szBufW), _TRUNCATE, L"             RAM: %I64u.%lu GiB (Load: %lu%%)\r\n",
-                     sMemStatusEx.ullTotalPhys, nRem, sMemStatusEx.dwMemoryLoad);
+        _snwprintf_s(szBufW, _countof(szBufW), _TRUNCATE, L"             RAM: %I64u.%lu GiB (Load: %lu%%)\r\n", sMemStatusEx.ullTotalPhys,
+                     nRem, sMemStatusEx.dwMemoryLoad);
     }
     else if (sMemStatusEx.ullTotalPhys >= 1024ui64 * 1024ui64)
     {
         ULONG nRem = (ULONG)(sMemStatusEx.ullTotalPhys & 0xFFFFFui64);
         sMemStatusEx.ullTotalPhys >>= 20;
         nRem = (nRem * 10) / 1048576;
-        _snwprintf_s(szBufW, _countof(szBufW), _TRUNCATE, L"             RAM: %I64u.%lu MiB (Load: %lu%%)\r\n",
-                     sMemStatusEx.ullTotalPhys, nRem, sMemStatusEx.dwMemoryLoad);
+        _snwprintf_s(szBufW, _countof(szBufW), _TRUNCATE, L"             RAM: %I64u.%lu MiB (Load: %lu%%)\r\n", sMemStatusEx.ullTotalPhys,
+                     nRem, sMemStatusEx.dwMemoryLoad);
     }
     else if (sMemStatusEx.ullTotalPhys >= 1024ui64)
     {
         ULONG nRem = (ULONG)(sMemStatusEx.ullTotalPhys & 0x3FFui64);
         sMemStatusEx.ullTotalPhys >>= 10;
         nRem = (nRem * 10) / 1024;
-        _snwprintf_s(szBufW, _countof(szBufW), _TRUNCATE, L"             RAM: %I64u.%lu KiB (Load: %lu%%)\r\n",
-                     sMemStatusEx.ullTotalPhys, nRem, sMemStatusEx.dwMemoryLoad);
+        _snwprintf_s(szBufW, _countof(szBufW), _TRUNCATE, L"             RAM: %I64u.%lu KiB (Load: %lu%%)\r\n", sMemStatusEx.ullTotalPhys,
+                     nRem, sMemStatusEx.dwMemoryLoad);
     }
     else
     {
-        _snwprintf_s(szBufW, _countof(szBufW), _TRUNCATE, L"             RAM: %I64u bytes (Load: %lu%%)\r\n",
-                     sMemStatusEx.ullTotalPhys, sMemStatusEx.dwMemoryLoad);
+        _snwprintf_s(szBufW, _countof(szBufW), _TRUNCATE, L"             RAM: %I64u bytes (Load: %lu%%)\r\n", sMemStatusEx.ullTotalPhys,
+                     sMemStatusEx.dwMemoryLoad);
     }
     ::WriteFile(cLogH, szBufW, (DWORD)(MX::StrLenW(szBufW) * sizeof(WCHAR)), &dwWritten, NULL);
 
@@ -618,8 +610,7 @@ static HRESULT InitLogCommon(_Out_ LPSYSTEMTIME lpSystemTime)
     MX_ASSERT(lpSystemTime);
     ::GetSystemTime(lpSystemTime);
 
-    if ((!cLogH) || lpSystemTime->wYear != wLastDate[0] || lpSystemTime->wMonth != wLastDate[1] ||
-        lpSystemTime->wDay != wLastDate[2])
+    if ((!cLogH) || lpSystemTime->wYear != wLastDate[0] || lpSystemTime->wMonth != wLastDate[1] || lpSystemTime->wDay != wLastDate[2])
     {
         wLastDate[0] = lpSystemTime->wYear;
         wLastDate[1] = lpSystemTime->wMonth;
@@ -647,8 +638,8 @@ static HRESULT InitLogCommon(_Out_ LPSYSTEMTIME lpSystemTime)
     return S_OK;
 }
 
-static VOID WriteLogCommon(_In_ BOOL bAddError, _In_ HRESULT hResError, _In_ LPSYSTEMTIME lpSystemTime,
-                           _In_z_ LPCWSTR szFormatW, _In_ va_list argptr)
+static VOID WriteLogCommon(_In_ BOOL bAddError, _In_ HRESULT hResError, _In_ LPSYSTEMTIME lpSystemTime, _In_z_ LPCWSTR szFormatW,
+                           _In_ va_list argptr)
 {
     DWORD dwWritten;
     int count[2];
@@ -656,24 +647,21 @@ static VOID WriteLogCommon(_In_ BOOL bAddError, _In_ HRESULT hResError, _In_ LPS
 
     if (bAddError == FALSE)
     {
-        count[0] = _snwprintf_s(szTempBufW, _countof(szTempBufW), _TRUNCATE, L"#%4lu:%4lu) [%02u:%02u:%02u.%03u] ",
-                                ::GetCurrentProcessId(), ::GetCurrentThreadId(), lpSystemTime->wHour,
-                                lpSystemTime->wMinute, lpSystemTime->wSecond, lpSystemTime->wMilliseconds);
+        count[0] = _snwprintf_s(szTempBufW, _countof(szTempBufW), _TRUNCATE, L"#%4lu:%4lu) [%02u:%02u:%02u.%03u] ", ::GetCurrentProcessId(),
+                                ::GetCurrentThreadId(), lpSystemTime->wHour, lpSystemTime->wMinute, lpSystemTime->wSecond,
+                                lpSystemTime->wMilliseconds);
     }
     else
     {
-        count[0] = _snwprintf_s(szTempBufW, MX_ARRAYLEN(szTempBufW), _TRUNCATE,
-                                L"#%4lu:%4lu) [%02u:%02u:%02u.%03u] "
-                                L"Error 0x%08X: ",
-                                ::GetCurrentProcessId(), ::GetCurrentThreadId(), lpSystemTime->wHour,
+        count[0] = _snwprintf_s(szTempBufW, MX_ARRAYLEN(szTempBufW), _TRUNCATE, L"#%4lu:%4lu) [%02u:%02u:%02u.%03u] "
+                                                                                 L"Error 0x%08X: ", ::GetCurrentProcessId(), ::GetCurrentThreadId(), lpSystemTime->wHour,
                                 lpSystemTime->wMinute, lpSystemTime->wSecond, lpSystemTime->wMilliseconds, hResError);
     }
     if (count[0] < 0)
     {
         count[0] = 0;
     }
-    count[1] =
-        _vsnwprintf_s(szTempBufW + count[0], MX_ARRAYLEN(szTempBufW) - (SIZE_T)count[0], _TRUNCATE, szFormatW, argptr);
+    count[1] = _vsnwprintf_s(szTempBufW + count[0], MX_ARRAYLEN(szTempBufW) - (SIZE_T)count[0], _TRUNCATE, szFormatW, argptr);
     nTotal = (SIZE_T)count[0] + (SIZE_T)((count[1] >= 0) ? count[1] : 0);
     if (nTotal > MX_ARRAYLEN(szTempBufW) - 3)
     {
@@ -692,6 +680,6 @@ static VOID WriteLogCommon(_In_ BOOL bAddError, _In_ HRESULT hResError, _In_ LPS
 
 static BOOL GenerateLogFileName(_In_ LPSYSTEMTIME lpSystemTime, _Out_ MX::CStringW &cStrFileNameW)
 {
-    return cStrFileNameW.Format(L"%s%s-%04u%02u%02u.log", (LPCWSTR)cStrLogFolderW, (LPCWSTR)cStrLogFileNameBaseW,
-                                lpSystemTime->wYear, lpSystemTime->wMonth, lpSystemTime->wDay);
+    return cStrFileNameW.Format(L"%s%s-%04u%02u%02u.log", (LPCWSTR)cStrLogFolderW, (LPCWSTR)cStrLogFileNameBaseW, lpSystemTime->wYear,
+                                lpSystemTime->wMonth, lpSystemTime->wDay);
 }

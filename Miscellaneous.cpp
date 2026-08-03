@@ -22,17 +22,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
 static BOOL AddRepeatedChar(_Inout_ MX::CStringW &cStrW, _In_ WCHAR chW, _In_ SIZE_T nCount);
 
 //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
-namespace Misc
-{
+namespace Misc {
 
 // NOTE: Based on JODD's source code. BSD-License
 //       Copyright (c) 2003-2018, Jodd Team All rights reserved.
@@ -93,8 +91,7 @@ BOOL WildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR szPa
             // line that matches the rest of the pattern !!!
             for (t = szTextEndW; t >= szTextW; t--)
             {
-                if (WildcardMatch(t, (SIZE_T)(szTextEndW - t), szPatternW, (SIZE_T)(szPatternEndW - szPatternW)) !=
-                    FALSE)
+                if (WildcardMatch(t, (SIZE_T)(szTextEndW - t), szPatternW, (SIZE_T)(szPatternEndW - szPatternW)) != FALSE)
                 {
                     return TRUE;
                 }
@@ -183,112 +180,112 @@ BOOL GitWildcardMatch(_In_ LPCWSTR szTextW, _In_ SIZE_T nTextLen, _In_ LPCWSTR s
         {
             switch (szPatternW[nPatternOfs])
             {
-            case L'*':
-                // match anything except . after /
-                if (++nPatternOfs < nPatternLen && szPatternW[nPatternOfs] == L'*')
-                {
-                    // trailing ** match everything after /
-                    if (++nPatternOfs >= nPatternLen)
+                case L'*':
+                    // match anything except . after /
+                    if (++nPatternOfs < nPatternLen && szPatternW[nPatternOfs] == L'*')
                     {
-                        return TRUE;
+                        // trailing ** match everything after /
+                        if (++nPatternOfs >= nPatternLen)
+                        {
+                            return TRUE;
+                        }
+
+                        // ** followed by a / match zero or more directories
+                        if (szPatternW[nPatternOfs] != L'\\')
+                        {
+                            return FALSE;
+                        }
+
+                        // new **-loop, discard *-loop
+                        nText1Backup = (SIZE_T)-1;
+                        nPattern1Backup = (SIZE_T)-1;
+                        nText2Backup = nTextOfs;
+                        nPattern2Backup = nPatternOfs;
+                        if (szTextW[nTextOfs] != L'\\')
+                        {
+                            nPatternOfs++;
+                        }
+                        continue;
                     }
 
-                    // ** followed by a / match zero or more directories
-                    if (szPatternW[nPatternOfs] != L'\\')
-                    {
-                        return FALSE;
-                    }
+                    // trailing * matches everything except /
+                    nText1Backup = nTextOfs;
+                    nPattern1Backup = nPatternOfs;
+                    continue;
 
-                    // new **-loop, discard *-loop
-                    nText1Backup = (SIZE_T)-1;
-                    nPattern1Backup = (SIZE_T)-1;
-                    nText2Backup = nTextOfs;
-                    nPattern2Backup = nPatternOfs;
-                    if (szTextW[nTextOfs] != L'\\')
+                case L'?':
+                    // match any character except /
+                    if (szTextW[nTextOfs] == L'\\')
                     {
-                        nPatternOfs++;
+                        break;
+                    }
+                    nTextOfs++;
+                    nPatternOfs++;
+                    continue;
+
+                case L'[':
+                    {
+                        DWORD dwLastChr;
+                        BOOL bMatched;
+                        BOOL bReverse;
+
+                        // match any character in [...] except /
+                        if (szTextW[nTextOfs] == L'\\')
+                        {
+                            break;
+                        }
+
+                        // inverted character class
+                        bReverse = (nPatternOfs + 1 < nPatternLen) &&
+                            (szPatternW[nPatternOfs + 1] == L'^' || szPatternW[nPatternOfs + 1] == L'!');
+                        if (bReverse != FALSE)
+                        {
+                            nPatternOfs++;
+                        }
+
+                        // match character class
+                        bMatched = FALSE;
+                        for (dwLastChr = 0xFFFFFFFFUL; ++nPatternOfs < nPatternLen && szPatternW[nPatternOfs] != L']';
+                             dwLastChr = CharToUpperW(szPatternW[nPatternOfs]))
+                        {
+                            if ((dwLastChr < 0xFFFFFFFFUL && szPatternW[nPatternOfs] == L'-' && nPatternOfs + 1 < nPatternLen &&
+                                 szPatternW[nPatternOfs + 1] != L']')
+                                    ? (CharToUpperW(szTextW[nTextOfs]) <= CharToUpperW(szPatternW[++nPatternOfs]) &&
+                                       (DWORD)CharToUpperW(szTextW[nTextOfs]) >= dwLastChr)
+                                    : (CharToUpperW(szTextW[nTextOfs]) == CharToUpperW(szPatternW[nPatternOfs])))
+                            {
+                                bMatched = TRUE;
+                            }
+                        }
+                        if (bMatched == bReverse)
+                        {
+                            break;
+                        }
+                        nTextOfs++;
+                        if (nPatternOfs < nPatternLen)
+                        {
+                            nPatternOfs++;
+                        }
                     }
                     continue;
-                }
 
-                // trailing * matches everything except /
-                nText1Backup = nTextOfs;
-                nPattern1Backup = nPatternOfs;
-                continue;
+                    // case L'\\':
+                    //   // literal match \-escaped character
+                    //   if (nPatternOfs + 1 < nPatternLen)
+                    //     nPatternOfs++;
+                    //   //fall through
 
-            case L'?':
-                // match any character except /
-                if (szTextW[nTextOfs] == L'\\')
-                {
-                    break;
-                }
-                nTextOfs++;
-                nPatternOfs++;
-                continue;
-
-            case L'[':
-            {
-                DWORD dwLastChr;
-                BOOL bMatched;
-                BOOL bReverse;
-
-                // match any character in [...] except /
-                if (szTextW[nTextOfs] == L'\\')
-                {
-                    break;
-                }
-
-                // inverted character class
-                bReverse = (nPatternOfs + 1 < nPatternLen) &&
-                           (szPatternW[nPatternOfs + 1] == L'^' || szPatternW[nPatternOfs + 1] == L'!');
-                if (bReverse != FALSE)
-                {
-                    nPatternOfs++;
-                }
-
-                // match character class
-                bMatched = FALSE;
-                for (dwLastChr = 0xFFFFFFFFUL; ++nPatternOfs < nPatternLen && szPatternW[nPatternOfs] != L']';
-                     dwLastChr = CharToUpperW(szPatternW[nPatternOfs]))
-                {
-                    if ((dwLastChr < 0xFFFFFFFFUL && szPatternW[nPatternOfs] == L'-' && nPatternOfs + 1 < nPatternLen &&
-                         szPatternW[nPatternOfs + 1] != L']')
-                            ? (CharToUpperW(szTextW[nTextOfs]) <= CharToUpperW(szPatternW[++nPatternOfs]) &&
-                               (DWORD)CharToUpperW(szTextW[nTextOfs]) >= dwLastChr)
-                            : (CharToUpperW(szTextW[nTextOfs]) == CharToUpperW(szPatternW[nPatternOfs])))
+                default:
+                    // match the current non-NUL character
+                    if (CharToUpperW(szPatternW[nPatternOfs]) != CharToUpperW(szTextW[nTextOfs]) &&
+                        (!(szPatternW[nPatternOfs] == L'\\' && szTextW[nTextOfs] == L'\\')))
                     {
-                        bMatched = TRUE;
+                        break;
                     }
-                }
-                if (bMatched == bReverse)
-                {
-                    break;
-                }
-                nTextOfs++;
-                if (nPatternOfs < nPatternLen)
-                {
+                    // do not match a . with *, ? [] after /
+                    nTextOfs++;
                     nPatternOfs++;
-                }
-            }
-                continue;
-
-                // case L'\\':
-                //   // literal match \-escaped character
-                //   if (nPatternOfs + 1 < nPatternLen)
-                //     nPatternOfs++;
-                //   //fall through
-
-            default:
-                // match the current non-NUL character
-                if (CharToUpperW(szPatternW[nPatternOfs]) != CharToUpperW(szTextW[nTextOfs]) &&
-                    (!(szPatternW[nPatternOfs] == L'\\' && szTextW[nTextOfs] == L'\\')))
-                {
-                    break;
-                }
-                // do not match a . with *, ? [] after /
-                nTextOfs++;
-                nPatternOfs++;
-                continue;
+                    continue;
             }
         }
         if (nPattern1Backup != (SIZE_T)-1 && szTextW[nText1Backup] != L'\\')
@@ -327,7 +324,7 @@ BOOL String2Guid(_Out_ GUID &sGuid, _In_ LPCSTR szGuidA, _In_ SIZE_T nGuidLength
 
     if ((nGuidLength != 36 && nGuidLength != 38) || szGuidA == NULL)
     {
-    err_badformat:
+err_badformat:
         ::MxMemSet(&sGuid, 0, sizeof(sGuid));
         return FALSE;
     }
@@ -345,87 +342,89 @@ BOOL String2Guid(_Out_ GUID &sGuid, _In_ LPCSTR szGuidA, _In_ SIZE_T nGuidLength
     {
         switch (i)
         {
-        case 8:
-        case 13:
-        case 18:
-        case 23:
-            if (*szGuidA != '-')
-            {
-                goto err_badformat;
-            }
-            break;
+            case 8:
+            case 13:
+            case 18:
+            case 23:
+                if (*szGuidA != '-')
+                {
+                    goto err_badformat;
+                }
+                break;
 
-        case 14: // 1-5
-            if ((*szGuidA) < '1' || (*szGuidA) > '5')
-            {
-                goto err_badformat;
-            }
-            dwVal = (DWORD)(*szGuidA - '0');
-            goto set_value;
+            case 14:
+                // 1-5
+                if ((*szGuidA) < '1' || (*szGuidA) > '5')
+                {
+                    goto err_badformat;
+                }
+                dwVal = (DWORD)(*szGuidA - '0');
+                goto set_value;
 
-        case 19: // 8-A
-            if ((*szGuidA) >= '8' && (*szGuidA) <= '9')
-            {
-                dwVal = (DWORD)((*szGuidA) - '0');
-            }
-            else if ((*szGuidA) >= 'A' && (*szGuidA) <= 'B')
-            {
-                dwVal = (DWORD)((*szGuidA) - 'A') + 10;
-            }
-            else if ((*szGuidA) >= 'a' && (*szGuidA) <= 'b')
-            {
-                dwVal = (DWORD)((*szGuidA) - 'a') + 10;
-            }
-            else
-            {
-                goto err_badformat;
-            }
-            goto set_value;
+            case 19:
+                // 8-A
+                if ((*szGuidA) >= '8' && (*szGuidA) <= '9')
+                {
+                    dwVal = (DWORD)((*szGuidA) - '0');
+                }
+                else if ((*szGuidA) >= 'A' && (*szGuidA) <= 'B')
+                {
+                    dwVal = (DWORD)((*szGuidA) - 'A') + 10;
+                }
+                else if ((*szGuidA) >= 'a' && (*szGuidA) <= 'b')
+                {
+                    dwVal = (DWORD)((*szGuidA) - 'a') + 10;
+                }
+                else
+                {
+                    goto err_badformat;
+                }
+                goto set_value;
 
-        default:
-            if ((*szGuidA) >= '0' && (*szGuidA) <= '9')
-            {
-                dwVal = (DWORD)((*szGuidA) - '0');
-            }
-            else if ((*szGuidA) >= 'A' && (*szGuidA) <= 'F')
-            {
-                dwVal = (DWORD)((*szGuidA) - 'A') + 10;
-            }
-            else if ((*szGuidA) >= 'a' && (*szGuidA) <= 'f')
-            {
-                dwVal = (DWORD)((*szGuidA) - 'a') + 10;
-            }
-            else
-            {
-                goto err_badformat;
-            }
+            default:
+                if ((*szGuidA) >= '0' && (*szGuidA) <= '9')
+                {
+                    dwVal = (DWORD)((*szGuidA) - '0');
+                }
+                else if ((*szGuidA) >= 'A' && (*szGuidA) <= 'F')
+                {
+                    dwVal = (DWORD)((*szGuidA) - 'A') + 10;
+                }
+                else if ((*szGuidA) >= 'a' && (*szGuidA) <= 'f')
+                {
+                    dwVal = (DWORD)((*szGuidA) - 'a') + 10;
+                }
+                else
+                {
+                    goto err_badformat;
+                }
 
-        set_value:
-            if (i < 8)
-            {
-                sGuid.Data1 |= dwVal << ((7 - i) << 2);
-            }
-            else if (i < 13)
-            {
-                sGuid.Data2 |= (USHORT)dwVal << ((12 - i) << 2);
-            }
-            else if (i < 18)
-            {
-                sGuid.Data3 |= (USHORT)dwVal << ((17 - i) << 2);
-            }
-            else if (i < 21)
-            {
-                sGuid.Data4[0] |= (BYTE)dwVal << ((20 - i) << 2);
-            }
-            else if (i < 23)
-            {
-                sGuid.Data4[1] |= (BYTE)dwVal << ((22 - i) << 2);
-            }
-            else
-            {
-                sGuid.Data4[2 + ((i - 24) >> 1)] |= (BYTE)dwVal << ((1 - (i & 1)) << 2);
-            }
-            break;
+set_value:
+                if (i < 8)
+                {
+                    sGuid.Data1 |= dwVal << ((7 - i) << 2);
+                }
+                else if (i < 13)
+                {
+                    sGuid.Data2 |= (USHORT)dwVal << ((12 - i) << 2);
+                }
+                else if (i < 18)
+                {
+                    sGuid.Data3 |= (USHORT)dwVal << ((17 - i) << 2);
+                }
+                else if (i < 21)
+                {
+                    sGuid.Data4[0] |= (BYTE)dwVal << ((20 - i) << 2);
+                }
+                else if (i < 23)
+                {
+                    sGuid.Data4[1] |= (BYTE)dwVal << ((22 - i) << 2);
+                }
+                else
+                {
+                    sGuid.Data4[2 + ((i - 24) >> 1)] |= (BYTE)dwVal << ((1 - (i & 1)) << 2);
+                }
+                break;
         }
     }
 
@@ -446,7 +445,7 @@ BOOL String2Guid(_Out_ GUID &sGuid, _In_ LPCWSTR szGuidW, _In_ SIZE_T nGuidLengt
 
     if ((nGuidLength != 36 && nGuidLength != 38) || szGuidW == NULL)
     {
-    err_badformat:
+err_badformat:
         ::MxMemSet(&sGuid, 0, sizeof(sGuid));
         return FALSE;
     }
@@ -502,8 +501,7 @@ HRESULT ExecuteApp(_In_z_ LPCWSTR szCmdLineW, _In_ DWORD dwAfterSeconds)
             ::MxMemSet(&sSiW, 0, sizeof(sSiW));
             sSiW.cb = (DWORD)sizeof(sSiW);
             ::MxMemSet(&sPi, 0, sizeof(sPi));
-            if (::CreateProcessW(NULL, (LPWSTR)cStrTempW, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &sSiW,
-                                 &sPi) != FALSE)
+            if (::CreateProcessW(NULL, (LPWSTR)cStrTempW, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &sSiW, &sPi) != FALSE)
             {
                 ::CloseHandle(sPi.hThread);
                 ::CloseHandle(sPi.hProcess);
@@ -732,8 +730,8 @@ HRESULT SelfDeleteApp(_In_ DWORD dwAfterSeconds)
     }
     cStrBatchFileNameW.Refresh();
 
-    hFile = ::CreateFileW((LPCWSTR)cStrBatchFileNameW, GENERIC_WRITE, FILE_SHARE_READ, NULL, TRUNCATE_EXISTING,
-                          FILE_ATTRIBUTE_TEMPORARY, NULL);
+    hFile = ::CreateFileW((LPCWSTR)cStrBatchFileNameW, GENERIC_WRITE, FILE_SHARE_READ, NULL, TRUNCATE_EXISTING, FILE_ATTRIBUTE_TEMPORARY,
+                          NULL);
     if (hFile == NULL || hFile == INVALID_HANDLE_VALUE)
     {
         hRes = MX_HRESULT_FROM_LASTERROR();
@@ -742,8 +740,7 @@ HRESULT SelfDeleteApp(_In_ DWORD dwAfterSeconds)
     }
 
     nScriptLen = _snprintf_s(szScriptA, _countof(szScriptA), _TRUNCATE,
-                             "@ECHO OFF\r\nPING 127.0.0.1 -n %lu >NUL\r\nDEL /F /Q \"%%~1\"\r\nDEL /F /Q \"%%~f0\"\r\n",
-                             dwAfterSeconds);
+                             "@ECHO OFF\r\nPING 127.0.0.1 -n %lu >NUL\r\nDEL /F /Q \"%%~1\"\r\nDEL /F /Q \"%%~f0\"\r\n", dwAfterSeconds);
     if (nScriptLen <= 0 || ::WriteFile(hFile, szScriptA, (DWORD)nScriptLen, &dwWritten, NULL) == FALSE ||
         dwWritten != (DWORD)nScriptLen)
     {
@@ -754,8 +751,7 @@ HRESULT SelfDeleteApp(_In_ DWORD dwAfterSeconds)
     }
     ::CloseHandle(hFile);
 
-    hRes = ExecuteApp(FALSE, TRUE, (LPCWSTR)cStrCmdExeW, 5, L"/D", L"/V:OFF", L"/C", (LPCWSTR)cStrBatchFileNameW,
-                      (LPCWSTR)cStrAppNameW);
+    hRes = ExecuteApp(FALSE, TRUE, (LPCWSTR)cStrCmdExeW, 5, L"/D", L"/V:OFF", L"/C", (LPCWSTR)cStrBatchFileNameW, (LPCWSTR)cStrAppNameW);
     if (FAILED(hRes))
     {
         ::DeleteFileW((LPCWSTR)cStrBatchFileNameW);

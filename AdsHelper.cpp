@@ -28,10 +28,9 @@
 
 #pragma warning(disable : 28159)
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
 CAdsHelper::CAdsHelper() : CBaseMemObj(), CNonCopyableObj()
 {
@@ -63,8 +62,7 @@ CAdsHelper::~CAdsHelper()
     return;
 }
 
-HRESULT CAdsHelper::Initialize(_In_opt_z_ LPCWSTR szServerAddressW, _In_opt_z_ LPCWSTR szUsernameW,
-                               _In_opt_z_ LPCWSTR szPasswordW)
+HRESULT CAdsHelper::Initialize(_In_opt_z_ LPCWSTR szServerAddressW, _In_opt_z_ LPCWSTR szUsernameW, _In_opt_z_ LPCWSTR szPasswordW)
 {
     if (hResComInit != S_FALSE)
     {
@@ -110,7 +108,7 @@ HRESULT CAdsHelper::Initialize(_In_opt_z_ LPCWSTR szServerAddressW, _In_opt_z_ L
 }
 
 // HRESULT IsUserInGroup(_In_ LPCWSTR szGroupW, _In_ LPCWSTR szUserW, _In_ BOOL bCheckNestedGroups)
-//{
+// {
 //   /*
 //   HRESULT            hr = S_OK;
 //   VARIANT_BOOL        bIsMember;
@@ -150,55 +148,55 @@ HRESULT CAdsHelper::Initialize(_In_opt_z_ LPCWSTR szServerAddressW, _In_opt_z_ L
 //   /*
 //   // Check nested groups
 //   hr = getObjectsInGroup(szGroupW, aGroupsList, L"group");
-//   if ( FAILED( hr ) )
+//   if (FAILED(hr ) )
 //   {
-//     fn_return( NOTHING );
+//     fn_return(NOTHING );
 //   }
 //
-//   for( i = 0; i < groupsToCheck.size(); i++ )
+//   for(i = 0; i < groupsToCheck.size(); i++ )
 //   {
-//     hr = isUserInGroup( groupsToCheck[i], user, false );
-//     if ( hr == S_OK )
+//     hr = isUserInGroup(groupsToCheck[i], user, false );
+//     if (hr == S_OK )
 //     {
 //       isMember = true;
-//       fn_return( NOTHING );
+//       fn_return(NOTHING );
 //     }
-//     if ( FAILED( hr ) )
+//     if (FAILED(hr ) )
 //     {
-//       fn_return( NOTHING );
+//       fn_return(NOTHING );
 //     }
 //
-//     hr = getObjectsInGroup( groupsToCheck[i], groups, L"group" );
-//     if ( FAILED( hr ) )
+//     hr = getObjectsInGroup(groupsToCheck[i], groups, L"group" );
+//     if (FAILED(hr ) )
 //     {
-//       fn_return( NOTHING );
+//       fn_return(NOTHING );
 //     }
 //
 //     try
 //     {
-//       for( auto gName : groups )
+//       for(auto gName : groups )
 //       {
-//         if ( std::find( groupsToCheck.begin(), groupsToCheck.end(), gName ) == groupsToCheck.end() )
+//         if (std::find(groupsToCheck.begin(), groupsToCheck.end(), gName ) == groupsToCheck.end() )
 //           {
-//         groupsToCheck.push_back( gName );
+//         groupsToCheck.push_back(gName );
 //         }
 //       }
 //     }
-//     catch ( std::bad_alloc& )
+//     catch (std::bad_alloc& )
 //     {
-//       fn_return( hr = E_OUTOFMEMORY );
+//       fn_return(hr = E_OUTOFMEMORY );
 //     }
 //     groups.clear();
 //   }
 //
 // fn_exit:
 //
-//   if ( pGroup )
+//   if (pGroup )
 //   {
 //     pGroup->Release();
 //   }
 //
-//   if ( SUCCEEDED( hr ) && isMember == false )
+//   if (SUCCEEDED(hr ) && isMember == false )
 //   {
 //     return S_FALSE;
 //   }
@@ -221,7 +219,7 @@ VOID CAdsHelper::SetQueryTimeoutMs(_In_ DWORD dwTimeoutMs)
 HRESULT CAdsHelper::GetAllUsers(_Inout_ TArrayListWithFree<LPWSTR> &aUsersList)
 {
     static const LPCWSTR szSearchFilterW = L"(samAccountType=805306368)";
-    static const LPCWSTR szAttribW[] = {L"distinguishedName", L"sAMAccountName", L"objectSid"};
+    static const LPCWSTR szAttribW[] = { L"distinguishedName", L"sAMAccountName", L"objectSid" };
     TAutoRefCounted<IDirectorySearch> cDirSearch;
     ADS_SEARCH_HANDLE hSearch = INVALID_HANDLE_VALUE;
     CStringW cStrTempW, cStrDomainW;
@@ -303,8 +301,7 @@ HRESULT CAdsHelper::GetAllUsers(_Inout_ TArrayListWithFree<LPWSTR> &aUsersList)
                                 hRes = cSid.GetStringSid(cStrTempW);
                                 if (SUCCEEDED(hRes))
                                 {
-                                    if (cStrTempW.InsertN((cSid.IsAnyWellKnownSid() != FALSE) ? L"+" : L"-", 0, 1) ==
-                                        FALSE)
+                                    if (cStrTempW.InsertN((cSid.IsAnyWellKnownSid() != FALSE) ? L"+" : L"-", 0, 1) == FALSE)
                                     {
                                         hRes = E_OUTOFMEMORY;
                                     }
@@ -386,7 +383,7 @@ HRESULT CAdsHelper::GetAllUsers(_Inout_ TArrayListWithFree<LPWSTR> &aUsersList)
 HRESULT CAdsHelper::GetAllGroups(_Inout_ TArrayListWithFree<LPWSTR> &aGroupsList)
 {
     static const LPCWSTR szSearchFilterW = L"(objectClass=group)";
-    static const LPCWSTR szAttribW[] = {L"distinguishedName", L"sAMAccountName", L"objectSid"};
+    static const LPCWSTR szAttribW[] = { L"distinguishedName", L"sAMAccountName", L"objectSid" };
     TAutoRefCounted<IDirectorySearch> cDirSearch;
     ADS_SEARCH_HANDLE hSearch = INVALID_HANDLE_VALUE;
     CStringW cStrTempW, cStrDomainW;
@@ -468,8 +465,7 @@ HRESULT CAdsHelper::GetAllGroups(_Inout_ TArrayListWithFree<LPWSTR> &aGroupsList
                                 hRes = cSid.GetStringSid(cStrTempW);
                                 if (SUCCEEDED(hRes))
                                 {
-                                    if (cStrTempW.InsertN((cSid.IsAnyWellKnownSid() != FALSE) ? L"+" : L"-", 0, 1) ==
-                                        FALSE)
+                                    if (cStrTempW.InsertN((cSid.IsAnyWellKnownSid() != FALSE) ? L"+" : L"-", 0, 1) == FALSE)
                                     {
                                         hRes = E_OUTOFMEMORY;
                                     }
@@ -551,7 +547,7 @@ HRESULT CAdsHelper::GetAllGroups(_Inout_ TArrayListWithFree<LPWSTR> &aGroupsList
 HRESULT CAdsHelper::GetAllComputers(_Inout_ TArrayListWithFree<LPWSTR> &aComputersList)
 {
     static const LPCWSTR szSearchFilterW = L"(objectClass=computer)";
-    static const LPCWSTR szAttribW[] = {L"distinguishedName", L"sAMAccountName", L"objectSid"};
+    static const LPCWSTR szAttribW[] = { L"distinguishedName", L"sAMAccountName", L"objectSid" };
     TAutoRefCounted<IDirectorySearch> cDirSearch;
     ADS_SEARCH_HANDLE hSearch = INVALID_HANDLE_VALUE;
     CStringW cStrTempW, cStrDomainW;
@@ -707,7 +703,7 @@ HRESULT CAdsHelper::GetAllComputers(_Inout_ TArrayListWithFree<LPWSTR> &aCompute
 
 HRESULT CAdsHelper::GetComputerSids(_Out_ CSid **lplpComputerSid, _Inout_ TArrayListWithDelete<CSid *> &aGroupSids)
 {
-    static const LPCWSTR szAttributeW[] = {L"tokenGroups", L"objectSid"};
+    static const LPCWSTR szAttributeW[] = { L"tokenGroups", L"objectSid" };
     CWindowsRegistry cWinReg;
     TAutoDeletePtr<CSid> cComputerSid;
     TAutoRefCounted<IADs> cAdsComputer;
@@ -730,10 +726,8 @@ HRESULT CAdsHelper::GetComputerSids(_Out_ CSid **lplpComputerSid, _Inout_ TArray
 
     ::VariantInit(&vt);
 
-    hRes = cWinReg.Open(HKEY_LOCAL_MACHINE,
-                        L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\"
-                        L"Group Policy\\State\\Machine",
-                        FALSE);
+    hRes = cWinReg.Open(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\"
+                                             L"Group Policy\\State\\Machine", FALSE);
     if (SUCCEEDED(hRes))
     {
         hRes = cWinReg.ReadString(L"Distinguished-Name", cStrTempW);
@@ -898,12 +892,11 @@ HRESULT CAdsHelper::GetComputerSids(_Out_ CSid **lplpComputerSid, _Inout_ TArray
     return hRes;
 }
 
-HRESULT CAdsHelper::EnumerateContainerFolders(_In_z_ LPCWSTR szParentW,
-                                              _Inout_ TArrayListWithFree<LPWSTR> &aChildrenList)
+HRESULT CAdsHelper::EnumerateContainerFolders(_In_z_ LPCWSTR szParentW, _Inout_ TArrayListWithFree<LPWSTR> &aChildrenList)
 {
     static const LPCWSTR szSearchFilterW = L"(|(objectCategory=organizationalUnit)(objectCategory=container)"
-                                           L"(objectCategory=group))";
-    static const LPCWSTR szAttribW[] = {L"distinguishedName", L"cn", L"ou"};
+        L"(objectCategory=group))";
+    static const LPCWSTR szAttribW[] = { L"distinguishedName", L"cn", L"ou" };
     TAutoRefCounted<IDirectorySearch> cDirSearch;
     ADS_SEARCH_HANDLE hSearch = INVALID_HANDLE_VALUE;
     CStringW cStrTempW;
@@ -996,8 +989,7 @@ HRESULT CAdsHelper::EnumerateContainerFolders(_In_z_ LPCWSTR szParentW,
                         sColumns[0].pADsValues[0].DNString[0] != 0 && sColumns[1].pADsValues[0].DNString[0] != 0)
                     {
                         // distinguished name
-                        if (cStrTempW.Copy(sColumns[0].pADsValues[0].DNString) == FALSE ||
-                            EscapeSlashes(cStrTempW) == FALSE)
+                        if (cStrTempW.Copy(sColumns[0].pADsValues[0].DNString) == FALSE || EscapeSlashes(cStrTempW) == FALSE)
                         {
                             hRes = E_OUTOFMEMORY;
                         }
@@ -1011,8 +1003,7 @@ HRESULT CAdsHelper::EnumerateContainerFolders(_In_z_ LPCWSTR szParentW,
                                 nLen--;
                             }
 
-                            if (cStrTempW.ConcatN(L"/", 1) == FALSE ||
-                                cStrTempW.ConcatN(sColumns[1].pADsValues[0].DNString, nLen) == FALSE)
+                            if (cStrTempW.ConcatN(L"/", 1) == FALSE || cStrTempW.ConcatN(sColumns[1].pADsValues[0].DNString, nLen) == FALSE)
                             {
                                 hRes = E_OUTOFMEMORY;
                             }
@@ -1059,8 +1050,8 @@ HRESULT CAdsHelper::EnumerateContainerFolders(_In_z_ LPCWSTR szParentW,
 
 HRESULT CAdsHelper::GetContainerMembers(_In_z_ LPCWSTR szParentW, _Inout_ TArrayListWithFree<LPWSTR> &aMembersList)
 {
-    static const LPCWSTR szTypeW[] = {L"user", L"group", L"computer"};
-    static const LPCWSTR szAttribW[] = {L"distinguishedName", L"objectSid", L"objectClass"};
+    static const LPCWSTR szTypeW[] = { L"user", L"group", L"computer" };
+    static const LPCWSTR szAttribW[] = { L"distinguishedName", L"objectSid", L"objectClass" };
     TArrayListWithFree<LPWSTR> aGroupsList;
     TAutoRefCounted<IDirectorySearch> cDirSearch;
     ADS_SEARCH_HANDLE hSearch = INVALID_HANDLE_VALUE;
@@ -1109,7 +1100,7 @@ HRESULT CAdsHelper::GetContainerMembers(_In_z_ LPCWSTR szParentW, _Inout_ TArray
     {
         // query first for container's groups
         static const LPCWSTR szSearchFilterW_2 = L"(objectClass=group)";
-        static const LPCWSTR szAttribW_2[] = {L"distinguishedName"};
+        static const LPCWSTR szAttribW_2[] = { L"distinguishedName" };
 
         hRes = GetUrlFromDn(cStrTempW);
         if (SUCCEEDED(hRes))
@@ -1132,8 +1123,7 @@ HRESULT CAdsHelper::GetContainerMembers(_In_z_ LPCWSTR szParentW, _Inout_ TArray
 
         if (SUCCEEDED(hRes))
         {
-            hRes = cDirSearch->ExecuteSearch((LPWSTR)szSearchFilterW_2, (LPWSTR *)szAttribW, _countof(szAttribW),
-                                             &hSearch);
+            hRes = cDirSearch->ExecuteSearch((LPWSTR)szSearchFilterW_2, (LPWSTR *)szAttribW, _countof(szAttribW), &hSearch);
         }
 
         if (SUCCEEDED(hRes))
@@ -1223,10 +1213,8 @@ HRESULT CAdsHelper::GetContainerMembers(_In_z_ LPCWSTR szParentW, _Inout_ TArray
 
         if (SUCCEEDED(hRes))
         {
-            if (cStrTempW.Format(
-                    L"(&(memberOf:1.2.840.113556.1.4.1941:=%s)(|(&(objectClass=user)(objectCategory=person))"
-                    L"(objectClass=group)(objectClass=computer)))",
-                    aGroupsList.GetElementAt(i)) == FALSE)
+            if (cStrTempW.Format(L"(&(memberOf:1.2.840.113556.1.4.1941:=%s)(|(&(objectClass=user)(objectCategory=person))"
+                                 L"(objectClass=group)(objectClass=computer)))", aGroupsList.GetElementAt(i)) == FALSE)
             {
                 hRes = E_OUTOFMEMORY;
             }
@@ -1271,8 +1259,7 @@ HRESULT CAdsHelper::GetContainerMembers(_In_z_ LPCWSTR szParentW, _Inout_ TArray
                         {
                             if (sColumns[0].dwNumValues > 0 && sColumns[1].dwNumValues > 0 &&
                                 sColumns[2].dwNumValues > 0 && sColumns[0].pADsValues[0].DNString != NULL &&
-                                sColumns[1].pADsValues[0].OctetString.lpValue != NULL &&
-                                sColumns[0].pADsValues[0].DNString[0] != 0 &&
+                                sColumns[1].pADsValues[0].OctetString.lpValue != NULL && sColumns[0].pADsValues[0].DNString[0] != 0 &&
                                 sColumns[1].pADsValues[0].OctetString.dwLength > 0)
                             {
                                 // type
@@ -1319,10 +1306,8 @@ HRESULT CAdsHelper::GetContainerMembers(_In_z_ LPCWSTR szParentW, _Inout_ TArray
                                     // build and add complete name
                                     if (SUCCEEDED(hRes))
                                     {
-                                        if (cStrTempW.InsertN(L"/", 0, 1) != FALSE &&
-                                            cStrTempW.Insert((LPCWSTR)cStrSidW, 0) != FALSE &&
-                                            cStrTempW.InsertN(L"/", 0, 1) != FALSE &&
-                                            cStrTempW.Insert(szTypeW[dwType - 1], 0) != FALSE)
+                                        if (cStrTempW.InsertN(L"/", 0, 1) != FALSE && cStrTempW.Insert((LPCWSTR)cStrSidW, 0) != FALSE &&
+                                            cStrTempW.InsertN(L"/", 0, 1) != FALSE && cStrTempW.Insert(szTypeW[dwType - 1], 0) != FALSE)
                                         {
                                             if (aMembersList.AddElement((LPWSTR)cStrTempW) != FALSE)
                                             {
@@ -1461,8 +1446,7 @@ HRESULT CAdsHelper::GetDomainFromDn(_In_z_ LPCWSTR szDistinguishedNameW, _Inout_
         return E_INVALIDARG;
     }
 
-    hRes = ::CoCreateInstance(__uuidof(Pathname), NULL, CLSCTX_INPROC_SERVER, __uuidof(IADsPathname),
-                              (LPVOID *)&cADsPathname);
+    hRes = ::CoCreateInstance(__uuidof(Pathname), NULL, CLSCTX_INPROC_SERVER, __uuidof(IADsPathname), (LPVOID *)&cADsPathname);
     if (SUCCEEDED(hRes))
     {
         bstrTemp = ::SysAllocString(szDistinguishedNameW);

@@ -24,17 +24,16 @@
 #include <Windows.h>
 #include <RefCounted.h>
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
 class CSimpleCache : public virtual CBaseMemObj, public CNonCopyableObj
 {
-  public:
+public:
     class CValue : public TRefCounted<CBaseMemObj>, public CNonCopyableObj
     {
-      private:
+    private:
         CValue(_In_ LPCVOID _lpData, _In_ SIZE_T _nDataSize, _In_ DWORD _dwExpireTimeMs, _In_ DWORD _dwId)
             : TRefCounted<CBaseMemObj>(), CNonCopyableObj()
         {
@@ -56,7 +55,7 @@ class CSimpleCache : public virtual CBaseMemObj, public CNonCopyableObj
             return;
         };
 
-      public:
+    public:
         ~CValue()
         {
             MX_FREE(lpData);
@@ -73,7 +72,7 @@ class CSimpleCache : public virtual CBaseMemObj, public CNonCopyableObj
             return nDataSize;
         };
 
-      private:
+    private:
         friend class CSimpleCache;
 
         LPVOID lpData;
@@ -82,7 +81,7 @@ class CSimpleCache : public virtual CBaseMemObj, public CNonCopyableObj
         DWORD dwId;
     };
 
-  public:
+public:
     CSimpleCache()
     {
         SlimRWL_Initialize(&sRwMutex);
@@ -147,8 +146,7 @@ class CSimpleCache : public virtual CBaseMemObj, public CNonCopyableObj
         }
 
         // create new item
-        cNewValue.Attach(
-            MX_DEBUG_NEW CValue(lpValue, nValueSize, dwExpireTimeMs, (DWORD)_InterlockedIncrement(&nNextId)));
+        cNewValue.Attach(MX_DEBUG_NEW CValue(lpValue, nValueSize, dwExpireTimeMs, (DWORD)_InterlockedIncrement(&nNextId)));
         if ((!cNewValue) || (nValueSize > 0 && cNewValue->lpData == NULL))
         {
             return E_OUTOFMEMORY;
@@ -180,7 +178,7 @@ class CSimpleCache : public virtual CBaseMemObj, public CNonCopyableObj
         return (cValueToDelete) ? S_OK : MX_E_NotFound;
     };
 
-  private:
+private:
     RWLOCK sRwMutex;
     TAutoRefCounted<CValue> cStoredValue;
     LONG volatile nNextId;

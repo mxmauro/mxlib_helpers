@@ -25,14 +25,13 @@
 #include <AutoPtr.h>
 #include <ArrayList.h>
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
 class CMemoryPackage : public virtual CBaseMemObj, public CNonCopyableObj
 {
-  public:
+public:
     CMemoryPackage();
     ~CMemoryPackage();
 
@@ -44,7 +43,7 @@ class CMemoryPackage : public virtual CBaseMemObj, public CNonCopyableObj
     HRESULT GetFiles(_In_z_ LPCWSTR szFolderNameW, _Out_ TArrayListWithFree<LPCWSTR> &aFilesList);
     HRESULT GetFolders(_In_z_ LPCWSTR szFolderNameW, _Out_ TArrayListWithFree<LPCWSTR> &aFoldersList);
 
-  private:
+private:
     typedef struct
     {
         union
@@ -65,7 +64,7 @@ class CMemoryPackage : public virtual CBaseMemObj, public CNonCopyableObj
 
     static int FileSpecCompare(_In_ LPCWSTR *lpszStrW_1, _In_ LPCWSTR *lpszStrW_2, _In_ SIZE_T nLen);
 
-  private:
+private:
     TArrayListWithFree<LPFILEITEM, 256> aFileItemsList;
 };
 

@@ -11,6 +11,7 @@
 - Check `git status --short` before editing and preserve already-dirty files.
 - Make the smallest behavior-preserving change. Do not mix bug fixes, dependency upgrades, or identifier renames into formatting work.
 - Use `.editorconfig`: C/C++ sources and headers use four spaces, CRLF, and Latin-1; Visual Studio project files use tabs, CRLF, and UTF-8 BOM.
+- Keep lines to at most 140 characters unless splitting them is impractical. When wrapping parameter lists, align continued parameters below the opening parenthesis.
 - Use Allman braces for functions, classes, namespaces, and every control-flow body, including a single statement. Retain the established same-line form for C-style `struct` and `enum` declarations.
 - Keep comments concise and purposeful. Use sentence case for prose while preserving identifiers, acronyms, URLs, and protocol names.
 - Use the established Hungarian naming convention for variables. Preserve semantic prefixes, such as `cStr` for `CStringW`/`CStringA` values; do not rename existing identifiers for style alone.

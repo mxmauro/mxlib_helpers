@@ -22,13 +22,11 @@
 
 #include <Defines.h>
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
-namespace CrashReport
-{
+namespace CrashReport {
 
 VOID Initialize();
 BOOL HandleCrashDump(_In_z_ LPCWSTR szApplicationNameW, _In_z_ LPCWSTR szModuleNameW);

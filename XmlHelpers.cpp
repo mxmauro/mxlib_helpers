@@ -20,13 +20,11 @@
 #include "XmlHelpers.h"
 #include <Strings\Utf8.h>
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
-namespace XmlHelpers
-{
+namespace XmlHelpers {
 
 HRESULT Parse(_In_ tinyxml2::XMLDocument &cDoc, _In_ LPCVOID lpData, _In_ SIZE_T nDataLen)
 {

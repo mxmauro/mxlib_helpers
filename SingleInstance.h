@@ -22,10 +22,9 @@
 
 #include <Defines.h>
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
 HRESULT SingleInstanceCheck(_In_z_ LPCWSTR szNameW);
 

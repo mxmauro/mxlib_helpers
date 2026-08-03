@@ -19,10 +19,9 @@
  */
 #include "Sid.h"
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
 CSid::CSid() : CBaseMemObj(), CNonCopyableObj()
 {
@@ -74,8 +73,7 @@ HRESULT CSid::Set(_In_z_ LPCWSTR szAccountNameOrSidStringW)
     }
 
     if ((szAccountNameOrSidStringW[0] == L'S' || szAccountNameOrSidStringW[0] == L's') &&
-        szAccountNameOrSidStringW[1] == L'-' && szAccountNameOrSidStringW[2] >= L'0' &&
-        szAccountNameOrSidStringW[2] <= L'9')
+        szAccountNameOrSidStringW[1] == L'-' && szAccountNameOrSidStringW[2] >= L'0' && szAccountNameOrSidStringW[2] <= L'9')
     {
         PSID lpSid;
         DWORD dwLength;
@@ -103,8 +101,7 @@ HRESULT CSid::Set(_In_z_ LPCWSTR szAccountNameOrSidStringW)
         HRESULT hRes;
 
         dwUserSidLen = dwReferencedDomainLen = 0;
-        ::LookupAccountNameW(NULL, szAccountNameOrSidStringW, NULL, &dwUserSidLen, NULL, &dwReferencedDomainLen,
-                             &nSidNameUse);
+        ::LookupAccountNameW(NULL, szAccountNameOrSidStringW, NULL, &dwUserSidLen, NULL, &dwReferencedDomainLen, &nSidNameUse);
         lpUserSid = (PSID)::MxMemAlloc((SIZE_T)dwUserSidLen);
         if (lpUserSid == NULL)
         {
@@ -116,8 +113,8 @@ HRESULT CSid::Set(_In_z_ LPCWSTR szAccountNameOrSidStringW)
             ::MxMemFree(lpUserSid);
             return E_OUTOFMEMORY;
         }
-        if (::LookupAccountNameW(NULL, szAccountNameOrSidStringW, lpUserSid, &dwUserSidLen, szReferencedDomainW,
-                                 &dwReferencedDomainLen, &nSidNameUse) == FALSE)
+        if (::LookupAccountNameW(NULL, szAccountNameOrSidStringW, lpUserSid, &dwUserSidLen, szReferencedDomainW, &dwReferencedDomainLen,
+                                 &nSidNameUse) == FALSE)
         {
             hRes = MX_HRESULT_FROM_LASTERROR();
             ::MxMemFree(szReferencedDomainW);
@@ -390,8 +387,7 @@ HRESULT CSid::GetAccountName(_Inout_ CStringW &cStrNameW, _In_opt_ CStringW *lpS
     if (cSid)
     {
         dwNameLength = dwDomainLength = 0;
-        if (::LookupAccountSidW(NULL, (PSID)(cSid.Get()), NULL, &dwNameLength, NULL, &dwDomainLength, &nSidNameUse) ==
-            FALSE)
+        if (::LookupAccountSidW(NULL, (PSID)(cSid.Get()), NULL, &dwNameLength, NULL, &dwDomainLength, &nSidNameUse) == FALSE)
         {
             hRes = MX_HRESULT_FROM_LASTERROR();
             if (hRes != HRESULT_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER))
@@ -401,14 +397,12 @@ HRESULT CSid::GetAccountName(_Inout_ CStringW &cStrNameW, _In_opt_ CStringW *lpS
         }
         dwNameLength += 2;
         dwDomainLength += 2;
-        if (cStrNameW.EnsureBuffer((SIZE_T)dwNameLength) == FALSE ||
-            lpStrDomainW->EnsureBuffer((SIZE_T)dwDomainLength) == FALSE)
+        if (cStrNameW.EnsureBuffer((SIZE_T)dwNameLength) == FALSE || lpStrDomainW->EnsureBuffer((SIZE_T)dwDomainLength) == FALSE)
         {
             return E_OUTOFMEMORY;
         }
         if (::LookupAccountSidW(NULL, (PSID)(cSid.Get()), (LPWSTR)cStrNameW, &dwNameLength,
-                                (lpStrDomainW != NULL) ? (LPWSTR)(*lpStrDomainW) : NULL, &dwDomainLength,
-                                &nSidNameUse) == FALSE)
+                                (lpStrDomainW != NULL) ? (LPWSTR)(*lpStrDomainW) : NULL, &dwDomainLength, &nSidNameUse) == FALSE)
         {
             hRes = MX_HRESULT_FROM_LASTERROR();
             cStrNameW.Empty();

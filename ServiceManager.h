@@ -23,32 +23,24 @@
 #include <Defines.h>
 #include <Windows.h>
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
 class CServiceManager : public virtual CBaseMemObj, public CNonCopyableObj
 {
-  public:
+public:
     enum class eServiceType
     {
-        LocalSystem,
-        NetworkService,
-        KernelDriver,
-        FileSystemDriver
+        LocalSystem, NetworkService, KernelDriver, FileSystemDriver
     };
 
     enum class eStartMode
     {
-        Auto,
-        Boot,
-        System,
-        Manual,
-        Disabled
+        Auto, Boot, System, Manual, Disabled
     };
 
-  public:
+public:
     typedef struct tagCREATEINFO
     {
         eServiceType nServiceType;
@@ -66,7 +58,7 @@ class CServiceManager : public virtual CBaseMemObj, public CNonCopyableObj
         } sFailureControl;
     } CREATEINFO, *LPCREATEINFO;
 
-  public:
+public:
     CServiceManager();
     ~CServiceManager();
 
@@ -92,8 +84,8 @@ class CServiceManager : public virtual CBaseMemObj, public CNonCopyableObj
 
     HRESULT ChangeStartMode(_In_ CServiceManager::eStartMode nStartMode);
 
-  private:
-    SC_HANDLE hServMgr{NULL}, hServ{NULL};
+private:
+    SC_HANDLE hServMgr{ NULL }, hServ{ NULL };
 };
 
 }; // namespace MX

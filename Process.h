@@ -24,20 +24,15 @@
 #include <Strings\Strings.h>
 #include <ArrayList.h>
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
-namespace Process
-{
+namespace Process {
 
 enum class eTokenGetMembershipType
 {
-    LimitedUser,
-    SystemAccount,
-    AdministratorsGroup,
-    AdministratorsGroupAndElevated
+    LimitedUser, SystemAccount, AdministratorsGroup, AdministratorsGroupAndElevated
 };
 
 }; // namespace Process
@@ -46,14 +41,11 @@ enum class eTokenGetMembershipType
 
 //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
-namespace Process
-{
+namespace Process {
 
-HRESULT ResolveChildProcessFileName(_Out_ CStringW &cStrFullNameW, _In_ LPCWSTR szApplicationNameW,
-                                    _In_ LPCWSTR szCommandLineW);
+HRESULT ResolveChildProcessFileName(_Out_ CStringW &cStrFullNameW, _In_ LPCWSTR szApplicationNameW, _In_ LPCWSTR szCommandLineW);
 
 HRESULT QueryEnvironmentVariable(_In_z_ LPCWSTR szVarNameW, _Inout_ CStringW &cStrDestW);
 

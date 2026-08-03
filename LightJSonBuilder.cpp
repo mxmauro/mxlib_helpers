@@ -24,10 +24,9 @@
 #define _IS_OBJECT 0
 #define _IS_ARRAY 1
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
 CLightJSonBuilder::CLightJSonBuilder() : CBaseMemObj(), CNonCopyableObj()
 {
@@ -50,8 +49,7 @@ BOOL CLightJSonBuilder::AddObject(_In_opt_z_ LPCSTR szNameA)
     BOOL bNeedsName;
 
     // check the parent object type
-    bNeedsName =
-        (aNestedTypes.GetCount() > 0 && aNestedTypes[aNestedTypes.GetCount() - 1] == _IS_OBJECT) ? TRUE : FALSE;
+    bNeedsName = (aNestedTypes.GetCount() > 0 && aNestedTypes[aNestedTypes.GetCount() - 1] == _IS_OBJECT) ? TRUE : FALSE;
     if (bNeedsName != FALSE)
     {
         MX_ASSERT(szNameA != NULL);
@@ -112,8 +110,7 @@ BOOL CLightJSonBuilder::AddArray(_In_opt_z_ LPCSTR szNameA)
     BOOL bNeedsName;
 
     // check the parent object type
-    bNeedsName =
-        (aNestedTypes.GetCount() > 0 && aNestedTypes[aNestedTypes.GetCount() - 1] == _IS_OBJECT) ? TRUE : FALSE;
+    bNeedsName = (aNestedTypes.GetCount() > 0 && aNestedTypes[aNestedTypes.GetCount() - 1] == _IS_OBJECT) ? TRUE : FALSE;
     if (bNeedsName != FALSE)
     {
         MX_ASSERT(szNameA != NULL);
@@ -280,8 +277,7 @@ BOOL CLightJSonBuilder::AddObjectFormattedString(_In_z_ LPCSTR szNameA, _Printf_
     return AddObjectString(szNameA, (LPCSTR)cStrTempA, cStrTempA.GetLength());
 }
 
-BOOL CLightJSonBuilder::AddObjectFormattedStringV(_In_z_ LPCSTR szNameA, _Printf_format_string_ LPCSTR szFormatA,
-                                                  _In_ va_list argptr)
+BOOL CLightJSonBuilder::AddObjectFormattedStringV(_In_z_ LPCSTR szNameA, _Printf_format_string_ LPCSTR szFormatA, _In_ va_list argptr)
 {
     CStringA cStrTempA;
 
@@ -361,8 +357,7 @@ BOOL CLightJSonBuilder::AddObjectFormattedString(_In_z_ LPCSTR szNameA, _Printf_
     return AddObjectString(szNameA, (LPCWSTR)cStrTempW, cStrTempW.GetLength());
 }
 
-BOOL CLightJSonBuilder::AddObjectFormattedStringV(_In_z_ LPCSTR szNameA, _Printf_format_string_ LPCWSTR szFormatW,
-                                                  _In_ va_list argptr)
+BOOL CLightJSonBuilder::AddObjectFormattedStringV(_In_z_ LPCSTR szNameA, _Printf_format_string_ LPCWSTR szFormatW, _In_ va_list argptr)
 {
     CStringW cStrTempW;
 
@@ -487,8 +482,7 @@ BOOL CLightJSonBuilder::AddObjectULong(_In_z_ LPCSTR szNameA, _In_ ULONG nValue,
     {
         return FALSE;
     }
-    nTempBufLen =
-        _snprintf_s(szTempBufA, MX_ARRAYLEN(szTempBufA), ((bAsHexa == FALSE) ? "\": %lu" : "\": \"0x%08X\""), nValue);
+    nTempBufLen = _snprintf_s(szTempBufA, MX_ARRAYLEN(szTempBufA), ((bAsHexa == FALSE) ? "\": %lu" : "\": \"0x%08X\""), nValue);
     return AddToBuffer(szTempBufA, (SIZE_T)nTempBufLen);
 }
 
@@ -933,8 +927,7 @@ BOOL CLightJSonBuilder::AddRaw(_In_ LPCWSTR szStrW, _In_opt_ SIZE_T nStrLen)
     return AddToBuffer((LPCSTR)cStrTempA, cStrTempA.GetLength());
 }
 
-BOOL CLightJSonBuilder::EscapeString(_Inout_ CStringA &cStrA, _In_ LPCSTR szStrA, _In_ SIZE_T nStrLen,
-                                     _In_opt_ BOOL bAppend)
+BOOL CLightJSonBuilder::EscapeString(_Inout_ CStringA &cStrA, _In_ LPCSTR szStrA, _In_ SIZE_T nStrLen, _In_opt_ BOOL bAppend)
 {
     LPCSTR szStartA, szStrEndA;
 
@@ -966,61 +959,61 @@ BOOL CLightJSonBuilder::EscapeString(_Inout_ CStringA &cStrA, _In_ LPCSTR szStrA
         {
             switch (*szStrA)
             {
-            case '\b':
-                if (cStrA.ConcatN("\\b", 2) == FALSE)
-                {
-                    return FALSE;
-                }
-                break;
+                case '\b':
+                    if (cStrA.ConcatN("\\b", 2) == FALSE)
+                    {
+                        return FALSE;
+                    }
+                    break;
 
-            case '\f':
-                if (cStrA.ConcatN("\\f", 2) == FALSE)
-                {
-                    return FALSE;
-                }
-                break;
+                case '\f':
+                    if (cStrA.ConcatN("\\f", 2) == FALSE)
+                    {
+                        return FALSE;
+                    }
+                    break;
 
-            case '\n':
-                if (cStrA.ConcatN("\\n", 2) == FALSE)
-                {
-                    return FALSE;
-                }
-                break;
+                case '\n':
+                    if (cStrA.ConcatN("\\n", 2) == FALSE)
+                    {
+                        return FALSE;
+                    }
+                    break;
 
-            case '\r':
-                if (cStrA.ConcatN("\\r", 2) == FALSE)
-                {
-                    return FALSE;
-                }
-                break;
+                case '\r':
+                    if (cStrA.ConcatN("\\r", 2) == FALSE)
+                    {
+                        return FALSE;
+                    }
+                    break;
 
-            case '\t':
-                if (cStrA.ConcatN("\\t", 2) == FALSE)
-                {
-                    return FALSE;
-                }
-                break;
+                case '\t':
+                    if (cStrA.ConcatN("\\t", 2) == FALSE)
+                    {
+                        return FALSE;
+                    }
+                    break;
 
-            case '"':
-                if (cStrA.ConcatN("\\\"", 2) == FALSE)
-                {
-                    return FALSE;
-                }
-                break;
+                case '"':
+                    if (cStrA.ConcatN("\\\"", 2) == FALSE)
+                    {
+                        return FALSE;
+                    }
+                    break;
 
-            case '\\':
-                if (cStrA.ConcatN("\\\\", 2) == FALSE)
-                {
-                    return FALSE;
-                }
-                break;
+                case '\\':
+                    if (cStrA.ConcatN("\\\\", 2) == FALSE)
+                    {
+                        return FALSE;
+                    }
+                    break;
 
-            default:
-                if (cStrA.AppendFormat("\\u%04lX", (ULONG) * ((LPBYTE)szStrA)) == FALSE)
-                {
-                    return FALSE;
-                }
-                break;
+                default:
+                    if (cStrA.AppendFormat("\\u%04lX", (ULONG) * ((LPBYTE)szStrA)) == FALSE)
+                    {
+                        return FALSE;
+                    }
+                    break;
             }
             szStrA += 1;
         }
@@ -1028,8 +1021,7 @@ BOOL CLightJSonBuilder::EscapeString(_Inout_ CStringA &cStrA, _In_ LPCSTR szStrA
     return TRUE;
 }
 
-BOOL CLightJSonBuilder::EscapeString(_Inout_ CStringA &cStrA, _In_ LPCWSTR szStrW, _In_ SIZE_T nStrLen,
-                                     _In_opt_ BOOL bAppend)
+BOOL CLightJSonBuilder::EscapeString(_Inout_ CStringA &cStrA, _In_ LPCWSTR szStrW, _In_ SIZE_T nStrLen, _In_opt_ BOOL bAppend)
 {
     CHAR szTempBufA[8];
     int nTempBufLen;
@@ -1045,87 +1037,87 @@ BOOL CLightJSonBuilder::EscapeString(_Inout_ CStringA &cStrA, _In_ LPCWSTR szStr
     {
         switch (*szStrW)
         {
-        case L'\b':
-            if (cStrA.ConcatN("\\b", 2) == FALSE)
-            {
-                return FALSE;
-            }
-            break;
-
-        case L'\f':
-            if (cStrA.ConcatN("\\f", 2) == FALSE)
-            {
-                return FALSE;
-            }
-            break;
-
-        case L'\n':
-            if (cStrA.ConcatN("\\n", 2) == FALSE)
-            {
-                return FALSE;
-            }
-            break;
-
-        case L'\r':
-            if (cStrA.ConcatN("\\r", 2) == FALSE)
-            {
-                return FALSE;
-            }
-            break;
-
-        case L'\t':
-            if (cStrA.ConcatN("\\t", 2) == FALSE)
-            {
-                return FALSE;
-            }
-            break;
-
-        case L'"':
-            if (cStrA.ConcatN("\\\"", 2) == FALSE)
-            {
-                return FALSE;
-            }
-            break;
-
-        case L'\\':
-            if (cStrA.ConcatN("\\\\", 2) == FALSE)
-            {
-                return FALSE;
-            }
-            break;
-
-        default:
-            if (*szStrW < 32)
-            {
-                if (cStrA.AppendFormat("\\u%04lX", (ULONG)*szStrW) == FALSE)
+            case L'\b':
+                if (cStrA.ConcatN("\\b", 2) == FALSE)
                 {
                     return FALSE;
                 }
-            }
-            else
-            {
-                nTempBufLen = -1;
-                if (*szStrW >= 0xD800 && *szStrW <= 0xDBFF)
+                break;
+
+            case L'\f':
+                if (cStrA.ConcatN("\\f", 2) == FALSE)
                 {
-                    if (szStrW + 1 < szStrEndW)
-                    {
-                        nTempBufLen = Utf8_EncodeChar(szTempBufA, szStrW[0], szStrW[1]);
-                        szStrW += 1;
-                    }
+                    return FALSE;
                 }
-                else
+                break;
+
+            case L'\n':
+                if (cStrA.ConcatN("\\n", 2) == FALSE)
                 {
-                    nTempBufLen = Utf8_EncodeChar(szTempBufA, *szStrW);
+                    return FALSE;
                 }
-                if (nTempBufLen > 0)
+                break;
+
+            case L'\r':
+                if (cStrA.ConcatN("\\r", 2) == FALSE)
                 {
-                    if (cStrA.ConcatN(szTempBufA, (SIZE_T)nTempBufLen) == FALSE)
+                    return FALSE;
+                }
+                break;
+
+            case L'\t':
+                if (cStrA.ConcatN("\\t", 2) == FALSE)
+                {
+                    return FALSE;
+                }
+                break;
+
+            case L'"':
+                if (cStrA.ConcatN("\\\"", 2) == FALSE)
+                {
+                    return FALSE;
+                }
+                break;
+
+            case L'\\':
+                if (cStrA.ConcatN("\\\\", 2) == FALSE)
+                {
+                    return FALSE;
+                }
+                break;
+
+            default:
+                if (*szStrW < 32)
+                {
+                    if (cStrA.AppendFormat("\\u%04lX", (ULONG)*szStrW) == FALSE)
                     {
                         return FALSE;
                     }
                 }
-            }
-            break;
+                else
+                {
+                    nTempBufLen = -1;
+                    if (*szStrW >= 0xD800 && *szStrW <= 0xDBFF)
+                    {
+                        if (szStrW + 1 < szStrEndW)
+                        {
+                            nTempBufLen = Utf8_EncodeChar(szTempBufA, szStrW[0], szStrW[1]);
+                            szStrW += 1;
+                        }
+                    }
+                    else
+                    {
+                        nTempBufLen = Utf8_EncodeChar(szTempBufA, *szStrW);
+                    }
+                    if (nTempBufLen > 0)
+                    {
+                        if (cStrA.ConcatN(szTempBufA, (SIZE_T)nTempBufLen) == FALSE)
+                        {
+                            return FALSE;
+                        }
+                    }
+                }
+                break;
         }
         szStrW += 1;
     }
@@ -1135,14 +1127,24 @@ BOOL CLightJSonBuilder::EscapeString(_Inout_ CStringA &cStrA, _In_ LPCWSTR szStr
 BOOL CLightJSonBuilder::AddToBuffer(_In_ LPCSTR szStrA, _In_ SIZE_T nStrLen)
 {
     LPBYTE lpPtr;
+    SIZE_T nRequiredLen, nNewLen;
 
     if (nStrLen == 0)
     {
         return TRUE;
     }
-    if (nStrLen + 1 > nBufferSize - nBufferLen)
+    if (nBufferLen > nBufferSize || nStrLen > (SIZE_T)-1 - nBufferLen - 1)
     {
-        SIZE_T nNewLen = nBufferSize + ((nStrLen + 32768) & (~32767));
+        return FALSE;
+    }
+    nRequiredLen = nBufferLen + nStrLen + 1;
+    if (nRequiredLen > nBufferSize)
+    {
+        nNewLen = nRequiredLen;
+        if (nNewLen <= (SIZE_T)-1 - 32767)
+        {
+            nNewLen = (nNewLen + 32767) & (~(SIZE_T)32767);
+        }
         LPBYTE lpNewBuffer = (LPBYTE)MX_MALLOC(nNewLen);
         if (lpNewBuffer == NULL)
         {
@@ -1188,62 +1190,62 @@ BOOL CLightJSonBuilder::AddEscapeStringToBuffer(_In_ LPCSTR szStrA, _In_ SIZE_T 
         {
             switch (*szStrA)
             {
-            case '\b':
-                if (AddToBuffer("\\b", 2) == FALSE)
-                {
-                    return FALSE;
-                }
-                break;
+                case '\b':
+                    if (AddToBuffer("\\b", 2) == FALSE)
+                    {
+                        return FALSE;
+                    }
+                    break;
 
-            case '\f':
-                if (AddToBuffer("\\f", 2) == FALSE)
-                {
-                    return FALSE;
-                }
-                break;
+                case '\f':
+                    if (AddToBuffer("\\f", 2) == FALSE)
+                    {
+                        return FALSE;
+                    }
+                    break;
 
-            case '\n':
-                if (AddToBuffer("\\n", 2) == FALSE)
-                {
-                    return FALSE;
-                }
-                break;
+                case '\n':
+                    if (AddToBuffer("\\n", 2) == FALSE)
+                    {
+                        return FALSE;
+                    }
+                    break;
 
-            case '\r':
-                if (AddToBuffer("\\r", 2) == FALSE)
-                {
-                    return FALSE;
-                }
-                break;
+                case '\r':
+                    if (AddToBuffer("\\r", 2) == FALSE)
+                    {
+                        return FALSE;
+                    }
+                    break;
 
-            case '\t':
-                if (AddToBuffer("\\t", 2) == FALSE)
-                {
-                    return FALSE;
-                }
-                break;
+                case '\t':
+                    if (AddToBuffer("\\t", 2) == FALSE)
+                    {
+                        return FALSE;
+                    }
+                    break;
 
-            case '"':
-                if (AddToBuffer("\\\"", 2) == FALSE)
-                {
-                    return FALSE;
-                }
-                break;
+                case '"':
+                    if (AddToBuffer("\\\"", 2) == FALSE)
+                    {
+                        return FALSE;
+                    }
+                    break;
 
-            case '\\':
-                if (AddToBuffer("\\\\", 2) == FALSE)
-                {
-                    return FALSE;
-                }
-                break;
+                case '\\':
+                    if (AddToBuffer("\\\\", 2) == FALSE)
+                    {
+                        return FALSE;
+                    }
+                    break;
 
-            default:
-                nTempBufLen = _snprintf_s(szTempBufA, MX_ARRAYLEN(szTempBufA), "\\u%04lX", (ULONG)(*((LPBYTE)szStrA)));
-                if (AddToBuffer(szTempBufA, (SIZE_T)nTempBufLen) == FALSE)
-                {
-                    return FALSE;
-                }
-                break;
+                default:
+                    nTempBufLen = _snprintf_s(szTempBufA, MX_ARRAYLEN(szTempBufA), "\\u%04lX", (ULONG)(*((LPBYTE)szStrA)));
+                    if (AddToBuffer(szTempBufA, (SIZE_T)nTempBufLen) == FALSE)
+                    {
+                        return FALSE;
+                    }
+                    break;
             }
             szStrA += 1;
         }
@@ -1262,88 +1264,88 @@ BOOL CLightJSonBuilder::AddEscapeStringToBuffer(_In_ LPCWSTR szStrW, _In_ SIZE_T
     {
         switch (*szStrW)
         {
-        case L'\b':
-            if (AddToBuffer("\\b", 2) == FALSE)
-            {
-                return FALSE;
-            }
-            break;
-
-        case L'\f':
-            if (AddToBuffer("\\f", 2) == FALSE)
-            {
-                return FALSE;
-            }
-            break;
-
-        case L'\n':
-            if (AddToBuffer("\\n", 2) == FALSE)
-            {
-                return FALSE;
-            }
-            break;
-
-        case L'\r':
-            if (AddToBuffer("\\r", 2) == FALSE)
-            {
-                return FALSE;
-            }
-            break;
-
-        case L'\t':
-            if (AddToBuffer("\\t", 2) == FALSE)
-            {
-                return FALSE;
-            }
-            break;
-
-        case L'"':
-            if (AddToBuffer("\\\"", 2) == FALSE)
-            {
-                return FALSE;
-            }
-            break;
-
-        case L'\\':
-            if (AddToBuffer("\\\\", 2) == FALSE)
-            {
-                return FALSE;
-            }
-            break;
-
-        default:
-            if (*szStrW < 32)
-            {
-                nTempBufLen = _snprintf_s(szTempBufA, MX_ARRAYLEN(szTempBufA), "\\u%04lX", (ULONG)(*szStrW));
-                if (AddToBuffer(szTempBufA, (SIZE_T)nTempBufLen) == FALSE)
+            case L'\b':
+                if (AddToBuffer("\\b", 2) == FALSE)
                 {
                     return FALSE;
                 }
-            }
-            else
-            {
-                nTempBufLen = -1;
-                if (*szStrW >= 0xD800 && *szStrW <= 0xDBFF)
+                break;
+
+            case L'\f':
+                if (AddToBuffer("\\f", 2) == FALSE)
                 {
-                    if (szStrW + 1 < szStrEndW)
-                    {
-                        nTempBufLen = Utf8_EncodeChar(szTempBufA, szStrW[0], szStrW[1]);
-                        szStrW += 1;
-                    }
+                    return FALSE;
                 }
-                else
+                break;
+
+            case L'\n':
+                if (AddToBuffer("\\n", 2) == FALSE)
                 {
-                    nTempBufLen = Utf8_EncodeChar(szTempBufA, *szStrW);
+                    return FALSE;
                 }
-                if (nTempBufLen > 0)
+                break;
+
+            case L'\r':
+                if (AddToBuffer("\\r", 2) == FALSE)
                 {
+                    return FALSE;
+                }
+                break;
+
+            case L'\t':
+                if (AddToBuffer("\\t", 2) == FALSE)
+                {
+                    return FALSE;
+                }
+                break;
+
+            case L'"':
+                if (AddToBuffer("\\\"", 2) == FALSE)
+                {
+                    return FALSE;
+                }
+                break;
+
+            case L'\\':
+                if (AddToBuffer("\\\\", 2) == FALSE)
+                {
+                    return FALSE;
+                }
+                break;
+
+            default:
+                if (*szStrW < 32)
+                {
+                    nTempBufLen = _snprintf_s(szTempBufA, MX_ARRAYLEN(szTempBufA), "\\u%04lX", (ULONG)(*szStrW));
                     if (AddToBuffer(szTempBufA, (SIZE_T)nTempBufLen) == FALSE)
                     {
                         return FALSE;
                     }
                 }
-            }
-            break;
+                else
+                {
+                    nTempBufLen = -1;
+                    if (*szStrW >= 0xD800 && *szStrW <= 0xDBFF)
+                    {
+                        if (szStrW + 1 < szStrEndW)
+                        {
+                            nTempBufLen = Utf8_EncodeChar(szTempBufA, szStrW[0], szStrW[1]);
+                            szStrW += 1;
+                        }
+                    }
+                    else
+                    {
+                        nTempBufLen = Utf8_EncodeChar(szTempBufA, *szStrW);
+                    }
+                    if (nTempBufLen > 0)
+                    {
+                        if (AddToBuffer(szTempBufA, (SIZE_T)nTempBufLen) == FALSE)
+                        {
+                            return FALSE;
+                        }
+                    }
+                }
+                break;
         }
         szStrW += 1;
     }

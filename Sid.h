@@ -26,14 +26,13 @@
 #include <AutoPtr.h>
 #include <Strings\Strings.h>
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
 class CSid : public virtual CBaseMemObj, public CNonCopyableObj
 {
-  public:
+public:
     CSid();
     ~CSid();
 
@@ -74,7 +73,7 @@ class CSid : public virtual CBaseMemObj, public CNonCopyableObj
 
     BOOL IsWellKnownSid(_In_ WELL_KNOWN_SID_TYPE nSidType) const;
 
-  private:
+private:
     TAutoFreePtr<BYTE> cSid;
 };
 

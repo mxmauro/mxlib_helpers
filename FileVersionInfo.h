@@ -24,14 +24,13 @@
 #include <AutoPtr.h>
 #include <Strings\Strings.h>
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
 class CFileVersionInfo : public CBaseMemObj, public CNonCopyableObj
 {
-  public:
+public:
     CFileVersionInfo();
 
     HRESULT InitializeFromFileName(_In_z_ LPCWSTR szFileNameW);
@@ -55,10 +54,10 @@ class CFileVersionInfo : public CBaseMemObj, public CNonCopyableObj
         return lpFfi;
     };
 
-  private:
+private:
     HRESULT AnalyzeVersionInfo(_In_ LPVOID lpPeParser);
 
-  private:
+private:
 #pragma pack(1)
     typedef struct
     {

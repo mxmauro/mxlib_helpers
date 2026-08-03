@@ -24,19 +24,15 @@
 #include <Strings\Strings.h>
 #include <ArrayList.h>
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
-namespace FileRoutines
-{
+namespace FileRoutines {
 
 enum class eDelayedDelete
 {
-    DontTryDeleteOnReboot,
-    DeleteOnRebootOnFailure,
-    WaitUntilReboot
+    DontTryDeleteOnReboot, DeleteOnRebootOnFailure, WaitUntilReboot
 };
 
 }; // namespace FileRoutines
@@ -45,11 +41,9 @@ enum class eDelayedDelete
 
 //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
-namespace FileRoutines
-{
+namespace FileRoutines {
 
 HRESULT GetAppFileName(_Out_ CStringW &cStrDestW);
 HRESULT GetAppFolderPath(_Out_ CStringW &cStrDestW);

@@ -27,14 +27,13 @@
 #include <Strings\Strings.h>
 #include <winternl.h>
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
 class CLightJSonBuilder : public CBaseMemObj, public CNonCopyableObj
 {
-  public:
+public:
     CLightJSonBuilder();
 
     VOID Reset();
@@ -51,8 +50,7 @@ class CLightJSonBuilder : public CBaseMemObj, public CNonCopyableObj
     BOOL AddObjectFormattedStringV(_In_z_ LPCSTR szNameA, _Printf_format_string_ LPCSTR szFormatA, _In_ va_list argptr);
     BOOL AddObjectString(_In_z_ LPCSTR szNameA, _In_ LPCWSTR szValueW, _In_opt_ SIZE_T nValueLen = (SIZE_T)-1);
     BOOL AddObjectFormattedString(_In_z_ LPCSTR szNameA, _Printf_format_string_ LPCWSTR szFormatW, ...);
-    BOOL AddObjectFormattedStringV(_In_z_ LPCSTR szNameA, _Printf_format_string_ LPCWSTR szFormatW,
-                                   _In_ va_list argptr);
+    BOOL AddObjectFormattedStringV(_In_z_ LPCSTR szNameA, _Printf_format_string_ LPCWSTR szFormatW, _In_ va_list argptr);
     BOOL AddObjectString(_In_z_ LPCSTR szNameA, _In_ PUNICODE_STRING Value);
     BOOL AddObjectLong(_In_z_ LPCSTR szNameA, _In_ LONG nValue);
     BOOL AddObjectULong(_In_z_ LPCSTR szNameA, _In_ ULONG nValue, _In_opt_ BOOL bAsHexa = FALSE);
@@ -107,22 +105,20 @@ class CLightJSonBuilder : public CBaseMemObj, public CNonCopyableObj
     };
 
     // NOTE: Assume value is in UTF-8 format
-    static BOOL EscapeString(_Inout_ CStringA &cStrA, _In_ LPCSTR szStrA, _In_ SIZE_T nStrLen,
-                             _In_opt_ BOOL bAppend = FALSE);
-    static BOOL EscapeString(_Inout_ CStringA &cStrA, _In_ LPCWSTR szStrW, _In_ SIZE_T nStrLen,
-                             _In_opt_ BOOL bAppend = FALSE);
+    static BOOL EscapeString(_Inout_ CStringA &cStrA, _In_ LPCSTR szStrA, _In_ SIZE_T nStrLen, _In_opt_ BOOL bAppend = FALSE);
+    static BOOL EscapeString(_Inout_ CStringA &cStrA, _In_ LPCWSTR szStrW, _In_ SIZE_T nStrLen, _In_opt_ BOOL bAppend = FALSE);
 
-  private:
+private:
     BOOL AddToBuffer(_In_ LPCSTR szStrA, _In_ SIZE_T nStrLen);
     BOOL AddEscapeStringToBuffer(_In_ LPCSTR szStrA, _In_ SIZE_T nStrLen);
     BOOL AddEscapeStringToBuffer(_In_ LPCWSTR szStrW, _In_ SIZE_T nStrLen);
 
-  private:
+private:
     TAutoFreePtr<BYTE> aBuffer;
-    SIZE_T nBufferLen{0};
-    SIZE_T nBufferSize{0};
+    SIZE_T nBufferLen{ 0 };
+    SIZE_T nBufferSize{ 0 };
     TArrayList<BYTE> aNestedTypes;
-    BOOL bIsFirstItem{TRUE};
+    BOOL bIsFirstItem{ TRUE };
 };
 
 }; // namespace MX

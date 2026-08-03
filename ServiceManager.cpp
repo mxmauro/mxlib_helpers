@@ -25,44 +25,42 @@
 #include <AutoPtr.h>
 #include <ArrayList.h>
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
 static DWORD GetServiceStartType(_In_ MX::CServiceManager::eStartMode nStartMode);
 
 //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
-namespace Internals
-{
+namespace Internals {
 
 class CRegistryBackupValue : public MX::CBaseMemObj
 {
-  public:
+public:
     CStringW cStrValueNameW;
-    DWORD dwType{0};
+    DWORD dwType{ 0 };
     TAutoFreePtr<BYTE> cData;
-    SIZE_T nDataSize{0};
+    SIZE_T nDataSize{ 0 };
 };
 
 class CRegistryBackupKey : public MX::CBaseMemObj
 {
-  public:
+public:
     CStringW cStrKeyNameW;
     TArrayListWithDelete<CRegistryBackupValue *> aValuesList;
 };
 
 class CRegistryBackup : public MX::CBaseMemObj
 {
-  public:
+public:
     HRESULT Backup(_In_z_ LPCWSTR szServiceNameW);
     HRESULT Restore();
 
-  private:
+private:
     HRESULT BackupRecurse(_In_ CRegistryBackupKey *lpKey);
 
-  private:
+private:
     TArrayListWithDelete<CRegistryBackupKey *> aKeyList;
 };
 
@@ -72,8 +70,7 @@ class CRegistryBackup : public MX::CBaseMemObj
 
 //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
 CServiceManager::CServiceManager() : CBaseMemObj(), CNonCopyableObj()
 {
@@ -123,15 +120,15 @@ VOID CServiceManager::CloseManager()
 HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO lpCreateInfo)
 {
     // Reference:
-    //   CC � SERVICE_QUERY_CONFIG � ask the SCM for the service�s current configuration
-    //   LC � SERVICE_QUERY_STATUS � ask the SCM for the service�s current status
-    //   SW � SERVICE_ENUMERATE_DEPENDENTS � list dependent services
-    //   LO � SERVICE_INTERROGATE � ask the service its current status
-    //   CR � SERVICE_USER_DEFINED_CONTROL � send a service control defined by the service�s authors
-    //   RC � READ_CONTROL � read the security descriptor on this service.
-    //   RP � SERVICE_START � start the service
-    //   WP � SERVICE_STOP � stop the service
-    //   DT � SERVICE_PAUSE_CONTINUE � pause / continue the service
+    //   CC ? SERVICE_QUERY_CONFIG ? ask the SCM for the service?s current configuration
+    //   LC ? SERVICE_QUERY_STATUS ? ask the SCM for the service?s current status
+    //   SW ? SERVICE_ENUMERATE_DEPENDENTS ? list dependent services
+    //   LO ? SERVICE_INTERROGATE ? ask the service its current status
+    //   CR ? SERVICE_USER_DEFINED_CONTROL ? send a service control defined by the service?s authors
+    //   RC ? READ_CONTROL ? read the security descriptor on this service.
+    //   RP ? SERVICE_START ? start the service
+    //   WP ? SERVICE_STOP ? stop the service
+    //   DT ? SERVICE_PAUSE_CONTINUE ? pause / continue the service
     //   SD - DELETE
     //   DC - SERVICE_CHANGE_CONFIG - the right to reconfigure the service
     //   SD - DELETE - the right to delete the service
@@ -145,24 +142,21 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
     //   (A;;CCLCSWRPLOCRRC;;;AU)
     // S:(AU;FA;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;WD) -Enable auditing for anyone
     static const BYTE aSecDescr[] = {
-        0x01, 0x00, 0x14, 0x80, 0xA0, 0x00, 0x00, 0x00, 0xAC, 0x00, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x30,
-        0x00, 0x00, 0x00, 0x02, 0x00, 0x1C, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x80, 0x14, 0x00, 0xFF, 0x01,
-        0x0F, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x70,
-        0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x14, 0x00, 0xFD, 0x01, 0x02, 0x00, 0x01, 0x01, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x05, 0x12, 0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0x00, 0xFF, 0x01, 0x0F, 0x00, 0x01,
-        0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x20, 0x00, 0x00, 0x00, 0x20, 0x02, 0x00, 0x00, 0x00, 0x00,
-        0x14, 0x00, 0x9D, 0x01, 0x02, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x04, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x14, 0x00, 0x9D, 0x01, 0x02, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05,
-        0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x14, 0x00, 0x9D, 0x01, 0x02, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x05, 0x0B, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x12, 0x00,
-        0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x12, 0x00, 0x00, 0x00};
+        0x01, 0x00, 0x14, 0x80, 0xA0, 0x00, 0x00, 0x00, 0xAC, 0x00, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x30, 0x00, 0x00, 0x00, 0x02, 0x00,
+        0x1C, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x80, 0x14, 0x00, 0xFF, 0x01, 0x0F, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x70, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x14, 0x00, 0xFD, 0x01, 0x02, 0x00, 0x01, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x12, 0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0x00, 0xFF, 0x01, 0x0F, 0x00, 0x01, 0x02, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x05, 0x20, 0x00, 0x00, 0x00, 0x20, 0x02, 0x00, 0x00, 0x00, 0x00, 0x14, 0x00, 0x9D, 0x01, 0x02, 0x00, 0x01, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x14, 0x00, 0x9D, 0x01, 0x02, 0x00, 0x01, 0x01, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x05, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x14, 0x00, 0x9D, 0x01, 0x02, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x05, 0x0B, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x12, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x05, 0x12, 0x00, 0x00, 0x00 };
     static const LPCWSTR szNetworkServiceAccountW = L"NT AUTHORITY\\NetworkService";
     BOOL bIsWindowsVistaOrLater;
     DWORD dwServiceType, dwStartType;
     HRESULT hRes;
 
-    if (szServiceNameW == NULL || lpCreateInfo == NULL || lpCreateInfo->szServiceDisplayNameW == NULL ||
-        lpCreateInfo->szFileNameW == NULL)
+    if (szServiceNameW == NULL || lpCreateInfo == NULL || lpCreateInfo->szServiceDisplayNameW == NULL || lpCreateInfo->szFileNameW == NULL)
     {
         return E_POINTER;
     }
@@ -173,20 +167,20 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
     dwServiceType = SERVICE_WIN32_OWN_PROCESS;
     switch (lpCreateInfo->nServiceType)
     {
-    case eServiceType::LocalSystem:
-    case eServiceType::NetworkService:
-        break;
+        case eServiceType::LocalSystem:
+        case eServiceType::NetworkService:
+            break;
 
-    case eServiceType::KernelDriver:
-        dwServiceType = SERVICE_KERNEL_DRIVER;
-        break;
+        case eServiceType::KernelDriver:
+            dwServiceType = SERVICE_KERNEL_DRIVER;
+            break;
 
-    case eServiceType::FileSystemDriver:
-        dwServiceType = SERVICE_FILE_SYSTEM_DRIVER;
-        break;
+        case eServiceType::FileSystemDriver:
+            dwServiceType = SERVICE_FILE_SYSTEM_DRIVER;
+            break;
 
-    default:
-        return E_INVALIDARG;
+        default:
+            return E_INVALIDARG;
     }
     dwStartType = GetServiceStartType(lpCreateInfo->nStartMode);
     if (dwStartType == 0xFFFFFFFFUL)
@@ -201,21 +195,16 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
     // create service
     Close();
     hServ = ::CreateServiceW(
-        hServMgr, szServiceNameW, lpCreateInfo->szServiceDisplayNameW, SERVICE_ALL_ACCESS, dwServiceType, dwStartType,
-        SERVICE_ERROR_NORMAL, lpCreateInfo->szFileNameW,
-        ((lpCreateInfo->szLoadOrderGroupW != NULL && *(lpCreateInfo->szLoadOrderGroupW) != 0)
-             ? lpCreateInfo->szLoadOrderGroupW
-             : NULL),
-        NULL,
-        ((lpCreateInfo->szDependenciesW != NULL && *(lpCreateInfo->szDependenciesW) != 0)
-             ? lpCreateInfo->szDependenciesW
-             : NULL),
-        (lpCreateInfo->nServiceType != eServiceType::NetworkService) ? NULL : szNetworkServiceAccountW, NULL);
+        hServMgr, szServiceNameW, lpCreateInfo->szServiceDisplayNameW, SERVICE_ALL_ACCESS, dwServiceType, dwStartType, SERVICE_ERROR_NORMAL,
+        lpCreateInfo->szFileNameW, ((lpCreateInfo->szLoadOrderGroupW != NULL && *(lpCreateInfo->szLoadOrderGroupW) != 0)
+                                    ? lpCreateInfo->szLoadOrderGroupW
+                                    : NULL), NULL, ((lpCreateInfo->szDependenciesW != NULL && *(lpCreateInfo->szDependenciesW) != 0)
+                                                    ? lpCreateInfo->szDependenciesW
+                                                    : NULL), (lpCreateInfo->nServiceType != eServiceType::NetworkService) ? NULL : szNetworkServiceAccountW, NULL);
     if (hServ == NULL)
     {
         hRes = MX_HRESULT_FROM_LASTERROR();
-        if (hRes != HRESULT_FROM_WIN32(ERROR_SERVICE_EXISTS) &&
-            hRes != HRESULT_FROM_WIN32(ERROR_DUPLICATE_SERVICE_NAME))
+        if (hRes != HRESULT_FROM_WIN32(ERROR_SERVICE_EXISTS) && hRes != HRESULT_FROM_WIN32(ERROR_DUPLICATE_SERVICE_NAME))
         {
             // MX::DebugPrint("ServiceManager/CreateServiceW: %08X\n", hRes);
             return hRes;
@@ -226,17 +215,13 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
         {
             return MX_HRESULT_FROM_LASTERROR();
         }
-        if (::ChangeServiceConfigW(
-                hServ, dwServiceType, dwStartType, SERVICE_ERROR_NORMAL, lpCreateInfo->szFileNameW,
-                ((lpCreateInfo->szLoadOrderGroupW != NULL && *(lpCreateInfo->szLoadOrderGroupW) != 0)
-                     ? lpCreateInfo->szLoadOrderGroupW
-                     : L""),
-                NULL,
-                ((lpCreateInfo->szDependenciesW != NULL && *(lpCreateInfo->szDependenciesW) != 0)
-                     ? lpCreateInfo->szDependenciesW
-                     : L"\0"),
-                (lpCreateInfo->nServiceType != eServiceType::NetworkService) ? NULL : szNetworkServiceAccountW, NULL,
-                lpCreateInfo->szServiceDisplayNameW) == FALSE)
+        if (::ChangeServiceConfigW(hServ, dwServiceType, dwStartType, SERVICE_ERROR_NORMAL, lpCreateInfo->szFileNameW,
+                                   ((lpCreateInfo->szLoadOrderGroupW != NULL && *(lpCreateInfo->szLoadOrderGroupW) != 0)
+                                    ? lpCreateInfo->szLoadOrderGroupW
+                                    : L""), NULL, ((lpCreateInfo->szDependenciesW != NULL && *(lpCreateInfo->szDependenciesW) != 0)
+                                                   ? lpCreateInfo->szDependenciesW
+                                                   : L"\0"), (lpCreateInfo->nServiceType != eServiceType::NetworkService) ? NULL : szNetworkServiceAccountW, NULL,
+                                   lpCreateInfo->szServiceDisplayNameW) == FALSE)
         {
             hRes = MX_HRESULT_FROM_LASTERROR();
             if (hRes != MX_HRESULT_FROM_WIN32(ERROR_GEN_FAILURE))
@@ -259,18 +244,14 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
                     {
                         ::CloseServiceHandle(hServ);
                         hServ = ::CreateServiceW(
-                            hServMgr, szServiceNameW, lpCreateInfo->szServiceDisplayNameW, SERVICE_ALL_ACCESS,
-                            dwServiceType, dwStartType, SERVICE_ERROR_NORMAL, lpCreateInfo->szFileNameW,
+                            hServMgr, szServiceNameW, lpCreateInfo->szServiceDisplayNameW, SERVICE_ALL_ACCESS, dwServiceType, dwStartType,
+                            SERVICE_ERROR_NORMAL, lpCreateInfo->szFileNameW,
                             ((lpCreateInfo->szLoadOrderGroupW != NULL && *(lpCreateInfo->szLoadOrderGroupW) != 0)
-                                 ? lpCreateInfo->szLoadOrderGroupW
-                                 : NULL),
-                            NULL,
-                            ((lpCreateInfo->szDependenciesW != NULL && *(lpCreateInfo->szDependenciesW) != 0)
-                                 ? lpCreateInfo->szDependenciesW
-                                 : NULL),
-                            (lpCreateInfo->nServiceType != eServiceType::NetworkService) ? NULL
-                                                                                         : szNetworkServiceAccountW,
-                            NULL);
+                             ? lpCreateInfo->szLoadOrderGroupW
+                             : NULL), NULL, ((lpCreateInfo->szDependenciesW != NULL && *(lpCreateInfo->szDependenciesW) != 0)
+                                             ? lpCreateInfo->szDependenciesW
+                                             : NULL), (lpCreateInfo->nServiceType != eServiceType::NetworkService) ? NULL
+                                                                                         : szNetworkServiceAccountW, NULL);
                         if (hServ != NULL)
                         {
                             hRes = aRegBackup.Restore();
@@ -292,12 +273,11 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
     }
     // change security
     hRes = (::SetServiceObjectSecurity(hServ, DACL_SECURITY_INFORMATION, (PSECURITY_DESCRIPTOR)aSecDescr) != FALSE)
-               ? S_OK
-               : MX_HRESULT_FROM_LASTERROR();
+        ? S_OK
+        : MX_HRESULT_FROM_LASTERROR();
     // setup required privileges
-    if (SUCCEEDED(hRes) && bIsWindowsVistaOrLater != FALSE &&
-        (lpCreateInfo->nServiceType == eServiceType::LocalSystem ||
-         lpCreateInfo->nServiceType == eServiceType::NetworkService))
+    if (SUCCEEDED(hRes) && bIsWindowsVistaOrLater != FALSE && (lpCreateInfo->nServiceType == eServiceType::LocalSystem ||
+                                                               lpCreateInfo->nServiceType == eServiceType::NetworkService))
     {
         SERVICE_REQUIRED_PRIVILEGES_INFOW sReqPrivInfoW;
 
@@ -312,9 +292,8 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
         }
     }
     // setup sid info
-    if (SUCCEEDED(hRes) && bIsWindowsVistaOrLater != FALSE &&
-        (lpCreateInfo->nServiceType == eServiceType::LocalSystem ||
-         lpCreateInfo->nServiceType == eServiceType::NetworkService))
+    if (SUCCEEDED(hRes) && bIsWindowsVistaOrLater != FALSE && (lpCreateInfo->nServiceType == eServiceType::LocalSystem ||
+                                                               lpCreateInfo->nServiceType == eServiceType::NetworkService))
     {
         SERVICE_SID_INFO sServSidInfo;
 
@@ -369,8 +348,7 @@ HRESULT CServiceManager::Create(_In_z_ LPCWSTR szServiceNameW, _In_ LPCREATEINFO
         SERVICE_DESCRIPTIONW sServDescW;
 
         ::MxMemSet(&sServDescW, 0, sizeof(sServDescW));
-        sServDescW.lpDescription =
-            (LPWSTR)((lpCreateInfo->szDescriptionW != NULL) ? (lpCreateInfo->szDescriptionW) : L"");
+        sServDescW.lpDescription = (LPWSTR)((lpCreateInfo->szDescriptionW != NULL) ? (lpCreateInfo->szDescriptionW) : L"");
         if (::ChangeServiceConfig2W(hServ, SERVICE_CONFIG_DESCRIPTION, &sServDescW) == FALSE)
         {
             hRes = MX_HRESULT_FROM_LASTERROR();
@@ -594,8 +572,7 @@ HRESULT CServiceManager::ChangeStartMode(_In_ CServiceManager::eStartMode nStart
     {
         return E_INVALIDARG;
     }
-    if (::ChangeServiceConfigW(hServ, SERVICE_NO_CHANGE, dwStartType, SERVICE_NO_CHANGE, NULL, NULL, NULL, NULL, NULL,
-                               NULL, NULL) == FALSE)
+    if (::ChangeServiceConfigW(hServ, SERVICE_NO_CHANGE, dwStartType, SERVICE_NO_CHANGE, NULL, NULL, NULL, NULL, NULL, NULL, NULL) == FALSE)
     {
         return MX_HRESULT_FROM_LASTERROR();
         ;
@@ -608,11 +585,9 @@ HRESULT CServiceManager::ChangeStartMode(_In_ CServiceManager::eStartMode nStart
 
 //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
-namespace Internals
-{
+namespace Internals {
 
 HRESULT CRegistryBackup::Backup(_In_z_ LPCWSTR szServiceNameW)
 {
@@ -621,8 +596,7 @@ HRESULT CRegistryBackup::Backup(_In_z_ LPCWSTR szServiceNameW)
     HRESULT hRes;
 
     // open key
-    if (cStrFullKeyNameW.CopyN(L"SYSTEM\\CurrentControlSet\\Services\\", 34) == FALSE ||
-        cStrFullKeyNameW.Concat(szServiceNameW) == FALSE)
+    if (cStrFullKeyNameW.CopyN(L"SYSTEM\\CurrentControlSet\\Services\\", 34) == FALSE || cStrFullKeyNameW.Concat(szServiceNameW) == FALSE)
     {
         return E_OUTOFMEMORY;
     }
@@ -655,8 +629,7 @@ HRESULT CRegistryBackup::Backup(_In_z_ LPCWSTR szServiceNameW)
                     hRes = E_OUTOFMEMORY;
                     break;
                 }
-                if (lpNewKey->cStrKeyNameW.Copy((LPCWSTR)cStrFullKeyNameW) == FALSE ||
-                    lpNewKey->cStrKeyNameW.ConcatN(L"\\", 1) == FALSE ||
+                if (lpNewKey->cStrKeyNameW.Copy((LPCWSTR)cStrFullKeyNameW) == FALSE || lpNewKey->cStrKeyNameW.ConcatN(L"\\", 1) == FALSE ||
                     lpNewKey->cStrKeyNameW.ConcatN((LPCWSTR)cStrSubKeyNameW, cStrSubKeyNameW.GetLength()) == FALSE ||
                     aKeyList.AddElement(lpNewKey) == FALSE)
                 {
@@ -700,8 +673,8 @@ HRESULT CRegistryBackup::Restore()
         lplpValue = (*lplpKey)->aValuesList.GetBuffer();
         for (nValueIndex = (*lplpKey)->aValuesList.GetCount(); nValueIndex > 0; nValueIndex--, lplpValue++)
         {
-            hRes = cWinReg.WriteAny((LPCWSTR)((*lplpValue)->cStrValueNameW), (*lplpValue)->dwType,
-                                    (*lplpValue)->cData.Get(), (*lplpValue)->nDataSize);
+            hRes = cWinReg.WriteAny((LPCWSTR)((*lplpValue)->cStrValueNameW), (*lplpValue)->dwType, (*lplpValue)->cData.Get(),
+                                    (*lplpValue)->nDataSize);
             if (FAILED(hRes))
             {
                 return hRes;
@@ -839,16 +812,16 @@ static DWORD GetServiceStartType(_In_ MX::CServiceManager::eStartMode nStartMode
 {
     switch (nStartMode)
     {
-    case MX::CServiceManager::eStartMode::Auto:
-        return SERVICE_AUTO_START;
-    case MX::CServiceManager::eStartMode::Boot:
-        return SERVICE_BOOT_START;
-    case MX::CServiceManager::eStartMode::System:
-        return SERVICE_SYSTEM_START;
-    case MX::CServiceManager::eStartMode::Manual:
-        return SERVICE_DEMAND_START;
-    case MX::CServiceManager::eStartMode::Disabled:
-        return SERVICE_DISABLED;
+        case MX::CServiceManager::eStartMode::Auto:
+            return SERVICE_AUTO_START;
+        case MX::CServiceManager::eStartMode::Boot:
+            return SERVICE_BOOT_START;
+        case MX::CServiceManager::eStartMode::System:
+            return SERVICE_SYSTEM_START;
+        case MX::CServiceManager::eStartMode::Manual:
+            return SERVICE_DEMAND_START;
+        case MX::CServiceManager::eStartMode::Disabled:
+            return SERVICE_DISABLED;
     }
     return 0xFFFFFFFFUL;
 }

@@ -28,14 +28,13 @@
 #include "Sid.h"
 #include <ArrayList.h>
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
 class CAdsHelper : public CBaseMemObj, public CNonCopyableObj
 {
-  public:
+public:
     CAdsHelper();
     ~CAdsHelper();
 
@@ -64,12 +63,12 @@ class CAdsHelper : public CBaseMemObj, public CNonCopyableObj
     static HRESULT GetUrlFromDn(_Inout_ CStringW &cStrW);
     static LPCWSTR GetDnFromUrl(_In_ LPCWSTR szUrlW);
 
-  private:
+private:
     static BOOL EscapeSlashes(_Inout_ CStringW &cStrW);
     HRESULT AdsOpen(_In_z_ LPCWSTR szPathNameW, _In_ REFIID riid, _Deref_out_ LPVOID *ppObject);
     BOOL IsCancelled();
 
-  private:
+private:
     CStringW cStrServerAddressW, cStrUserNameW, cStrPasswordW;
     HRESULT hResComInit;
     HANDLE hCancelEvent;

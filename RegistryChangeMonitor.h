@@ -26,28 +26,27 @@
 #include <Callbacks.h>
 #include <Strings\Strings.h>
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
 class CRegistryChangeMonitor : public CBaseMemObj, public CNonCopyableObj
 {
-  public:
+public:
     typedef Callback<VOID(_In_ LPVOID lpUserParam)> OnRegistryChangedCallback;
 
-  public:
+public:
     CRegistryChangeMonitor();
     ~CRegistryChangeMonitor();
 
-    HRESULT Start(_In_ HKEY hRootKey, _In_z_ LPCWSTR szSubkeyW, _In_ BOOL bWatchSubtree,
-                  _In_ OnRegistryChangedCallback cCallback, _In_opt_ LPVOID lpUserParam = NULL);
+    HRESULT Start(_In_ HKEY hRootKey, _In_z_ LPCWSTR szSubkeyW, _In_ BOOL bWatchSubtree, _In_ OnRegistryChangedCallback cCallback,
+                  _In_opt_ LPVOID lpUserParam = NULL);
     VOID Stop();
 
-  private:
+private:
     VOID WorkerThread();
 
-  private:
+private:
     HKEY hRootKey;
     CStringW cStrSubKeyW;
     BOOL bWatchSubtree;

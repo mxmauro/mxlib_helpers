@@ -22,14 +22,13 @@
 #include <Strings\Strings.h>
 #include <FnvHash.h>
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
 static MX::CWindowsMutex cSingleInstanceMutex;
 
 //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
 HRESULT SingleInstanceCheck(_In_z_ LPCWSTR szNameW)
 {

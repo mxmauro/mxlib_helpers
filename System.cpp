@@ -23,7 +23,7 @@
 #include <Windows.h>
 #include <lm.h>
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
 #define X_WCHAR_ENC(_x, _y) (WCHAR)(((USHORT)(_x)) ^ ((USHORT)_y + 0x8C32))
 
@@ -37,13 +37,12 @@
 //-----------------------------------------------------------
 
 typedef NET_API_STATUS(WINAPI *lpfnNetUserEnum)(_In_opt_ LPCWSTR servername, _In_ DWORD level, _In_ DWORD filter,
-                                                _Outptr_result_buffer_(_Inexpressible_("varies")) LPBYTE *bufptr,
-                                                _In_ DWORD prefmaxlen, _Out_ LPDWORD entriesread,
-                                                _Out_ LPDWORD totalentries, _Inout_opt_ PDWORD resume_handle);
+                                                _Outptr_result_buffer_(_Inexpressible_("varies")) LPBYTE *bufptr, _In_ DWORD prefmaxlen,
+                                                _Out_ LPDWORD entriesread, _Out_ LPDWORD totalentries, _Inout_opt_ PDWORD resume_handle);
 typedef NET_API_STATUS(WINAPI *lpfnNetLocalGroupEnum)(_In_opt_ LPCWSTR servername, _In_ DWORD level,
                                                       _Outptr_result_buffer_(_Inexpressible_("varies")) LPBYTE *bufptr,
-                                                      _In_ DWORD prefmaxlen, _Out_ LPDWORD entriesread,
-                                                      _Out_ LPDWORD totalentries, _Inout_opt_ PDWORD_PTR resumehandle);
+                                                      _In_ DWORD prefmaxlen, _Out_ LPDWORD entriesread, _Out_ LPDWORD totalentries,
+                                                      _Inout_opt_ PDWORD_PTR resumehandle);
 typedef NET_API_STATUS(WINAPI *lpfnNetApiBufferFree)(_Frees_ptr_opt_ LPVOID Buffer);
 
 static lpfnNetUserEnum fnNetUserEnum = NULL;
@@ -56,59 +55,48 @@ static VOID InitializeApis();
 
 //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
-namespace System
-{
+namespace System {
 
 HRESULT GetOpSystemInfo(_Out_ CStringW &cStrOpSystemW)
 {
-    static const WCHAR strW_Windows[] = {X_WCHAR_ENC(L'W', 0), X_WCHAR_ENC(L'i', 1), X_WCHAR_ENC(L'n', 2),
-                                         X_WCHAR_ENC(L'd', 3), X_WCHAR_ENC(L'o', 4), X_WCHAR_ENC(L'w', 5),
-                                         X_WCHAR_ENC(L's', 6), X_WCHAR_ENC(0, 7)};
-    static const WCHAR strW_Windows2000[] = {X_WCHAR_ENC(L'2', 0), X_WCHAR_ENC(L'0', 1), X_WCHAR_ENC(L'0', 2),
-                                             X_WCHAR_ENC(L'0', 3), X_WCHAR_ENC(0, 4)};
-    static const WCHAR strW_WindowsXP[] = {X_WCHAR_ENC(L'X', 0), X_WCHAR_ENC(L'P', 1), X_WCHAR_ENC(0, 2)};
-    static const WCHAR strW_WindowsServer2003[] = {X_WCHAR_ENC(L'S', 0), X_WCHAR_ENC(L'e', 1),  X_WCHAR_ENC(L'r', 2),
-                                                   X_WCHAR_ENC(L'v', 3), X_WCHAR_ENC(L'e', 4),  X_WCHAR_ENC(L'r', 5),
-                                                   X_WCHAR_ENC(L' ', 6), X_WCHAR_ENC(L'2', 7),  X_WCHAR_ENC(L'0', 8),
-                                                   X_WCHAR_ENC(L'0', 9), X_WCHAR_ENC(L'3', 10), X_WCHAR_ENC(0, 11)};
+    static const WCHAR strW_Windows[] = { X_WCHAR_ENC(L'W', 0), X_WCHAR_ENC(L'i', 1), X_WCHAR_ENC(L'n', 2), X_WCHAR_ENC(L'd', 3),
+                                         X_WCHAR_ENC(L'o', 4), X_WCHAR_ENC(L'w', 5), X_WCHAR_ENC(L's', 6), X_WCHAR_ENC(0, 7) };
+    static const WCHAR strW_Windows2000[] = { X_WCHAR_ENC(L'2', 0), X_WCHAR_ENC(L'0', 1), X_WCHAR_ENC(L'0', 2), X_WCHAR_ENC(L'0', 3),
+                                             X_WCHAR_ENC(0, 4) };
+    static const WCHAR strW_WindowsXP[] = { X_WCHAR_ENC(L'X', 0), X_WCHAR_ENC(L'P', 1), X_WCHAR_ENC(0, 2) };
+    static const WCHAR strW_WindowsServer2003[] = { X_WCHAR_ENC(L'S', 0), X_WCHAR_ENC(L'e', 1),  X_WCHAR_ENC(L'r', 2), X_WCHAR_ENC(L'v', 3),
+                                                   X_WCHAR_ENC(L'e', 4),  X_WCHAR_ENC(L'r', 5), X_WCHAR_ENC(L' ', 6), X_WCHAR_ENC(L'2', 7),
+                                                   X_WCHAR_ENC(L'0', 8), X_WCHAR_ENC(L'0', 9), X_WCHAR_ENC(L'3', 10), X_WCHAR_ENC(0, 11) };
     static const WCHAR strW_WindowsServer2003R2[] = {
-        X_WCHAR_ENC(L'S', 0),  X_WCHAR_ENC(L'e', 1),  X_WCHAR_ENC(L'r', 2),  X_WCHAR_ENC(L'v', 3),
-        X_WCHAR_ENC(L'e', 4),  X_WCHAR_ENC(L'r', 5),  X_WCHAR_ENC(L' ', 6),  X_WCHAR_ENC(L'2', 7),
-        X_WCHAR_ENC(L'0', 8),  X_WCHAR_ENC(L'0', 9),  X_WCHAR_ENC(L'3', 10), X_WCHAR_ENC(L' ', 11),
-        X_WCHAR_ENC(L'R', 12), X_WCHAR_ENC(L'2', 13), X_WCHAR_ENC(0, 14)};
-    static const WCHAR strW_WindowsVista[] = {X_WCHAR_ENC(L'V', 0), X_WCHAR_ENC(L'i', 1), X_WCHAR_ENC(L's', 2),
-                                              X_WCHAR_ENC(L't', 3), X_WCHAR_ENC(L'a', 4), X_WCHAR_ENC(0, 5)};
-    static const WCHAR strW_WindowsServer2008[] = {X_WCHAR_ENC(L'S', 0), X_WCHAR_ENC(L'e', 1),  X_WCHAR_ENC(L'r', 2),
-                                                   X_WCHAR_ENC(L'v', 3), X_WCHAR_ENC(L'e', 4),  X_WCHAR_ENC(L'r', 5),
-                                                   X_WCHAR_ENC(L' ', 6), X_WCHAR_ENC(L'2', 7),  X_WCHAR_ENC(L'0', 8),
-                                                   X_WCHAR_ENC(L'0', 9), X_WCHAR_ENC(L'8', 10), X_WCHAR_ENC(0, 11)};
+        X_WCHAR_ENC(L'S', 0),  X_WCHAR_ENC(L'e', 1),  X_WCHAR_ENC(L'r', 2),  X_WCHAR_ENC(L'v', 3), X_WCHAR_ENC(L'e', 4),
+        X_WCHAR_ENC(L'r', 5),  X_WCHAR_ENC(L' ', 6),  X_WCHAR_ENC(L'2', 7), X_WCHAR_ENC(L'0', 8), X_WCHAR_ENC(L'0', 9),
+        X_WCHAR_ENC(L'3', 10), X_WCHAR_ENC(L' ', 11), X_WCHAR_ENC(L'R', 12), X_WCHAR_ENC(L'2', 13), X_WCHAR_ENC(0, 14) };
+    static const WCHAR strW_WindowsVista[] = { X_WCHAR_ENC(L'V', 0), X_WCHAR_ENC(L'i', 1), X_WCHAR_ENC(L's', 2), X_WCHAR_ENC(L't', 3),
+                                              X_WCHAR_ENC(L'a', 4), X_WCHAR_ENC(0, 5) };
+    static const WCHAR strW_WindowsServer2008[] = { X_WCHAR_ENC(L'S', 0), X_WCHAR_ENC(L'e', 1),  X_WCHAR_ENC(L'r', 2), X_WCHAR_ENC(L'v', 3),
+                                                   X_WCHAR_ENC(L'e', 4),  X_WCHAR_ENC(L'r', 5), X_WCHAR_ENC(L' ', 6), X_WCHAR_ENC(L'2', 7),
+                                                   X_WCHAR_ENC(L'0', 8), X_WCHAR_ENC(L'0', 9), X_WCHAR_ENC(L'8', 10), X_WCHAR_ENC(0, 11) };
     static const WCHAR strW_WindowsServer2008R2[] = {
-        X_WCHAR_ENC(L'S', 0),  X_WCHAR_ENC(L'e', 1),  X_WCHAR_ENC(L'r', 2),  X_WCHAR_ENC(L'v', 3),
-        X_WCHAR_ENC(L'e', 4),  X_WCHAR_ENC(L'r', 5),  X_WCHAR_ENC(L' ', 6),  X_WCHAR_ENC(L'2', 7),
-        X_WCHAR_ENC(L'0', 8),  X_WCHAR_ENC(L'0', 9),  X_WCHAR_ENC(L'8', 10), X_WCHAR_ENC(L' ', 11),
-        X_WCHAR_ENC(L'R', 12), X_WCHAR_ENC(L'2', 13), X_WCHAR_ENC(0, 14)};
-    static const WCHAR strW_Windows7[] = {X_WCHAR_ENC(L'7', 0), X_WCHAR_ENC(0, 1)};
-    static const WCHAR strW_WindowsServer2012[] = {X_WCHAR_ENC(L'S', 0), X_WCHAR_ENC(L'e', 1),  X_WCHAR_ENC(L'r', 2),
-                                                   X_WCHAR_ENC(L'v', 3), X_WCHAR_ENC(L'e', 4),  X_WCHAR_ENC(L'r', 5),
-                                                   X_WCHAR_ENC(L' ', 6), X_WCHAR_ENC(L'2', 7),  X_WCHAR_ENC(L'0', 8),
-                                                   X_WCHAR_ENC(L'1', 9), X_WCHAR_ENC(L'2', 10), X_WCHAR_ENC(0, 11)};
-    static const WCHAR strW_Windows8[] = {X_WCHAR_ENC(L'8', 0), X_WCHAR_ENC(0, 1)};
+        X_WCHAR_ENC(L'S', 0),  X_WCHAR_ENC(L'e', 1),  X_WCHAR_ENC(L'r', 2),  X_WCHAR_ENC(L'v', 3), X_WCHAR_ENC(L'e', 4),
+        X_WCHAR_ENC(L'r', 5),  X_WCHAR_ENC(L' ', 6),  X_WCHAR_ENC(L'2', 7), X_WCHAR_ENC(L'0', 8), X_WCHAR_ENC(L'0', 9),
+        X_WCHAR_ENC(L'8', 10), X_WCHAR_ENC(L' ', 11), X_WCHAR_ENC(L'R', 12), X_WCHAR_ENC(L'2', 13), X_WCHAR_ENC(0, 14) };
+    static const WCHAR strW_Windows7[] = { X_WCHAR_ENC(L'7', 0), X_WCHAR_ENC(0, 1) };
+    static const WCHAR strW_WindowsServer2012[] = { X_WCHAR_ENC(L'S', 0), X_WCHAR_ENC(L'e', 1),  X_WCHAR_ENC(L'r', 2), X_WCHAR_ENC(L'v', 3),
+                                                   X_WCHAR_ENC(L'e', 4),  X_WCHAR_ENC(L'r', 5), X_WCHAR_ENC(L' ', 6), X_WCHAR_ENC(L'2', 7),
+                                                   X_WCHAR_ENC(L'0', 8), X_WCHAR_ENC(L'1', 9), X_WCHAR_ENC(L'2', 10), X_WCHAR_ENC(0, 11) };
+    static const WCHAR strW_Windows8[] = { X_WCHAR_ENC(L'8', 0), X_WCHAR_ENC(0, 1) };
     static const WCHAR strW_WindowsServer2012R2[] = {
-        X_WCHAR_ENC(L'S', 0),  X_WCHAR_ENC(L'e', 1),  X_WCHAR_ENC(L'r', 2),  X_WCHAR_ENC(L'v', 3),
-        X_WCHAR_ENC(L'e', 4),  X_WCHAR_ENC(L'r', 5),  X_WCHAR_ENC(L' ', 6),  X_WCHAR_ENC(L'2', 7),
-        X_WCHAR_ENC(L'0', 8),  X_WCHAR_ENC(L'1', 9),  X_WCHAR_ENC(L'2', 10), X_WCHAR_ENC(L' ', 11),
-        X_WCHAR_ENC(L'R', 12), X_WCHAR_ENC(L'2', 13), X_WCHAR_ENC(0, 14)};
-    static const WCHAR strW_Windows8_1[] = {X_WCHAR_ENC(L'8', 0), X_WCHAR_ENC(L'.', 1), X_WCHAR_ENC(L'1', 2),
-                                            X_WCHAR_ENC(0, 3)};
-    static const WCHAR strW_Windows10[] = {X_WCHAR_ENC(L'1', 0), X_WCHAR_ENC(L'0', 1), X_WCHAR_ENC(0, 2)};
-    static const WCHAR strW_WindowsServer2016[] = {X_WCHAR_ENC(L'S', 0), X_WCHAR_ENC(L'e', 1),  X_WCHAR_ENC(L'r', 2),
-                                                   X_WCHAR_ENC(L'v', 3), X_WCHAR_ENC(L'e', 4),  X_WCHAR_ENC(L'r', 5),
-                                                   X_WCHAR_ENC(L' ', 6), X_WCHAR_ENC(L'2', 7),  X_WCHAR_ENC(L'0', 8),
-                                                   X_WCHAR_ENC(L'1', 9), X_WCHAR_ENC(L'6', 10), X_WCHAR_ENC(0, 11)};
-    static const WCHAR strW_Unknown[] = {X_WCHAR_ENC(L'?', 0), X_WCHAR_ENC(0, 1)};
+        X_WCHAR_ENC(L'S', 0),  X_WCHAR_ENC(L'e', 1),  X_WCHAR_ENC(L'r', 2),  X_WCHAR_ENC(L'v', 3), X_WCHAR_ENC(L'e', 4),
+        X_WCHAR_ENC(L'r', 5),  X_WCHAR_ENC(L' ', 6),  X_WCHAR_ENC(L'2', 7), X_WCHAR_ENC(L'0', 8), X_WCHAR_ENC(L'1', 9),
+        X_WCHAR_ENC(L'2', 10), X_WCHAR_ENC(L' ', 11), X_WCHAR_ENC(L'R', 12), X_WCHAR_ENC(L'2', 13), X_WCHAR_ENC(0, 14) };
+    static const WCHAR strW_Windows8_1[] = { X_WCHAR_ENC(L'8', 0), X_WCHAR_ENC(L'.', 1), X_WCHAR_ENC(L'1', 2), X_WCHAR_ENC(0, 3) };
+    static const WCHAR strW_Windows10[] = { X_WCHAR_ENC(L'1', 0), X_WCHAR_ENC(L'0', 1), X_WCHAR_ENC(0, 2) };
+    static const WCHAR strW_WindowsServer2016[] = { X_WCHAR_ENC(L'S', 0), X_WCHAR_ENC(L'e', 1),  X_WCHAR_ENC(L'r', 2), X_WCHAR_ENC(L'v', 3),
+                                                   X_WCHAR_ENC(L'e', 4),  X_WCHAR_ENC(L'r', 5), X_WCHAR_ENC(L' ', 6), X_WCHAR_ENC(L'2', 7),
+                                                   X_WCHAR_ENC(L'0', 8), X_WCHAR_ENC(L'1', 9), X_WCHAR_ENC(L'6', 10), X_WCHAR_ENC(0, 11) };
+    static const WCHAR strW_Unknown[] = { X_WCHAR_ENC(L'?', 0), X_WCHAR_ENC(0, 1) };
     RTL_OSVERSIONINFOEXW sOviExW;
     WCHAR szTempW[128];
     SIZE_T i;
@@ -266,7 +254,7 @@ HRESULT _GetComputerNameEx(_In_ COMPUTER_NAME_FORMAT NameType, _Out_ CStringW &c
     }
     if (FAILED(hRes) && hRes != E_OUTOFMEMORY)
     {
-    try_other_method:
+try_other_method:
         if (NameType == ComputerNameDnsDomain || NameType == ComputerNameDnsHostname)
         {
             if (cStrNameW.EnsureBuffer(MAX_COMPUTERNAME_LENGTH + 2) != FALSE)
@@ -364,15 +352,14 @@ HRESULT LoadSystem32Dll(_In_z_ LPCWSTR szLibraryNameW, _Out_ HINSTANCE *lphInst)
 
 VOID RegisterAppInRestartManager()
 {
-    typedef HRESULT(WINAPI * lpfnRegisterApplicationRestart)(_In_opt_ PCWSTR pwzCommandline, _In_ DWORD dwFlags);
+    typedef HRESULT(WINAPI *lpfnRegisterApplicationRestart)(_In_opt_ PCWSTR pwzCommandline, _In_ DWORD dwFlags);
     lpfnRegisterApplicationRestart fnRegisterApplicationRestart;
     HINSTANCE hKernel32Dll;
 
     hKernel32Dll = ::GetModuleHandleW(L"kernel32.dll");
     if (hKernel32Dll != NULL)
     {
-        fnRegisterApplicationRestart =
-            (lpfnRegisterApplicationRestart)::GetProcAddress(hKernel32Dll, "RegisterApplicationRestart");
+        fnRegisterApplicationRestart = (lpfnRegisterApplicationRestart)::GetProcAddress(hKernel32Dll, "RegisterApplicationRestart");
         if (fnRegisterApplicationRestart != NULL)
         {
             fnRegisterApplicationRestart(L"/restartmanager", RESTART_NO_CRASH | RESTART_NO_HANG | RESTART_NO_REBOOT);
@@ -383,7 +370,7 @@ VOID RegisterAppInRestartManager()
 
 HRESULT GetAllUsers(_Inout_ TArrayListWithFree<LPWSTR> &aUsersList)
 {
-    static const LPCWSTR aBuiltinUsersW[] = {L"S-1-5-18", L"S-1-5-19", L"S-1-5-20"};
+    static const LPCWSTR aBuiltinUsersW[] = { L"S-1-5-18", L"S-1-5-19", L"S-1-5-20" };
     LPUSER_INFO_0 lpUserInfo0 = NULL;
     DWORD i, dwEntries, dwTotalEntries, dwResumeHandle;
     NET_API_STATUS nStatus;
@@ -437,8 +424,8 @@ HRESULT GetAllUsers(_Inout_ TArrayListWithFree<LPWSTR> &aUsersList)
     do
     {
         lpUserInfo0 = NULL;
-        nStatus = fnNetUserEnum(NULL, 0, FILTER_NORMAL_ACCOUNT, (LPBYTE *)&lpUserInfo0, 16384, &dwEntries,
-                                &dwTotalEntries, &dwResumeHandle);
+        nStatus = fnNetUserEnum(NULL, 0, FILTER_NORMAL_ACCOUNT, (LPBYTE *)&lpUserInfo0, 16384, &dwEntries, &dwTotalEntries,
+                                &dwResumeHandle);
         hRes = HRESULT_FROM_WIN32(nStatus);
         if (nStatus == NERR_Success || nStatus == ERROR_MORE_DATA)
         {
@@ -484,7 +471,8 @@ HRESULT GetAllUsers(_Inout_ TArrayListWithFree<LPWSTR> &aUsersList)
         {
             fnNetApiBufferFree(lpUserInfo0);
         }
-    } while (hRes == HRESULT_FROM_WIN32(ERROR_MORE_DATA));
+    }
+    while (hRes == HRESULT_FROM_WIN32(ERROR_MORE_DATA));
 
 done:
     // done
@@ -497,7 +485,7 @@ done:
 
 HRESULT GetAllGroups(_Inout_ TArrayListWithFree<LPWSTR> &aGroupsList)
 {
-    static const LPCWSTR aBuiltinUsersW[] = {L"S-1-1-0"};
+    static const LPCWSTR aBuiltinUsersW[] = { L"S-1-1-0" };
     LPLOCALGROUP_INFO_0 lpGroupInfo0 = NULL;
     DWORD i, dwEntries, dwTotalEntries;
     DWORD_PTR dwResumeHandle;
@@ -553,8 +541,7 @@ HRESULT GetAllGroups(_Inout_ TArrayListWithFree<LPWSTR> &aGroupsList)
     do
     {
         lpGroupInfo0 = NULL;
-        nStatus =
-            fnNetLocalGroupEnum(NULL, 0, (LPBYTE *)&lpGroupInfo0, 16384, &dwEntries, &dwTotalEntries, &dwResumeHandle);
+        nStatus = fnNetLocalGroupEnum(NULL, 0, (LPBYTE *)&lpGroupInfo0, 16384, &dwEntries, &dwTotalEntries, &dwResumeHandle);
         hRes = HRESULT_FROM_WIN32(nStatus);
         if (nStatus == NERR_Success || nStatus == ERROR_MORE_DATA)
         {
@@ -599,7 +586,8 @@ HRESULT GetAllGroups(_Inout_ TArrayListWithFree<LPWSTR> &aGroupsList)
         {
             fnNetApiBufferFree(lpGroupInfo0);
         }
-    } while (hRes == HRESULT_FROM_WIN32(ERROR_MORE_DATA));
+    }
+    while (hRes == HRESULT_FROM_WIN32(ERROR_MORE_DATA));
 
 done:
     // done

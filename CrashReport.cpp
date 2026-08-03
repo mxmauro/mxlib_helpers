@@ -29,7 +29,7 @@
 
 #define MAX_DUMPS_COUNT 20
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
 typedef struct _CRASHINFO
 {
@@ -39,8 +39,7 @@ typedef struct _CRASHINFO
 
 //-----------------------------------------------------------
 
-typedef BOOL(WINAPI *lpfnMiniDumpWriteDump)(_In_ HANDLE hProcess, _In_ DWORD ProcessId, _In_ HANDLE hFile,
-                                            _In_ MINIDUMP_TYPE DumpType,
+typedef BOOL(WINAPI *lpfnMiniDumpWriteDump)(_In_ HANDLE hProcess, _In_ DWORD ProcessId, _In_ HANDLE hFile, _In_ MINIDUMP_TYPE DumpType,
                                             _In_opt_ PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,
                                             _In_opt_ PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam,
                                             _In_opt_ PMINIDUMP_CALLBACK_INFORMATION CallbackParam);
@@ -62,11 +61,9 @@ static HANDLE CreateDumpFile(_In_z_ LPCWSTR szDumpFolderW, _In_z_ LPCWSTR szBase
 
 //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
-namespace CrashReport
-{
+namespace CrashReport {
 
 VOID Initialize()
 {
@@ -200,8 +197,7 @@ BOOL HandleCrashDump(_In_z_ LPCWSTR szApplicationNameW, _In_z_ LPCWSTR szModuleN
                 fnMiniDumpWriteDump(hProc, ::GetProcessId(hProc), cFileH,
                                     (MINIDUMP_TYPE)(MiniDumpWithFullMemory | MiniDumpWithFullMemoryInfo |
                                                     MiniDumpWithHandleData | MiniDumpWithUnloadedModules |
-                                                    MiniDumpWithThreadInfo),
-                                    &sMiniDumpExceptionInfo, NULL, NULL);
+                                                    MiniDumpWithThreadInfo), &sMiniDumpExceptionInfo, NULL, NULL);
             }
         }
         ::FreeLibrary(hDbgHelpDll);
@@ -270,8 +266,7 @@ static LONG WINAPI OnUnhandledExceptionFilter(_In_ PEXCEPTION_POINTERS Exception
 
     if (::DuplicateHandle(::GetCurrentProcess(), ::GetCurrentProcess(), ::GetCurrentProcess(), &hProcDup,
                           PROCESS_SUSPEND_RESUME | PROCESS_QUERY_INFORMATION | PROCESS_DUP_HANDLE | PROCESS_VM_READ |
-                              SYNCHRONIZE,
-                          TRUE, 0) != FALSE)
+                          SYNCHRONIZE, TRUE, 0) != FALSE)
     {
         MX::CFastLock cLock(&nMutex);
         MX::CStringW cStrNameW;
@@ -283,12 +278,12 @@ static LONG WINAPI OnUnhandledExceptionFilter(_In_ PEXCEPTION_POINTERS Exception
         if (SUCCEEDED(MX::FileRoutines::GetAppFileName(cStrNameW)) && cStrNameW.InsertN(L"\"", 0, 1) != FALSE &&
             cStrNameW.AppendFormat(L"\" /crash:0x%p,0x%p", hProcDup, &sCrashInfo) != FALSE)
         {
-            STARTUPINFOW sSiW = {0};
-            PROCESS_INFORMATION sPi = {0};
+            STARTUPINFOW sSiW = { 0 };
+            PROCESS_INFORMATION sPi = { 0 };
 
             sSiW.cb = (DWORD)sizeof(sSiW);
-            if (::CreateProcessW(NULL, (LPWSTR)cStrNameW, NULL, NULL, TRUE, CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP,
-                                 NULL, NULL, &sSiW, &sPi) != FALSE)
+            if (::CreateProcessW(NULL, (LPWSTR)cStrNameW, NULL, NULL, TRUE, CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP, NULL, NULL, &sSiW,
+                                 &sPi) != FALSE)
             {
                 ::WaitForSingleObject(sPi.hProcess, INFINITE);
                 ::CloseHandle(sPi.hThread);
@@ -336,7 +331,8 @@ loop:
             uliLowerTime.QuadPart = uliTemp.QuadPart;
         }
         dwCount++;
-    } while (::FindNextFileW(hFindFile, &sFindDataW) != FALSE);
+    }
+    while (::FindNextFileW(hFindFile, &sFindDataW) != FALSE);
     ::FindClose(hFindFile);
 
     if (dwCount > MAX_DUMPS_COUNT)
@@ -368,11 +364,9 @@ static HANDLE CreateDumpFile(_In_z_ LPCWSTR szDumpFolderW, _In_z_ LPCWSTR szBase
 
     ::GetLocalTime(&stNow);
 
-    if (cStrFileNameW.Format(L"%s%s_%04lu-%02lu-%02lu.dmp", szDumpFolderW, szBaseFileNameW, stNow.wYear, stNow.wMonth,
-                             stNow.wDay) != FALSE)
+    if (cStrFileNameW.Format(L"%s%s_%04lu-%02lu-%02lu.dmp", szDumpFolderW, szBaseFileNameW, stNow.wYear, stNow.wMonth, stNow.wDay) != FALSE)
     {
-        hFile = ::CreateFileW((LPCWSTR)cStrFileNameW, GENERIC_WRITE, FILE_SHARE_READ, 0, CREATE_NEW,
-                              FILE_ATTRIBUTE_NORMAL, 0);
+        hFile = ::CreateFileW((LPCWSTR)cStrFileNameW, GENERIC_WRITE, FILE_SHARE_READ, 0, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, 0);
         if (hFile != NULL && hFile != INVALID_HANDLE_VALUE)
         {
             return hFile;
@@ -386,11 +380,10 @@ static HANDLE CreateDumpFile(_In_z_ LPCWSTR szDumpFolderW, _In_z_ LPCWSTR szBase
 
     for (ULONG i = 2; i <= 1000; i++)
     {
-        if (cStrFileNameW.Format(L"%s%s_%04lu-%02lu-%02lu_%lu.dmp", szDumpFolderW, szBaseFileNameW, stNow.wYear,
-                                 stNow.wMonth, stNow.wDay, i) != FALSE)
+        if (cStrFileNameW.Format(L"%s%s_%04lu-%02lu-%02lu_%lu.dmp", szDumpFolderW, szBaseFileNameW, stNow.wYear, stNow.wMonth, stNow.wDay,
+                                 i) != FALSE)
         {
-            hFile = ::CreateFileW((LPCWSTR)cStrFileNameW, GENERIC_WRITE, FILE_SHARE_READ, 0, CREATE_NEW,
-                                  FILE_ATTRIBUTE_NORMAL, 0);
+            hFile = ::CreateFileW((LPCWSTR)cStrFileNameW, GENERIC_WRITE, FILE_SHARE_READ, 0, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, 0);
             if (hFile != NULL && hFile != INVALID_HANDLE_VALUE)
             {
                 return hFile;

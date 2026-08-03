@@ -30,14 +30,13 @@
 #define MX_PEPARSER_FLAG_ParseImportTables 0x0004
 #define MX_PEPARSER_FLAG_IgnoreMalformed 0x1000
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
 class CPEParser : public CBaseMemObj, public CNonCopyableObj
 {
-  public:
+public:
     typedef struct tagEXPORTED_FUNCTION
     {
         DWORD dwOrdinal;
@@ -54,7 +53,7 @@ class CPEParser : public CBaseMemObj, public CNonCopyableObj
         CHAR szNameA[1];
     } IMPORTED_FUNCTION, *LPIMPORTED_FUNCTION;
 
-  public:
+public:
     CPEParser();
     ~CPEParser();
 
@@ -150,7 +149,7 @@ class CPEParser : public CBaseMemObj, public CNonCopyableObj
         ReadRaw(_Out_writes_bytes_(nBytes) LPVOID lpDest, _In_ LPCVOID lpSrc, _In_ SIZE_T nBytes);
     HRESULT ReadAnsiString(_Out_ CStringA &cStrA, _In_ LPVOID lpNameAddress, _In_ SIZE_T nMaxLength);
 
-  private:
+private:
     VOID ClearVars();
 
     HRESULT DoParse(_In_ DWORD dwParseFlags);
@@ -158,26 +157,25 @@ class CPEParser : public CBaseMemObj, public CNonCopyableObj
     HRESULT DoParseExportTable(_In_ PIMAGE_EXPORT_DIRECTORY lpExportDir, _In_ DWORD dwStartRVA, _In_ DWORD dwEndRVA);
     HRESULT DoParseResources();
 
-    HRESULT _FindResource(_In_ LPCWSTR szNameW, _In_ LPCWSTR szTypeW, _In_ WORD wLang, _Out_ LPBYTE *lplpData,
-                          _Out_ SIZE_T *lpnDataSize);
-    HRESULT LookupResourceEntry(_In_ PIMAGE_RESOURCE_DIRECTORY lpRootDir, _In_ PIMAGE_RESOURCE_DIRECTORY lpDir,
-                                _In_ LPCWSTR szKeyW, _Out_ PIMAGE_RESOURCE_DIRECTORY_ENTRY *lplpDirEntry);
+    HRESULT _FindResource(_In_ LPCWSTR szNameW, _In_ LPCWSTR szTypeW, _In_ WORD wLang, _Out_ LPBYTE *lplpData, _Out_ SIZE_T *lpnDataSize);
+    HRESULT LookupResourceEntry(_In_ PIMAGE_RESOURCE_DIRECTORY lpRootDir, _In_ PIMAGE_RESOURCE_DIRECTORY lpDir, _In_ LPCWSTR szKeyW,
+                                _Out_ PIMAGE_RESOURCE_DIRECTORY_ENTRY *lplpDirEntry);
 
-  private:
-    HANDLE hFile{NULL};
-    HANDLE hProc{NULL};
+private:
+    HANDLE hFile{ NULL };
+    HANDLE hProc{ NULL };
 
-    LPBYTE lpBaseAddress{NULL};
-    SIZE_T nDataSize{0};
-    BOOL bImageIsMapped{FALSE};
+    LPBYTE lpBaseAddress{ NULL };
+    SIZE_T nDataSize{ 0 };
+    BOOL bImageIsMapped{ FALSE };
     struct
     {
         BYTE aBuffer[8192]{};
-        SIZE_T nOffset{0}, nLength{0};
+        SIZE_T nOffset{ 0 }, nLength{ 0 };
     } sFileCache;
 
-    WORD wMachine{0};
-    LPVOID lpOriginalImageBaseAddress{NULL};
+    WORD wMachine{ 0 };
+    LPVOID lpOriginalImageBaseAddress{ NULL };
 
     IMAGE_DOS_HEADER sDosHdr{};
     union
@@ -188,13 +186,13 @@ class CPEParser : public CBaseMemObj, public CNonCopyableObj
 #endif //_M_X64
     } uNtHdr{};
 
-    SIZE_T nSectionsCount{0};
+    SIZE_T nSectionsCount{ 0 };
     TAutoFreePtr<IMAGE_SECTION_HEADER> cFileImgSect;
 
-  private:
+private:
     class CImportedDll : public CBaseMemObj
     {
-      public:
+    public:
         CStringA cStrNameA;
         TArrayListWithFree<LPIMPORTED_FUNCTION> aEntries;
     };
@@ -206,16 +204,16 @@ class CPEParser : public CBaseMemObj, public CNonCopyableObj
 
     struct
     {
-        DWORD dwCharacteristics{0};
-        WORD wMajorVersion{0};
-        WORD wMinorVersion{0};
+        DWORD dwCharacteristics{ 0 };
+        WORD wMajorVersion{ 0 };
+        WORD wMinorVersion{ 0 };
         TArrayListWithFree<LPEXPORTED_FUNCTION> aEntries;
     } sExportsInfo;
 
-    PIMAGE_RESOURCE_DIRECTORY lpResourceDir{NULL};
+    PIMAGE_RESOURCE_DIRECTORY lpResourceDir{ NULL };
 
     TAutoFreePtr<BYTE> cVersionInfo;
-    SIZE_T nVersionInfoSize{0};
+    SIZE_T nVersionInfoSize{ 0 };
 };
 
 }; // namespace MX

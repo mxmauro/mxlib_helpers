@@ -20,10 +20,10 @@
 #include "Process.h"
 #include "FileRoutines.h"
 #include <Debug.h>
-#include <WaitableObjects.h>
 #include <VersionHelpers.h>
+#include <WaitableObjects.h>
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
 #pragma pack(8)
 typedef struct
@@ -37,20 +37,16 @@ typedef struct
 
 //-----------------------------------------------------------
 
-static HRESULT QueryEnvironmentVariableInternal(_In_ LPCWSTR szVarNameW, _In_ SIZE_T nVarNameLen,
-                                                _In_opt_ MX::CStringW *lpStrDestW);
+static HRESULT QueryEnvironmentVariableInternal(_In_ LPCWSTR szVarNameW, _In_ SIZE_T nVarNameLen, _In_opt_ MX::CStringW *lpStrDestW);
 static BOOL IsWinVistaPlus();
 
 //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
-namespace Process
-{
+namespace Process {
 
-HRESULT ResolveChildProcessFileName(_Out_ CStringW &cStrFullNameW, _In_ LPCWSTR szApplicationNameW,
-                                    _In_ LPCWSTR szCommandLineW)
+HRESULT ResolveChildProcessFileName(_Out_ CStringW &cStrFullNameW, _In_ LPCWSTR szApplicationNameW, _In_ LPCWSTR szCommandLineW)
 {
     HRESULT hRes;
 
@@ -106,7 +102,7 @@ HRESULT ResolveChildProcessFileName(_Out_ CStringW &cStrFullNameW, _In_ LPCWSTR 
                 }
             }
         }
-        // 3. The 32-bit Windows system directory.Use the GetSystemDirectory function to get the path of this directory.
+        // 3. The 32-bit Windows system directory. Use the GetSystemDirectory function to get the path of this directory.
         if (SUCCEEDED(hRes))
         {
             hRes = FileRoutines::GetWindowsSystemPath(cStrTempW);
@@ -118,27 +114,24 @@ HRESULT ResolveChildProcessFileName(_Out_ CStringW &cStrFullNameW, _In_ LPCWSTR 
                 }
             }
         }
-        // 4. The 16-bit Windows system directory.There is no function that obtains the path of this directory, but it
-        // is
-        //    searched.The name of this directory is System.
-        // 5. The Windows directory.Use the GetWindowsDirectory function to get the path of this directory.
+        // 4. The 16-bit Windows system directory. There is no function that obtains the path of this directory, but it
+        // is searched.The name of this directory is System.
+        // 5. The Windows directory. Use the GetWindowsDirectory function to get the path of this directory.
         if (SUCCEEDED(hRes))
         {
             hRes = FileRoutines::GetWindowsPath(cStrTempW);
             if (SUCCEEDED(hRes))
             {
                 if (cStrSearchPathW.ConcatN(L";", 1) == FALSE || cStrSearchPathW.Concat((LPCWSTR)cStrTempW) == FALSE ||
-                    cStrSearchPathW.ConcatN(L"\\System;", 8) == FALSE ||
-                    cStrSearchPathW.Concat((LPCWSTR)cStrTempW) == FALSE)
+                    cStrSearchPathW.ConcatN(L"\\System;", 8) == FALSE || cStrSearchPathW.Concat((LPCWSTR)cStrTempW) == FALSE)
                 {
                     hRes = E_OUTOFMEMORY;
                 }
             }
         }
-        // 6. The directories that are listed in the PATH environment variable.Note that this function does not search
-        // the
-        //    per-application path specified by the App Paths registry key.To include this per-application path in the
-        //    search sequence, use the ShellExecute function.
+        // 6. The directories that are listed in the PATH environment variable. Note that this function does not search
+        // the per-application path specified by the App Paths registry key.To include this per-application path in the
+        // search sequence, use the ShellExecute function.
         if (SUCCEEDED(hRes))
         {
             hRes = QueryEnvironmentVariable(L"PATH", cStrTempW);
@@ -173,8 +166,8 @@ HRESULT ResolveChildProcessFileName(_Out_ CStringW &cStrFullNameW, _In_ LPCWSTR 
                 // check this entry
                 while (SUCCEEDED(hRes))
                 {
-                    nRetLen = ::SearchPathW((LPCWSTR)cStrSearchPathW, (LPCWSTR)cStrExeNameW, L".exe",
-                                            (DWORD)nTempBufLen, (LPWSTR)cStrTempW, NULL);
+                    nRetLen = ::SearchPathW((LPCWSTR)cStrSearchPathW, (LPCWSTR)cStrExeNameW, L".exe", (DWORD)nTempBufLen, (LPWSTR)cStrTempW,
+                                            NULL);
                     if (nRetLen == 0 || nRetLen < nTempBufLen - 2)
                     {
                         ((LPWSTR)cStrTempW)[nRetLen] = 0;
@@ -362,9 +355,9 @@ HRESULT GetThreadMembershipType(_Out_ Process::eTokenGetMembershipType &nType)
 
 HRESULT GetTokenMembershipType(_In_ HANDLE hToken, _Out_ Process::eTokenGetMembershipType &nType)
 {
-    static const MY_SID sLocalSystemSID = {SID_REVISION, 1, {SECURITY_NT_AUTHORITY}, {SECURITY_LOCAL_SYSTEM_RID}};
+    static const MY_SID sLocalSystemSID = { SID_REVISION, 1, {SECURITY_NT_AUTHORITY}, {SECURITY_LOCAL_SYSTEM_RID} };
     static const MY_SID sAdminsSID = {
-        SID_REVISION, 2, {SECURITY_NT_AUTHORITY}, {SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ADMINS}};
+        SID_REVISION, 2, {SECURITY_NT_AUTHORITY}, {SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ADMINS} };
     BOOL b;
     DWORD dw;
     HANDLE hTokenToCheck = NULL;
@@ -402,15 +395,13 @@ HRESULT GetTokenMembershipType(_In_ HANDLE hToken, _Out_ Process::eTokenGetMembe
         // if we are not elevated, lookup for the linked token (if exists) and check if it belongs to administrators
         // group
         ::MxMemSet(&sTokElevType, 0, sizeof(sTokElevType));
-        if (::GetTokenInformation(hToken, TokenElevationType, &sTokElevType, (DWORD)sizeof(sTokElevType), &dw) !=
-                FALSE &&
+        if (::GetTokenInformation(hToken, TokenElevationType, &sTokElevType, (DWORD)sizeof(sTokElevType), &dw) != FALSE &&
             sTokElevType == TokenElevationTypeLimited)
         {
             HANDLE hLinkedToken;
 
             hLinkedToken = NULL;
-            if (::GetTokenInformation(hToken, TokenLinkedToken, &hLinkedToken, (DWORD)sizeof(hLinkedToken), &dw) !=
-                    FALSE &&
+            if (::GetTokenInformation(hToken, TokenLinkedToken, &hLinkedToken, (DWORD)sizeof(hLinkedToken), &dw) != FALSE &&
                 hLinkedToken != NULL)
             {
                 ::CloseHandle(hTokenToCheck);
@@ -477,23 +468,19 @@ HRESULT EnablePrivilege(_In_z_ LPCWSTR szPrivilegeW)
         {
             sPriv.PrivilegeCount = 1;
             sPriv.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-            if (::AdjustTokenPrivileges(hToken, FALSE, &sPriv, (DWORD)sizeof(sPriv), NULL, NULL) == FALSE)
-            {
-                hRes = MX_HRESULT_FROM_LASTERROR();
-                // DebugPrint("EnableProcessPrivileges/AdjustTokenPrivileges 0x%08X\n", hRes);
-            }
+            ::SetLastError(ERROR_SUCCESS);
+            ::AdjustTokenPrivileges(hToken, FALSE, &sPriv, (DWORD)sizeof(sPriv), NULL, NULL);
+            hRes = MX_HRESULT_FROM_LASTERROR();
         }
         else
         {
             hRes = MX_HRESULT_FROM_LASTERROR();
-            // DebugPrint("EnableProcessPrivileges/LookupPrivilegeValueW 0x%08X\n", hRes);
         }
         ::CloseHandle(hToken);
     }
     else
     {
         hRes = MX_HRESULT_FROM_LASTERROR();
-        // DebugPrint("EnableProcessPrivileges/OpenProcessToken 0x%08X\n", hRes);
     }
     return hRes;
 }
@@ -504,8 +491,7 @@ HRESULT EnablePrivilege(_In_z_ LPCWSTR szPrivilegeW)
 
 //-----------------------------------------------------------
 
-static HRESULT QueryEnvironmentVariableInternal(_In_ LPCWSTR szVarNameW, _In_ SIZE_T nVarNameLen,
-                                                _In_opt_ MX::CStringW *lpStrDestW)
+static HRESULT QueryEnvironmentVariableInternal(_In_ LPCWSTR szVarNameW, _In_ SIZE_T nVarNameLen, _In_opt_ MX::CStringW *lpStrDestW)
 {
     LPBYTE lpPeb, lpUserProcParams;
     PRTL_CRITICAL_SECTION lpCS;
@@ -554,8 +540,7 @@ static HRESULT QueryEnvironmentVariableInternal(_In_ LPCWSTR szVarNameW, _In_ SI
                     szEnvW++;
                 }
                 // check this name
-                if ((SIZE_T)(szEnvW - szNameStartW) == nVarNameLen &&
-                    MX::StrNCompareW(szVarNameW, szNameStartW, nVarNameLen, TRUE) == 0)
+                if ((SIZE_T)(szEnvW - szNameStartW) == nVarNameLen && MX::StrNCompareW(szVarNameW, szNameStartW, nVarNameLen, TRUE) == 0)
                 {
                     hRes = S_OK;
                     if (*szEnvW == L'=' && lpStrDestW != NULL)

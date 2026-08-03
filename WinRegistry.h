@@ -28,14 +28,13 @@
 #include <WinReg.h>
 #include <winternl.h>
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
 class CWindowsRegistry : public virtual CBaseMemObj, public CNonCopyableObj
 {
-  public:
+public:
     CWindowsRegistry();
     ~CWindowsRegistry();
 
@@ -66,10 +65,8 @@ class CWindowsRegistry : public virtual CBaseMemObj, public CNonCopyableObj
     HRESULT ReadBlob(_In_z_ LPCWSTR szNameW, _Out_ TAutoFreePtr<BYTE> &cBlob, _Out_ SIZE_T &nBlobSize);
     HRESULT ReadBlob(_In_ PUNICODE_STRING Name, _Out_ TAutoFreePtr<BYTE> &cBlob, _Out_ SIZE_T &nBlobSize);
 
-    HRESULT ReadAny(_In_z_ LPCWSTR szNameW, _Out_ DWORD &dwType, _Out_ TAutoFreePtr<BYTE> &cData,
-                    _Out_ SIZE_T &nDataSize);
-    HRESULT ReadAny(_In_ PUNICODE_STRING Name, _Out_ DWORD &dwType, _Out_ TAutoFreePtr<BYTE> &cData,
-                    _Out_ SIZE_T &nDataSize);
+    HRESULT ReadAny(_In_z_ LPCWSTR szNameW, _Out_ DWORD &dwType, _Out_ TAutoFreePtr<BYTE> &cData, _Out_ SIZE_T &nDataSize);
+    HRESULT ReadAny(_In_ PUNICODE_STRING Name, _Out_ DWORD &dwType, _Out_ TAutoFreePtr<BYTE> &cData, _Out_ SIZE_T &nDataSize);
 
     HRESULT WriteDWord(_In_z_ LPCWSTR szNameW, _In_ DWORD dwValue);
 
@@ -95,7 +92,7 @@ class CWindowsRegistry : public virtual CBaseMemObj, public CNonCopyableObj
     HRESULT EnumerateValues(_In_ DWORD dwIndex, _Inout_ CStringW &cStrValueNameW);
     HRESULT EnumerateValues(_In_ DWORD dwIndex, _Out_ PUNICODE_STRING *pValueName);
 
-  private:
+private:
     HKEY hKey;
 };
 

@@ -21,10 +21,9 @@
 
 #define OPEN_KEY_RETRY_TIMEOUT_MS 10000
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
 CRegistryChangeMonitor::CRegistryChangeMonitor() : CBaseMemObj(), CNonCopyableObj()
 {
@@ -121,8 +120,7 @@ VOID CRegistryChangeMonitor::WorkerThread()
         lRes = (hKey == NULL) ? ::RegOpenKeyExW(hRootKey, (LPCWSTR)cStrSubKeyW, 0, KEY_NOTIFY, &hKey) : ERROR_SUCCESS;
         if (lRes == ERROR_SUCCESS)
         {
-            lRes = ::RegNotifyChangeKeyValue(hKey, bWatchSubtree, REG_NOTIFY_CHANGE_NAME | REG_NOTIFY_CHANGE_LAST_SET,
-                                             hEvent, TRUE);
+            lRes = ::RegNotifyChangeKeyValue(hKey, bWatchSubtree, REG_NOTIFY_CHANGE_NAME | REG_NOTIFY_CHANGE_LAST_SET, hEvent, TRUE);
             if (lRes != ERROR_SUCCESS)
             {
                 ::RegCloseKey(hKey);

@@ -19,13 +19,11 @@
  */
 #include "ResourceExtract.h"
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
-namespace PEResource
-{
+namespace PEResource {
 
 HRESULT ExtractToFile(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _In_ LPCWSTR szResTypeW, _In_ HANDLE hFile)
 {
@@ -66,8 +64,8 @@ HRESULT ExtractToFile(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _In_ LPCWST
     return (dwWritten == dwResSize) ? S_OK : MX_E_PartialCopy;
 }
 
-HRESULT ExtractToMemory(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _In_ LPCWSTR szResTypeW,
-                        _Outptr_result_maybenull_ LPBYTE *lplpDest, _Out_ SIZE_T *lpnDestSize)
+HRESULT ExtractToMemory(_In_ HINSTANCE hInst, _In_ LPCWSTR szResNameW, _In_ LPCWSTR szResTypeW, _Outptr_result_maybenull_ LPBYTE *lplpDest,
+                        _Out_ SIZE_T *lpnDestSize)
 {
     HRSRC hRsrc;
     DWORD dwResSize;

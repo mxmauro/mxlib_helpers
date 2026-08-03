@@ -24,13 +24,11 @@
 #include <Strings\Strings.h>
 #include <ArrayList.h>
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
-namespace System
-{
+namespace System {
 
 HRESULT GetOpSystemInfo(_Out_ CStringW &cStrOpSystemW);
 

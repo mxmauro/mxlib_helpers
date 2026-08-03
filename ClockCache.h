@@ -31,17 +31,16 @@
 
 #define MX_CLOCKCACHE_ENTRY_OFFSET_NotOnList 0x7FFFFFFFL
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
 class CClockCache : public virtual CBaseMemObj, public CNonCopyableObj
 {
-  public:
+public:
     class CValue : public TRefCounted<CBaseMemObj>, public CNonCopyableObj
     {
-      private:
+    private:
         CValue(_In_ LPCVOID lpData, _In_ SIZE_T nDataSize) : TRefCounted<CBaseMemObj>(), CNonCopyableObj()
         {
             this->lpData = NULL;
@@ -58,7 +57,7 @@ class CClockCache : public virtual CBaseMemObj, public CNonCopyableObj
             return;
         };
 
-      public:
+    public:
         ~CValue()
         {
             MX_FREE(lpData);
@@ -75,17 +74,17 @@ class CClockCache : public virtual CBaseMemObj, public CNonCopyableObj
             return nDataSize;
         };
 
-      private:
+    private:
         friend class CClockCache;
 
         LPVOID lpData;
         SIZE_T nDataSize;
     };
 
-  private:
+private:
     class CEntry : public TRefCounted<CBaseMemObj>, public CNonCopyableObj
     {
-      private:
+    private:
         CEntry(_In_ LPCSTR szKeyA, _In_ SIZE_T nKeyLen, _In_ DWORD dwExpireTimeMs)
             : TRefCounted<CBaseMemObj>(), CNonCopyableObj()
         {
@@ -103,7 +102,7 @@ class CClockCache : public virtual CBaseMemObj, public CNonCopyableObj
             return;
         };
 
-      public:
+    public:
         ~CEntry()
         {
             MX_FREE(szKeyA);
@@ -130,7 +129,7 @@ class CClockCache : public virtual CBaseMemObj, public CNonCopyableObj
             return lpValue;
         };
 
-      private:
+    private:
         BOOL IsEvicted()
         {
             if ((__InterlockedRead(&nFlags) & MX_CLOCKCACHE_ENTRY_FLAG_Evicted) != 0)
@@ -139,7 +138,7 @@ class CClockCache : public virtual CBaseMemObj, public CNonCopyableObj
             }
 
             // check expiration time if it has any
-            if (dwExpireTimeMs > 0 && ::GetTickCount() >= dwExpireTimeMs)
+            if (dwExpireTimeMs > 0 && (LONG)(::GetTickCount() - dwExpireTimeMs) >= 0)
             {
                 // evict entry
                 _InterlockedOr(&nFlags, MX_CLOCKCACHE_ENTRY_FLAG_Evicted);
@@ -149,7 +148,7 @@ class CClockCache : public virtual CBaseMemObj, public CNonCopyableObj
             return FALSE;
         };
 
-      private:
+    private:
         friend class CClockCache;
 
         CRedBlackTreeNode cTreeNode;
@@ -163,13 +162,10 @@ class CClockCache : public virtual CBaseMemObj, public CNonCopyableObj
         ULONG nEntryOffset;
     };
 
-  public:
+public:
     CClockCache()
     {
-        nMaxEntries = 0;
-        lplpEntries = NULL;
         SlimRWL_Initialize(&sRwLock);
-        ::MxMemSet(&sStats, 0, sizeof(sStats));
         return;
     };
 
@@ -181,7 +177,11 @@ class CClockCache : public virtual CBaseMemObj, public CNonCopyableObj
 
     HRESULT Initialize(_In_ ULONG _nMaxEntries)
     {
-        if (_nMaxEntries < 1 || (_nMaxEntries & (_nMaxEntries - 1)) != 0 || _nMaxEntries > (1 << 24))
+        if (lplpEntries != NULL)
+        {
+            return MX_E_AlreadyInitialized;
+        }
+        if (_nMaxEntries < 1 || (_nMaxEntries & (_nMaxEntries - 1)) != 0 || _nMaxEntries >(1 << 24))
         {
             return E_INVALIDARG;
         }
@@ -228,6 +228,7 @@ class CClockCache : public virtual CBaseMemObj, public CNonCopyableObj
         TAutoRefCounted<CEntry> cEntry;
 
         MX_ASSERT(szKeyA != NULL);
+        MX_ASSERT(lplpEntries != NULL);
 
         {
             CAutoSlimRWLShared cLock(&sRwLock);
@@ -264,8 +265,8 @@ class CClockCache : public virtual CBaseMemObj, public CNonCopyableObj
         TAutoRefCounted<CValue> cNewValue;
 
         MX_ASSERT(szKeyA != NULL);
-
         MX_ASSERT(lpValue != NULL || nValueSize == 0);
+        MX_ASSERT(lplpEntries != NULL);
 
         if (dwExpireTimeMs > 0)
         {
@@ -299,8 +300,7 @@ class CClockCache : public virtual CBaseMemObj, public CNonCopyableObj
                 while (lplpEntries[nClockHand] != NULL)
                 {
                     if ((_InterlockedAnd(&(lplpEntries[nClockHand]->nFlags), ~MX_CLOCKCACHE_ENTRY_FLAG_Referenced) &
-                         MX_CLOCKCACHE_ENTRY_FLAG_Referenced) == 0 ||
-                        lplpEntries[nClockHand]->IsEvicted() != FALSE)
+                         MX_CLOCKCACHE_ENTRY_FLAG_Referenced) == 0 || lplpEntries[nClockHand]->IsEvicted() != FALSE)
                     {
                         cEvictedEntry.Attach(lplpEntries[nClockHand]);
                         cEvictedEntry->cTreeNode.Remove();
@@ -346,6 +346,7 @@ class CClockCache : public virtual CBaseMemObj, public CNonCopyableObj
         CEntry *lpEntry;
 
         MX_ASSERT(szKeyA != NULL);
+        MX_ASSERT(lplpEntries != NULL);
 
         // find value
         lpTreeNode = cTree.Find(szKeyA, &CClockCache::SearchValue);
@@ -356,8 +357,7 @@ class CClockCache : public virtual CBaseMemObj, public CNonCopyableObj
 
         lpEntry = CONTAINING_RECORD(lpTreeNode, CEntry, cTreeNode);
 
-        if ((_InterlockedOr(&(lpEntry->nFlags), MX_CLOCKCACHE_ENTRY_FLAG_Evicted) & MX_CLOCKCACHE_ENTRY_FLAG_Evicted) !=
-            0)
+        if ((_InterlockedOr(&(lpEntry->nFlags), MX_CLOCKCACHE_ENTRY_FLAG_Evicted) & MX_CLOCKCACHE_ENTRY_FLAG_Evicted) != 0)
         {
             // already evicted
             return MX_E_NotFound;
@@ -374,6 +374,8 @@ class CClockCache : public virtual CBaseMemObj, public CNonCopyableObj
         CAutoSlimRWLShared cLock(&sRwLock);
         CRedBlackTree::Iterator it;
 
+        MX_ASSERT(lplpEntries != NULL);
+
         for (CRedBlackTreeNode *lpTreeNode = it.Begin(cTree); lpTreeNode != NULL; lpTreeNode = it.Next())
         {
             CEntry *lpEntry = CONTAINING_RECORD(lpTreeNode, CEntry, cTreeNode);
@@ -385,7 +387,7 @@ class CClockCache : public virtual CBaseMemObj, public CNonCopyableObj
         return;
     };
 
-  private:
+private:
     static int InsertValue(_In_ LPVOID lpContext, _In_ CRedBlackTreeNode *lpNode1, _In_ CRedBlackTreeNode *lpNode2)
     {
         CEntry *lpEntry1 = CONTAINING_RECORD(lpNode1, CEntry, cTreeNode);
@@ -401,19 +403,19 @@ class CClockCache : public virtual CBaseMemObj, public CNonCopyableObj
         return StrCompareA(szKeyA, lpEntry->szKeyA);
     };
 
-  private:
-    ULONG nMaxEntries;
-    CEntry **lplpEntries;
-    ULONG nClockHand;
+private:
+    ULONG nMaxEntries{ 0 };
+    CEntry **lplpEntries{ NULL };
+    ULONG nClockHand{ 0 };
     RWLOCK sRwLock;
     CRedBlackTree cTree;
     struct
     {
-        LONG volatile nInserted;
-        LONG volatile nReplaced;
-        LONG volatile nHit;
-        LONG volatile nMiss;
-        LONG volatile nDeleted;
+        LONG volatile nInserted{ 0 };
+        LONG volatile nReplaced{ 0 };
+        LONG volatile nHit{ 0 };
+        LONG volatile nMiss{ 0 };
+        LONG volatile nDeleted{ 0 };
     } sStats;
 };
 

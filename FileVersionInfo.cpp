@@ -24,14 +24,13 @@
 
 #pragma comment(lib, "version.lib")
 
+ //-----------------------------------------------------------
+
+static VS_FIXEDFILEINFO sNoFixedInfo = { 0 };
+
 //-----------------------------------------------------------
 
-static VS_FIXEDFILEINFO sNoFixedInfo = {0};
-
-//-----------------------------------------------------------
-
-namespace MX
-{
+namespace MX {
 
 CFileVersionInfo::CFileVersionInfo() : CBaseMemObj(), CNonCopyableObj()
 {
@@ -80,8 +79,7 @@ HRESULT CFileVersionInfo::InitializeFromProcessHandle(_In_opt_ HANDLE hProc)
     return hRes;
 }
 
-HRESULT CFileVersionInfo::InitializeFromMemory(_In_ LPCVOID lpBaseAddress, _In_ SIZE_T nImageSize,
-                                               _In_ BOOL bImageIsMapped)
+HRESULT CFileVersionInfo::InitializeFromMemory(_In_ LPCVOID lpBaseAddress, _In_ SIZE_T nImageSize, _In_ BOOL bImageIsMapped)
 {
     CPEParser cPeParser;
     HRESULT hRes;
@@ -162,7 +160,7 @@ HRESULT CFileVersionInfo::GetString(_In_z_ LPCWSTR szFieldW, _Inout_ CStringW &c
 
 MX_UNICODE_STRING CFileVersionInfo::GetString(_In_z_ LPCWSTR szFieldW, _In_opt_ SIZE_T nLangIndex)
 {
-    MX_UNICODE_STRING usRes = {0};
+    MX_UNICODE_STRING usRes = { 0 };
     WCHAR szStrFileInfoW[256];
     PWSTR sW;
     UINT nLen, nMaxLen;
@@ -224,8 +222,7 @@ HRESULT CFileVersionInfo::AnalyzeVersionInfo(_In_ LPVOID _lpPeParser)
             {
                 goto set_default;
             }
-            if (::VerQueryValueW(cVersionInfo.Get(), L"\\VarFileInfo\\Translation\\", (LPVOID *)&lpTranslationBlock,
-                                 &nLen) == FALSE)
+            if (::VerQueryValueW(cVersionInfo.Get(), L"\\VarFileInfo\\Translation\\", (LPVOID *)&lpTranslationBlock, &nLen) == FALSE)
             {
                 goto set_default;
             }
@@ -242,7 +239,7 @@ HRESULT CFileVersionInfo::AnalyzeVersionInfo(_In_ LPVOID _lpPeParser)
     }
     else
     {
-    set_default:
+set_default:
         lpFfi = &sNoFixedInfo;
         nTranslationBlocksCount = 0;
         lpTranslationBlock = NULL;

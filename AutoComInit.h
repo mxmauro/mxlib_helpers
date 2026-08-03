@@ -23,14 +23,13 @@
 #include <Windows.h>
 #include <Ole2.h>
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
 class CAutoComInit
 {
-  public:
+public:
     CAutoComInit()
     {
         hRes = ::CoInitializeEx(NULL, COINIT_MULTITHREADED);
@@ -51,7 +50,7 @@ class CAutoComInit
         return (SUCCEEDED(hRes) || hRes == RPC_E_CHANGED_MODE) ? S_OK : hRes;
     };
 
-  private:
+private:
     HRESULT hRes;
 };
 

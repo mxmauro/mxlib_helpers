@@ -25,13 +25,11 @@
 #include <AutoHandle.h>
 #include <Strings\Strings.h>
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
-namespace EventLogger
-{
+namespace EventLogger {
 
 // NOTE: If szApplicationNameW is only a name without a full path, logs will be stored in "Common AppData\Logs"
 HRESULT Initialize(_In_z_ LPCWSTR szApplicationNameW, _In_z_ LPCWSTR szModuleNameW, _In_ DWORD dwKeepDays,

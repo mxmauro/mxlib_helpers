@@ -22,21 +22,15 @@
 
 #include <Defines.h>
 
-//-----------------------------------------------------------
+ //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
-namespace Console
-{
+namespace Console {
 
 enum class eColor
 {
-    Normal,
-    Error,
-    Success,
-    Yellow,
-    Blue
+    Normal, Error, Success, Yellow, Blue
 };
 
 }; // namespace Console
@@ -45,11 +39,9 @@ enum class eColor
 
 //-----------------------------------------------------------
 
-namespace MX
-{
+namespace MX {
 
-namespace Console
-{
+namespace Console {
 
 VOID Initialize();
 
