@@ -79,35 +79,36 @@ typedef struct
 //-----------------------------------------------------------
 
 typedef LONG(WINAPI *lpfnWinVerifyTrustEx)(_In_ HWND hwnd, _In_ GUID *pgActionID, _In_ LPVOID pWVTData);
-typedef CRYPT_PROVIDER_DATA *(WINAPI *lpfnWTHelperProvDataFromStateData)(_In_ HANDLE hStateData);
-typedef CRYPT_PROVIDER_SGNR *(WINAPI *lpfnWTHelperGetProvSignerFromChain)(_In_ CRYPT_PROVIDER_DATA *pProvData, _In_ DWORD idxSigner,
+typedef PCRYPT_PROVIDER_DATA (WINAPI *lpfnWTHelperProvDataFromStateData)(_In_ HANDLE hStateData);
+typedef PCRYPT_PROVIDER_SGNR (WINAPI *lpfnWTHelperGetProvSignerFromChain)(_In_ CRYPT_PROVIDER_DATA *pProvData, _In_ DWORD idxSigner,
                                                                           _In_ BOOL fCounterSigner, _In_ DWORD idxCounterSigner);
-typedef DWORD(WINAPI *lpfnCertGetNameStringW)(_In_ PCCERT_CONTEXT pCertContext, _In_ DWORD dwType, _In_ DWORD dwFlags,
-                                              _In_opt_ void *pvTypePara, _Out_ LPWSTR pszNameString, _In_ DWORD cchNameString);
-typedef PCCERT_CONTEXT(WINAPI *lpfnCertDuplicateCertificateContext)(_In_opt_ PCCERT_CONTEXT pCertContext);
-typedef BOOL(WINAPI *lpfnCertFreeCertificateContext)(_In_opt_ PCCERT_CONTEXT pCertContext);
-typedef LONG(WINAPI *lpfnGetPackageFullName)(_In_ HANDLE hProcess, _Inout_ UINT32 *packageFullNameLength, _Out_opt_ PWSTR packageFullName);
-typedef LONG(WINAPI *lpfnGetPackagePath)(_In_ PACKAGE_ID *packageId, _Reserved_ UINT32 reserved, _Inout_ UINT32 *pathLength,
+typedef PCRYPT_PROVIDER_CERT (WINAPI *lpfnWTHelperGetProvCertFromChain)(_In_ CRYPT_PROVIDER_SGNR *pSgnr, _In_ DWORD idxCert);
+typedef DWORD (WINAPI *lpfnCertGetNameStringW)(_In_ PCCERT_CONTEXT pCertContext, _In_ DWORD dwType, _In_ DWORD dwFlags,
+                                               _In_opt_ void *pvTypePara, _Out_ LPWSTR pszNameString, _In_ DWORD cchNameString);
+typedef PCCERT_CONTEXT (WINAPI *lpfnCertDuplicateCertificateContext)(_In_opt_ PCCERT_CONTEXT pCertContext);
+typedef BOOL (WINAPI *lpfnCertFreeCertificateContext)(_In_opt_ PCCERT_CONTEXT pCertContext);
+typedef LONG (WINAPI *lpfnGetPackageFullName)(_In_ HANDLE hProcess, _Inout_ UINT32 *packageFullNameLength, _Out_opt_ PWSTR packageFullName);
+typedef LONG (WINAPI *lpfnGetPackagePath)(_In_ PACKAGE_ID *packageId, _Reserved_ UINT32 reserved, _Inout_ UINT32 *pathLength,
                                          _Out_opt_ PWSTR path);
-typedef LONG(WINAPI *lpfnPackageIdFromFullName)(_In_ PCWSTR packageFullName, _In_ UINT32 flags, _Inout_ UINT32 *bufferLength,
-                                                _Out_opt_ BYTE *buffer);
-typedef BOOL(WINAPI *lpfnCryptCATAdminAcquireContext)(_Out_ HCATADMIN *phCatAdmin, _In_opt_ const GUID *pgSubsystem,
-                                                      _Reserved_ DWORD dwFlags);
-typedef BOOL(WINAPI *lpfnCryptCATAdminAcquireContext2)(_Out_ HCATADMIN *phCatAdmin, _In_opt_ const GUID *pgSubsystem,
-                                                       _In_opt_ PCWSTR pwszHashAlgorithm,
-                                                       _In_opt_ PCCERT_STRONG_SIGN_PARA pStrongHashPolicy, _Reserved_ DWORD dwFlags);
-typedef BOOL(WINAPI *lpfnCryptCATAdminCalcHashFromFileHandle)(_In_ HANDLE hFile, _Inout_ DWORD *pcbHash,
-                                                              _Out_writes_bytes_to_opt_(*pcbHash, *pcbHash)
-                                                                  BYTE *pbHash, _Reserved_ DWORD dwFlags);
-typedef BOOL(WINAPI *lpfnCryptCATAdminCalcHashFromFileHandle2)(_In_ HCATADMIN hCatAdmin, _In_ HANDLE hFile, _Inout_ DWORD *pcbHash,
+typedef LONG (WINAPI *lpfnPackageIdFromFullName)(_In_ PCWSTR packageFullName, _In_ UINT32 flags, _Inout_ UINT32 *bufferLength,
+                                                 _Out_opt_ BYTE *buffer);
+typedef BOOL (WINAPI *lpfnCryptCATAdminAcquireContext)(_Out_ HCATADMIN *phCatAdmin, _In_opt_ const GUID *pgSubsystem,
+                                                       _Reserved_ DWORD dwFlags);
+typedef BOOL (WINAPI *lpfnCryptCATAdminAcquireContext2)(_Out_ HCATADMIN *phCatAdmin, _In_opt_ const GUID *pgSubsystem,
+                                                        _In_opt_ PCWSTR pwszHashAlgorithm,
+                                                        _In_opt_ PCCERT_STRONG_SIGN_PARA pStrongHashPolicy, _Reserved_ DWORD dwFlags);
+typedef BOOL (WINAPI *lpfnCryptCATAdminCalcHashFromFileHandle)(_In_ HANDLE hFile, _Inout_ DWORD *pcbHash,
                                                                _Out_writes_bytes_to_opt_(*pcbHash, *pcbHash)
                                                                    BYTE *pbHash, _Reserved_ DWORD dwFlags);
-typedef HCATINFO(WINAPI *lpfnCryptCATAdminEnumCatalogFromHash)(_In_ HCATADMIN hCatAdmin, _In_reads_bytes_(cbHash) BYTE *pbHash,
-                                                               _In_ DWORD cbHash, _Reserved_ DWORD dwFlags,
-                                                               _Inout_opt_ HCATINFO *phPrevCatInfo);
-typedef BOOL(WINAPI *lpfnCryptCATAdminReleaseContext)(_In_ HCATADMIN hCatAdmin, _In_ DWORD dwFlags);
-typedef BOOL(WINAPI *lpfnCryptCATCatalogInfoFromContext)(_In_ HCATINFO hCatInfo, _Inout_ CATALOG_INFO *psCatInfo, _In_ DWORD dwFlags);
-typedef BOOL(WINAPI *lpfnCryptCATAdminReleaseCatalogContext)(_In_ HCATADMIN hCatAdmin, _In_ HCATINFO hCatInfo, _In_ DWORD dwFlags);
+typedef BOOL (WINAPI *lpfnCryptCATAdminCalcHashFromFileHandle2)(_In_ HCATADMIN hCatAdmin, _In_ HANDLE hFile, _Inout_ DWORD *pcbHash,
+                                                                _Out_writes_bytes_to_opt_(*pcbHash, *pcbHash)
+                                                                    BYTE *pbHash, _Reserved_ DWORD dwFlags);
+typedef HCATINFO (WINAPI *lpfnCryptCATAdminEnumCatalogFromHash)(_In_ HCATADMIN hCatAdmin, _In_reads_bytes_(cbHash) BYTE *pbHash,
+                                                                _In_ DWORD cbHash, _Reserved_ DWORD dwFlags,
+                                                                _Inout_opt_ HCATINFO *phPrevCatInfo);
+typedef BOOL (WINAPI *lpfnCryptCATAdminReleaseContext)(_In_ HCATADMIN hCatAdmin, _In_ DWORD dwFlags);
+typedef BOOL (WINAPI *lpfnCryptCATCatalogInfoFromContext)(_In_ HCATINFO hCatInfo, _Inout_ CATALOG_INFO *psCatInfo, _In_ DWORD dwFlags);
+typedef BOOL (WINAPI *lpfnCryptCATAdminReleaseCatalogContext)(_In_ HCATADMIN hCatAdmin, _In_ HCATINFO hCatInfo, _In_ DWORD dwFlags);
 
 //-----------------------------------------------------------
 
@@ -120,6 +121,7 @@ static HINSTANCE hWinTrustDll = NULL;
 static lpfnWinVerifyTrustEx fnWinVerifyTrustEx = NULL;
 static lpfnWTHelperProvDataFromStateData fnWTHelperProvDataFromStateData = NULL;
 static lpfnWTHelperGetProvSignerFromChain fnWTHelperGetProvSignerFromChain = NULL;
+static lpfnWTHelperGetProvCertFromChain fnWTHelperGetProvCertFromChain = NULL;
 static lpfnCertGetNameStringW fnCertGetNameStringW = NULL;
 static lpfnCertDuplicateCertificateContext fnCertDuplicateCertificateContext = NULL;
 static lpfnCertFreeCertificateContext fnCertFreeCertificateContext = NULL;
@@ -141,9 +143,9 @@ static BOOL IsWinVistaPlus();
 
 static VOID EndSignaturesAndInfo();
 
-static HRESULT DoTrustVerification(_In_opt_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_ LPGUID lpActionId,
-                                   _In_opt_ PWINTRUST_CATALOG_INFO lpCatalogInfo, _Out_ PCERT_CONTEXT *lplpCertCtx,
-                                   _Out_ PFILETIME lpTimeStamp);
+static HRESULT DoTrustVerification(_In_opt_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_ LPCGUID lpActionId,
+                                   _In_opt_ PWINTRUST_CATALOG_INFO lpCatalogInfo, _In_ BOOL bCheckRevocation,
+                                   _Out_ MX::Signatures::CertificateArray &cCerts, _Out_opt_ PFILETIME lpTimeStamp);
 
 //-----------------------------------------------------------
 
@@ -160,48 +162,57 @@ HRESULT Initialize()
         X_WCHAR_ENC(L'u', 5),  X_WCHAR_ENC(L's', 6),  X_WCHAR_ENC(L't', 7), X_WCHAR_ENC(L'.', 8), X_WCHAR_ENC(L'd', 9),
         X_WCHAR_ENC(L'l', 10), X_WCHAR_ENC(L'l', 11), X_WCHAR_ENC(0, 12) };
     static const CHAR strA_WinVerifyTrustEx[] = {
-        X_CHAR_ENC('W', 0),  X_CHAR_ENC('i', 1),  X_CHAR_ENC('n', 2),  X_CHAR_ENC('V', 3),  X_CHAR_ENC('e', 4), X_CHAR_ENC('r', 5),
-        X_CHAR_ENC('i', 6),  X_CHAR_ENC('f', 7),  X_CHAR_ENC('y', 8),  X_CHAR_ENC('T', 9), X_CHAR_ENC('r', 10), X_CHAR_ENC('u', 11),
+        X_CHAR_ENC('W', 0),  X_CHAR_ENC('i', 1),  X_CHAR_ENC('n', 2),  X_CHAR_ENC('V', 3),  X_CHAR_ENC('e', 4),  X_CHAR_ENC('r', 5),
+        X_CHAR_ENC('i', 6),  X_CHAR_ENC('f', 7),  X_CHAR_ENC('y', 8),  X_CHAR_ENC('T', 9),  X_CHAR_ENC('r', 10), X_CHAR_ENC('u', 11),
         X_CHAR_ENC('s', 12), X_CHAR_ENC('t', 13), X_CHAR_ENC('E', 14), X_CHAR_ENC('x', 15), X_CHAR_ENC(0, 16) };
     static const CHAR strA_WTHelperProvDataFromStateData[] = {
-        X_CHAR_ENC('W', 0),  X_CHAR_ENC('T', 1),  X_CHAR_ENC('H', 2),  X_CHAR_ENC('e', 3),  X_CHAR_ENC('l', 4), X_CHAR_ENC('p', 5),
-        X_CHAR_ENC('e', 6),  X_CHAR_ENC('r', 7),  X_CHAR_ENC('P', 8),  X_CHAR_ENC('r', 9), X_CHAR_ENC('o', 10), X_CHAR_ENC('v', 11),
+        X_CHAR_ENC('W', 0),  X_CHAR_ENC('T', 1),  X_CHAR_ENC('H', 2),  X_CHAR_ENC('e', 3),  X_CHAR_ENC('l', 4),  X_CHAR_ENC('p', 5),
+        X_CHAR_ENC('e', 6),  X_CHAR_ENC('r', 7),  X_CHAR_ENC('P', 8),  X_CHAR_ENC('r', 9),  X_CHAR_ENC('o', 10), X_CHAR_ENC('v', 11),
         X_CHAR_ENC('D', 12), X_CHAR_ENC('a', 13), X_CHAR_ENC('t', 14), X_CHAR_ENC('a', 15), X_CHAR_ENC('F', 16), X_CHAR_ENC('r', 17),
         X_CHAR_ENC('o', 18), X_CHAR_ENC('m', 19), X_CHAR_ENC('S', 20), X_CHAR_ENC('t', 21), X_CHAR_ENC('a', 22), X_CHAR_ENC('t', 23),
         X_CHAR_ENC('e', 24), X_CHAR_ENC('D', 25), X_CHAR_ENC('a', 26), X_CHAR_ENC('t', 27), X_CHAR_ENC('a', 28), X_CHAR_ENC(0, 29) };
     static const CHAR strA_WTHelperGetProvSignerFromChain[] = {
-        X_CHAR_ENC('W', 0),  X_CHAR_ENC('T', 1),  X_CHAR_ENC('H', 2),  X_CHAR_ENC('e', 3),  X_CHAR_ENC('l', 4), X_CHAR_ENC('p', 5),
-        X_CHAR_ENC('e', 6),  X_CHAR_ENC('r', 7),  X_CHAR_ENC('G', 8),  X_CHAR_ENC('e', 9), X_CHAR_ENC('t', 10), X_CHAR_ENC('P', 11),
+        X_CHAR_ENC('W', 0),  X_CHAR_ENC('T', 1),  X_CHAR_ENC('H', 2),  X_CHAR_ENC('e', 3),  X_CHAR_ENC('l', 4),  X_CHAR_ENC('p', 5),
+        X_CHAR_ENC('e', 6),  X_CHAR_ENC('r', 7),  X_CHAR_ENC('G', 8),  X_CHAR_ENC('e', 9), X_CHAR_ENC('t', 10),  X_CHAR_ENC('P', 11),
         X_CHAR_ENC('r', 12), X_CHAR_ENC('o', 13), X_CHAR_ENC('v', 14), X_CHAR_ENC('S', 15), X_CHAR_ENC('i', 16), X_CHAR_ENC('g', 17),
         X_CHAR_ENC('n', 18), X_CHAR_ENC('e', 19), X_CHAR_ENC('r', 20), X_CHAR_ENC('F', 21), X_CHAR_ENC('r', 22), X_CHAR_ENC('o', 23),
         X_CHAR_ENC('m', 24), X_CHAR_ENC('C', 25), X_CHAR_ENC('h', 26), X_CHAR_ENC('a', 27), X_CHAR_ENC('i', 28), X_CHAR_ENC('n', 29),
         X_CHAR_ENC(0, 30) };
-    static const WCHAR strW_Crypt32Dll[] = { X_WCHAR_ENC(L'c', 0), X_WCHAR_ENC(L'r', 1),  X_WCHAR_ENC(L'y', 2), X_WCHAR_ENC(L'p', 3),
-                                            X_WCHAR_ENC(L't', 4),  X_WCHAR_ENC(L'3', 5), X_WCHAR_ENC(L'2', 6), X_WCHAR_ENC(L'.', 7),
-                                            X_WCHAR_ENC(L'd', 8), X_WCHAR_ENC(L'l', 9), X_WCHAR_ENC(L'l', 10), X_WCHAR_ENC(0, 11) };
-    static const WCHAR strW_KernelbaseDll[] = { X_WCHAR_ENC(L'k', 0),  X_WCHAR_ENC(L'e', 1),  X_WCHAR_ENC(L'r', 2), X_WCHAR_ENC(L'n', 3),
-                                               X_WCHAR_ENC(L'e', 4),  X_WCHAR_ENC(L'l', 5), X_WCHAR_ENC(L'b', 6), X_WCHAR_ENC(L'a', 7),
-                                               X_WCHAR_ENC(L's', 8), X_WCHAR_ENC(L'e', 9), X_WCHAR_ENC(L'.', 10), X_WCHAR_ENC(L'd', 11),
-                                               X_WCHAR_ENC(L'l', 12), X_WCHAR_ENC(L'l', 13), X_WCHAR_ENC(0, 14) };
+    static const CHAR strA_WTHelperGetProvCertFromChain[] = {
+        X_CHAR_ENC('W', 0),  X_CHAR_ENC('T', 1),  X_CHAR_ENC('H', 2),  X_CHAR_ENC('e', 3),  X_CHAR_ENC('l', 4),  X_CHAR_ENC('p', 5),
+        X_CHAR_ENC('e', 6),  X_CHAR_ENC('r', 7),  X_CHAR_ENC('G', 8),  X_CHAR_ENC('e', 9),  X_CHAR_ENC('t', 10), X_CHAR_ENC('P', 11),
+        X_CHAR_ENC('r', 12), X_CHAR_ENC('o', 13), X_CHAR_ENC('v', 14), X_CHAR_ENC('C', 15), X_CHAR_ENC('e', 16), X_CHAR_ENC('r', 17),
+        X_CHAR_ENC('t', 18), X_CHAR_ENC('F', 19), X_CHAR_ENC('r', 20), X_CHAR_ENC('o', 21), X_CHAR_ENC('m', 22), X_CHAR_ENC('C', 23),
+        X_CHAR_ENC('h', 24), X_CHAR_ENC('a', 25), X_CHAR_ENC('i', 26), X_CHAR_ENC('n', 27), X_CHAR_ENC(0, 28) };
+
+    static const WCHAR strW_Crypt32Dll[] = {
+        X_WCHAR_ENC(L'c', 0),  X_WCHAR_ENC(L'r', 1), X_WCHAR_ENC(L'y', 2), X_WCHAR_ENC(L'p', 3), X_WCHAR_ENC(L't', 4),
+        X_WCHAR_ENC(L'3', 5),  X_WCHAR_ENC(L'2', 6), X_WCHAR_ENC(L'.', 7), X_WCHAR_ENC(L'd', 8), X_WCHAR_ENC(L'l', 9),
+        X_WCHAR_ENC(L'l', 10), X_WCHAR_ENC(0, 11)
+    };
+    static const WCHAR strW_KernelbaseDll[] = {
+        X_WCHAR_ENC(L'k', 0),  X_WCHAR_ENC(L'e', 1),  X_WCHAR_ENC(L'r', 2),  X_WCHAR_ENC(L'n', 3),  X_WCHAR_ENC(L'e', 4),
+        X_WCHAR_ENC(L'l', 5),  X_WCHAR_ENC(L'b', 6),  X_WCHAR_ENC(L'a', 7),  X_WCHAR_ENC(L's', 8),  X_WCHAR_ENC(L'e', 9),
+        X_WCHAR_ENC(L'.', 10), X_WCHAR_ENC(L'd', 11), X_WCHAR_ENC(L'l', 12), X_WCHAR_ENC(L'l', 13), X_WCHAR_ENC(0, 14) };
     static const WCHAR strW_Kernel32Dll[] = {
         X_WCHAR_ENC(L'k', 0),  X_WCHAR_ENC(L'e', 1),  X_WCHAR_ENC(L'r', 2), X_WCHAR_ENC(L'n', 3), X_WCHAR_ENC(L'e', 4),
         X_WCHAR_ENC(L'l', 5),  X_WCHAR_ENC(L'3', 6),  X_WCHAR_ENC(L'2', 7), X_WCHAR_ENC(L'.', 8), X_WCHAR_ENC(L'd', 9),
         X_WCHAR_ENC(L'l', 10), X_WCHAR_ENC(L'l', 11), X_WCHAR_ENC(0, 12) };
     static const CHAR strA_CertGetNameStringW[] = {
-        X_CHAR_ENC('C', 0),  X_CHAR_ENC('e', 1),  X_CHAR_ENC('r', 2),  X_CHAR_ENC('t', 3),  X_CHAR_ENC('G', 4), X_CHAR_ENC('e', 5),
-        X_CHAR_ENC('t', 6),  X_CHAR_ENC('N', 7),  X_CHAR_ENC('a', 8),  X_CHAR_ENC('m', 9), X_CHAR_ENC('e', 10), X_CHAR_ENC('S', 11),
+        X_CHAR_ENC('C', 0),  X_CHAR_ENC('e', 1),  X_CHAR_ENC('r', 2),  X_CHAR_ENC('t', 3),  X_CHAR_ENC('G', 4),  X_CHAR_ENC('e', 5),
+        X_CHAR_ENC('t', 6),  X_CHAR_ENC('N', 7),  X_CHAR_ENC('a', 8),  X_CHAR_ENC('m', 9),  X_CHAR_ENC('e', 10), X_CHAR_ENC('S', 11),
         X_CHAR_ENC('t', 12), X_CHAR_ENC('r', 13), X_CHAR_ENC('i', 14), X_CHAR_ENC('n', 15), X_CHAR_ENC('g', 16), X_CHAR_ENC('W', 17),
         X_CHAR_ENC(0, 18) };
     static const CHAR strA_CertDuplicateCertificateContext[] = {
-        X_CHAR_ENC('C', 0),  X_CHAR_ENC('e', 1),  X_CHAR_ENC('r', 2),  X_CHAR_ENC('t', 3),  X_CHAR_ENC('D', 4), X_CHAR_ENC('u', 5),
-        X_CHAR_ENC('p', 6),  X_CHAR_ENC('l', 7),  X_CHAR_ENC('i', 8),  X_CHAR_ENC('c', 9), X_CHAR_ENC('a', 10), X_CHAR_ENC('t', 11),
+        X_CHAR_ENC('C', 0),  X_CHAR_ENC('e', 1),  X_CHAR_ENC('r', 2),  X_CHAR_ENC('t', 3),  X_CHAR_ENC('D', 4),  X_CHAR_ENC('u', 5),
+        X_CHAR_ENC('p', 6),  X_CHAR_ENC('l', 7),  X_CHAR_ENC('i', 8),  X_CHAR_ENC('c', 9),  X_CHAR_ENC('a', 10), X_CHAR_ENC('t', 11),
         X_CHAR_ENC('e', 12), X_CHAR_ENC('C', 13), X_CHAR_ENC('e', 14), X_CHAR_ENC('r', 15), X_CHAR_ENC('t', 16), X_CHAR_ENC('i', 17),
         X_CHAR_ENC('f', 18), X_CHAR_ENC('i', 19), X_CHAR_ENC('c', 20), X_CHAR_ENC('a', 21), X_CHAR_ENC('t', 22), X_CHAR_ENC('e', 23),
         X_CHAR_ENC('C', 24), X_CHAR_ENC('o', 25), X_CHAR_ENC('n', 26), X_CHAR_ENC('t', 27), X_CHAR_ENC('e', 28), X_CHAR_ENC('x', 29),
         X_CHAR_ENC('t', 30), X_CHAR_ENC(0, 31) };
     static const CHAR strA_CertFreeCertificateContext[] = {
-        X_CHAR_ENC('C', 0),  X_CHAR_ENC('e', 1),  X_CHAR_ENC('r', 2),  X_CHAR_ENC('t', 3),  X_CHAR_ENC('F', 4), X_CHAR_ENC('r', 5),
-        X_CHAR_ENC('e', 6),  X_CHAR_ENC('e', 7),  X_CHAR_ENC('C', 8),  X_CHAR_ENC('e', 9), X_CHAR_ENC('r', 10), X_CHAR_ENC('t', 11),
+        X_CHAR_ENC('C', 0),  X_CHAR_ENC('e', 1),  X_CHAR_ENC('r', 2),  X_CHAR_ENC('t', 3),  X_CHAR_ENC('F', 4),  X_CHAR_ENC('r', 5),
+        X_CHAR_ENC('e', 6),  X_CHAR_ENC('e', 7),  X_CHAR_ENC('C', 8),  X_CHAR_ENC('e', 9),  X_CHAR_ENC('r', 10), X_CHAR_ENC('t', 11),
         X_CHAR_ENC('i', 12), X_CHAR_ENC('f', 13), X_CHAR_ENC('i', 14), X_CHAR_ENC('c', 15), X_CHAR_ENC('a', 16), X_CHAR_ENC('t', 17),
         X_CHAR_ENC('e', 18), X_CHAR_ENC('C', 19), X_CHAR_ENC('o', 20), X_CHAR_ENC('n', 21), X_CHAR_ENC('t', 22), X_CHAR_ENC('e', 23),
         X_CHAR_ENC('x', 24), X_CHAR_ENC('t', 25), X_CHAR_ENC(0, 26) };
@@ -215,19 +226,19 @@ HRESULT Initialize()
         X_CHAR_ENC('k', 6),  X_CHAR_ENC('a', 7),  X_CHAR_ENC('g', 8),  X_CHAR_ENC('e', 9), X_CHAR_ENC('P', 10), X_CHAR_ENC('a', 11),
         X_CHAR_ENC('t', 12), X_CHAR_ENC('h', 13), X_CHAR_ENC(0, 14) };
     static const CHAR strA_PackageIdFromFullName[] = {
-        X_CHAR_ENC('P', 0),  X_CHAR_ENC('a', 1),  X_CHAR_ENC('c', 2),  X_CHAR_ENC('k', 3),  X_CHAR_ENC('a', 4), X_CHAR_ENC('g', 5),
-        X_CHAR_ENC('e', 6),  X_CHAR_ENC('I', 7),  X_CHAR_ENC('d', 8),  X_CHAR_ENC('F', 9), X_CHAR_ENC('r', 10), X_CHAR_ENC('o', 11),
+        X_CHAR_ENC('P', 0),  X_CHAR_ENC('a', 1),  X_CHAR_ENC('c', 2),  X_CHAR_ENC('k', 3),  X_CHAR_ENC('a', 4),  X_CHAR_ENC('g', 5),
+        X_CHAR_ENC('e', 6),  X_CHAR_ENC('I', 7),  X_CHAR_ENC('d', 8),  X_CHAR_ENC('F', 9),  X_CHAR_ENC('r', 10), X_CHAR_ENC('o', 11),
         X_CHAR_ENC('m', 12), X_CHAR_ENC('F', 13), X_CHAR_ENC('u', 14), X_CHAR_ENC('l', 15), X_CHAR_ENC('l', 16), X_CHAR_ENC('N', 17),
         X_CHAR_ENC('a', 18), X_CHAR_ENC('m', 19), X_CHAR_ENC('e', 20), X_CHAR_ENC(0, 21) };
     static const CHAR strA_CryptCATAdminAcquireContext[] = {
-        X_CHAR_ENC('C', 0),  X_CHAR_ENC('r', 1),  X_CHAR_ENC('y', 2),  X_CHAR_ENC('p', 3),  X_CHAR_ENC('t', 4), X_CHAR_ENC('C', 5),
-        X_CHAR_ENC('A', 6),  X_CHAR_ENC('T', 7),  X_CHAR_ENC('A', 8),  X_CHAR_ENC('d', 9), X_CHAR_ENC('m', 10), X_CHAR_ENC('i', 11),
+        X_CHAR_ENC('C', 0),  X_CHAR_ENC('r', 1),  X_CHAR_ENC('y', 2),  X_CHAR_ENC('p', 3),  X_CHAR_ENC('t', 4),  X_CHAR_ENC('C', 5),
+        X_CHAR_ENC('A', 6),  X_CHAR_ENC('T', 7),  X_CHAR_ENC('A', 8),  X_CHAR_ENC('d', 9),  X_CHAR_ENC('m', 10), X_CHAR_ENC('i', 11),
         X_CHAR_ENC('n', 12), X_CHAR_ENC('A', 13), X_CHAR_ENC('c', 14), X_CHAR_ENC('q', 15), X_CHAR_ENC('u', 16), X_CHAR_ENC('i', 17),
         X_CHAR_ENC('r', 18), X_CHAR_ENC('e', 19), X_CHAR_ENC('C', 20), X_CHAR_ENC('o', 21), X_CHAR_ENC('n', 22), X_CHAR_ENC('t', 23),
         X_CHAR_ENC('e', 24), X_CHAR_ENC('x', 25), X_CHAR_ENC('t', 26), X_CHAR_ENC(0, 27) };
     static const CHAR strA_CryptCATAdminAcquireContext2[] = {
-        X_CHAR_ENC('C', 0),  X_CHAR_ENC('r', 1),  X_CHAR_ENC('y', 2),  X_CHAR_ENC('p', 3),  X_CHAR_ENC('t', 4), X_CHAR_ENC('C', 5),
-        X_CHAR_ENC('A', 6),  X_CHAR_ENC('T', 7),  X_CHAR_ENC('A', 8),  X_CHAR_ENC('d', 9), X_CHAR_ENC('m', 10), X_CHAR_ENC('i', 11),
+        X_CHAR_ENC('C', 0),  X_CHAR_ENC('r', 1),  X_CHAR_ENC('y', 2),  X_CHAR_ENC('p', 3),  X_CHAR_ENC('t', 4),  X_CHAR_ENC('C', 5),
+        X_CHAR_ENC('A', 6),  X_CHAR_ENC('T', 7),  X_CHAR_ENC('A', 8),  X_CHAR_ENC('d', 9),  X_CHAR_ENC('m', 10), X_CHAR_ENC('i', 11),
         X_CHAR_ENC('n', 12), X_CHAR_ENC('A', 13), X_CHAR_ENC('c', 14), X_CHAR_ENC('q', 15), X_CHAR_ENC('u', 16), X_CHAR_ENC('i', 17),
         X_CHAR_ENC('r', 18), X_CHAR_ENC('e', 19), X_CHAR_ENC('C', 20), X_CHAR_ENC('o', 21), X_CHAR_ENC('n', 22), X_CHAR_ENC('t', 23),
         X_CHAR_ENC('e', 24), X_CHAR_ENC('x', 25), X_CHAR_ENC('t', 26), X_CHAR_ENC('2', 27), X_CHAR_ENC(0, 28) };
@@ -247,28 +258,28 @@ HRESULT Initialize()
         X_CHAR_ENC('a', 30), X_CHAR_ENC('n', 31), X_CHAR_ENC('d', 32), X_CHAR_ENC('l', 33), X_CHAR_ENC('e', 34), X_CHAR_ENC('2', 35),
         X_CHAR_ENC(0, 36) };
     static const CHAR strA_CryptCATAdminEnumCatalogFromHash[] = {
-        X_CHAR_ENC('C', 0),  X_CHAR_ENC('r', 1),  X_CHAR_ENC('y', 2),  X_CHAR_ENC('p', 3),  X_CHAR_ENC('t', 4), X_CHAR_ENC('C', 5),
-        X_CHAR_ENC('A', 6),  X_CHAR_ENC('T', 7),  X_CHAR_ENC('A', 8),  X_CHAR_ENC('d', 9), X_CHAR_ENC('m', 10), X_CHAR_ENC('i', 11),
+        X_CHAR_ENC('C', 0),  X_CHAR_ENC('r', 1),  X_CHAR_ENC('y', 2),  X_CHAR_ENC('p', 3),  X_CHAR_ENC('t', 4),  X_CHAR_ENC('C', 5),
+        X_CHAR_ENC('A', 6),  X_CHAR_ENC('T', 7),  X_CHAR_ENC('A', 8),  X_CHAR_ENC('d', 9),  X_CHAR_ENC('m', 10), X_CHAR_ENC('i', 11),
         X_CHAR_ENC('n', 12), X_CHAR_ENC('E', 13), X_CHAR_ENC('n', 14), X_CHAR_ENC('u', 15), X_CHAR_ENC('m', 16), X_CHAR_ENC('C', 17),
         X_CHAR_ENC('a', 18), X_CHAR_ENC('t', 19), X_CHAR_ENC('a', 20), X_CHAR_ENC('l', 21), X_CHAR_ENC('o', 22), X_CHAR_ENC('g', 23),
         X_CHAR_ENC('F', 24), X_CHAR_ENC('r', 25), X_CHAR_ENC('o', 26), X_CHAR_ENC('m', 27), X_CHAR_ENC('H', 28), X_CHAR_ENC('a', 29),
         X_CHAR_ENC('s', 30), X_CHAR_ENC('h', 31), X_CHAR_ENC(0, 32) };
     static const CHAR strA_CryptCATAdminReleaseContext[] = {
-        X_CHAR_ENC('C', 0),  X_CHAR_ENC('r', 1),  X_CHAR_ENC('y', 2),  X_CHAR_ENC('p', 3),  X_CHAR_ENC('t', 4), X_CHAR_ENC('C', 5),
-        X_CHAR_ENC('A', 6),  X_CHAR_ENC('T', 7),  X_CHAR_ENC('A', 8),  X_CHAR_ENC('d', 9), X_CHAR_ENC('m', 10), X_CHAR_ENC('i', 11),
+        X_CHAR_ENC('C', 0),  X_CHAR_ENC('r', 1),  X_CHAR_ENC('y', 2),  X_CHAR_ENC('p', 3),  X_CHAR_ENC('t', 4),  X_CHAR_ENC('C', 5),
+        X_CHAR_ENC('A', 6),  X_CHAR_ENC('T', 7),  X_CHAR_ENC('A', 8),  X_CHAR_ENC('d', 9),  X_CHAR_ENC('m', 10), X_CHAR_ENC('i', 11),
         X_CHAR_ENC('n', 12), X_CHAR_ENC('R', 13), X_CHAR_ENC('e', 14), X_CHAR_ENC('l', 15), X_CHAR_ENC('e', 16), X_CHAR_ENC('a', 17),
         X_CHAR_ENC('s', 18), X_CHAR_ENC('e', 19), X_CHAR_ENC('C', 20), X_CHAR_ENC('o', 21), X_CHAR_ENC('n', 22), X_CHAR_ENC('t', 23),
         X_CHAR_ENC('e', 24), X_CHAR_ENC('x', 25), X_CHAR_ENC('t', 26), X_CHAR_ENC(0, 27) };
     static const CHAR strA_CryptCATCatalogInfoFromContext[] = {
-        X_CHAR_ENC('C', 0),  X_CHAR_ENC('r', 1),  X_CHAR_ENC('y', 2),  X_CHAR_ENC('p', 3),  X_CHAR_ENC('t', 4), X_CHAR_ENC('C', 5),
-        X_CHAR_ENC('A', 6),  X_CHAR_ENC('T', 7),  X_CHAR_ENC('C', 8),  X_CHAR_ENC('a', 9), X_CHAR_ENC('t', 10), X_CHAR_ENC('a', 11),
+        X_CHAR_ENC('C', 0),  X_CHAR_ENC('r', 1),  X_CHAR_ENC('y', 2),  X_CHAR_ENC('p', 3),  X_CHAR_ENC('t', 4),  X_CHAR_ENC('C', 5),
+        X_CHAR_ENC('A', 6),  X_CHAR_ENC('T', 7),  X_CHAR_ENC('C', 8),  X_CHAR_ENC('a', 9),  X_CHAR_ENC('t', 10), X_CHAR_ENC('a', 11),
         X_CHAR_ENC('l', 12), X_CHAR_ENC('o', 13), X_CHAR_ENC('g', 14), X_CHAR_ENC('I', 15), X_CHAR_ENC('n', 16), X_CHAR_ENC('f', 17),
         X_CHAR_ENC('o', 18), X_CHAR_ENC('F', 19), X_CHAR_ENC('r', 20), X_CHAR_ENC('o', 21), X_CHAR_ENC('m', 22), X_CHAR_ENC('C', 23),
         X_CHAR_ENC('o', 24), X_CHAR_ENC('n', 25), X_CHAR_ENC('t', 26), X_CHAR_ENC('e', 27), X_CHAR_ENC('x', 28), X_CHAR_ENC('t', 29),
         X_CHAR_ENC(0, 30) };
     static const CHAR strA_CryptCATAdminReleaseCatalogContext[] = {
-        X_CHAR_ENC('C', 0),  X_CHAR_ENC('r', 1),  X_CHAR_ENC('y', 2),  X_CHAR_ENC('p', 3),  X_CHAR_ENC('t', 4), X_CHAR_ENC('C', 5),
-        X_CHAR_ENC('A', 6),  X_CHAR_ENC('T', 7),  X_CHAR_ENC('A', 8),  X_CHAR_ENC('d', 9), X_CHAR_ENC('m', 10), X_CHAR_ENC('i', 11),
+        X_CHAR_ENC('C', 0),  X_CHAR_ENC('r', 1),  X_CHAR_ENC('y', 2),  X_CHAR_ENC('p', 3),  X_CHAR_ENC('t', 4),  X_CHAR_ENC('C', 5),
+        X_CHAR_ENC('A', 6),  X_CHAR_ENC('T', 7),  X_CHAR_ENC('A', 8),  X_CHAR_ENC('d', 9),  X_CHAR_ENC('m', 10), X_CHAR_ENC('i', 11),
         X_CHAR_ENC('n', 12), X_CHAR_ENC('R', 13), X_CHAR_ENC('e', 14), X_CHAR_ENC('l', 15), X_CHAR_ENC('e', 16), X_CHAR_ENC('a', 17),
         X_CHAR_ENC('s', 18), X_CHAR_ENC('e', 19), X_CHAR_ENC('C', 20), X_CHAR_ENC('a', 21), X_CHAR_ENC('t', 22), X_CHAR_ENC('a', 23),
         X_CHAR_ENC('l', 24), X_CHAR_ENC('o', 25), X_CHAR_ENC('g', 26), X_CHAR_ENC('C', 27), X_CHAR_ENC('o', 28), X_CHAR_ENC('n', 29),
@@ -294,6 +305,8 @@ HRESULT Initialize()
                 fnWTHelperProvDataFromStateData = (lpfnWTHelperProvDataFromStateData)::GetProcAddress(hWinTrustDll, szTempA);
                 _EXPAND_A(strA_WTHelperGetProvSignerFromChain);
                 fnWTHelperGetProvSignerFromChain = (lpfnWTHelperGetProvSignerFromChain)::GetProcAddress(hWinTrustDll, szTempA);
+                _EXPAND_A(strA_WTHelperGetProvCertFromChain);
+                fnWTHelperGetProvCertFromChain = (lpfnWTHelperGetProvCertFromChain)::GetProcAddress(hWinTrustDll, szTempA);
 
                 _EXPAND_A(strA_CryptCATAdminAcquireContext);
                 fnCryptCATAdminAcquireContext = (lpfnCryptCATAdminAcquireContext)::GetProcAddress(hWinTrustDll, szTempA);
@@ -342,8 +355,8 @@ HRESULT Initialize()
                 fnCertFreeCertificateContext = (lpfnCertFreeCertificateContext)::GetProcAddress(hCrypt32Dll, szTempA);
             }
             if (fnWinVerifyTrustEx == NULL || fnCertGetNameStringW == NULL || fnWTHelperProvDataFromStateData == NULL ||
-                fnWTHelperGetProvSignerFromChain == NULL || fnCertDuplicateCertificateContext == NULL ||
-                fnCertFreeCertificateContext == NULL)
+                fnWTHelperGetProvSignerFromChain == NULL || fnWTHelperGetProvCertFromChain == NULL ||
+                fnCertDuplicateCertificateContext == NULL || fnCertFreeCertificateContext == NULL)
             {
                 hRes = MX_HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
             }
@@ -407,7 +420,7 @@ HRESULT Initialize()
 }
 
 HRESULT GetPeSignature(_In_opt_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_opt_ HANDLE hProcess, _In_opt_ HANDLE hCancelEvent,
-                       _Out_ PCERT_CONTEXT *lplpCertCtx, _Out_ PFILETIME lpTimeStamp)
+                       _In_ BOOL bCheckRevocation, _Out_ CertificateArray &cCerts, _Out_opt_ PFILETIME lpTimeStamp)
 {
     static const WCHAR strW_AppxMetadata_CodeIntegrity_cat[] = {
         X_WCHAR_ENC(L'A', 0),   X_WCHAR_ENC(L'p', 1),  X_WCHAR_ENC(L'p', 2),  X_WCHAR_ENC(L'x', 3), X_WCHAR_ENC(L'M', 4),
@@ -420,17 +433,10 @@ HRESULT GetPeSignature(_In_opt_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, 
     CWindowsHandle cFileH;
     HRESULT hRes;
 
-    if (lplpCertCtx != NULL)
-    {
-        *lplpCertCtx = NULL;
-    }
+    cCerts.RemoveAllElements();
     if (lpTimeStamp != NULL)
     {
         lpTimeStamp->dwLowDateTime = lpTimeStamp->dwHighDateTime = 0;
-    }
-    if (lplpCertCtx == NULL || lpTimeStamp == NULL)
-    {
-        return E_POINTER;
     }
     if (hFile == NULL || hFile == INVALID_HANDLE_VALUE)
     {
@@ -502,13 +508,13 @@ HRESULT GetPeSignature(_In_opt_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, 
                 goto done;
             }
             dwLen = 1024;
-            hRes = MX_HRESULT_FROM_WIN32(fnPackageIdFromFullName(
-                (LPCWSTR)cStrPackageFullPathW, PACKAGE_INFORMATION_BASIC, &dwLen, (PBYTE)(aPackageId.Get())));
+            hRes = MX_HRESULT_FROM_WIN32(fnPackageIdFromFullName((LPCWSTR)cStrPackageFullPathW, PACKAGE_INFORMATION_BASIC, &dwLen,
+                                                                 (PBYTE)(aPackageId.Get())));
             if (hRes == HRESULT_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER))
             {
                 aPackageId.Attach((PACKAGE_ID *)MX_MALLOC((SIZE_T)dwLen));
-                hRes = MX_HRESULT_FROM_WIN32(fnPackageIdFromFullName(
-                    (LPCWSTR)cStrPackageFullPathW, PACKAGE_INFORMATION_BASIC, &dwLen, (PBYTE)(aPackageId.Get())));
+                hRes = MX_HRESULT_FROM_WIN32(fnPackageIdFromFullName((LPCWSTR)cStrPackageFullPathW, PACKAGE_INFORMATION_BASIC, &dwLen,
+                                                                     (PBYTE)(aPackageId.Get())));
             }
             if (SUCCEEDED(hRes))
             {
@@ -573,7 +579,7 @@ HRESULT GetPeSignature(_In_opt_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, 
     // verify PE's signature
     if (::SetFilePointer(hFile, 0, NULL, FILE_BEGIN) != INVALID_SET_FILE_POINTER)
     {
-        hRes = DoTrustVerification(szPeFileNameW, hFile, &sWVTPolicyGuid, NULL, lplpCertCtx, lpTimeStamp);
+        hRes = DoTrustVerification(szPeFileNameW, hFile, &sWVTPolicyGuid, NULL, bCheckRevocation, cCerts, lpTimeStamp);
         if (hRes == E_OUTOFMEMORY)
         {
             return hRes;
@@ -594,12 +600,13 @@ HRESULT GetPeSignature(_In_opt_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, 
         TAutoFreePtr<BYTE> aFileHash;
         ULONG nFileHashLength;
         HCATADMIN hCatAdmin = NULL;
+        LPCGUID lpPolicy;
         int nPass;
         ULARGE_INTEGER uliFileSize;
 
         if (::GetFileSizeEx(hFile, (PLARGE_INTEGER)&uliFileSize) != FALSE && uliFileSize.QuadPart < MAX_FILE_SIZE_FOR_CATALOG_CHECK)
         {
-            for (nPass = 1; nPass <= 2; nPass++)
+            for (nPass = 0; nPass < 4; nPass++)
             {
                 if (hCancelEvent != NULL && ::WaitForSingleObject(hCancelEvent, 0) == WAIT_OBJECT_0)
                 {
@@ -607,8 +614,10 @@ HRESULT GetPeSignature(_In_opt_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, 
                     break;
                 }
 
+                lpPolicy = ((nPass & 2) == 0) ? &sDriverActionVerify : &sWVTPolicyGuid;
+
                 hRes = S_OK;
-                if (nPass == 1)
+                if ((nPass & 1) == 0)
                 {
                     // CERT_STRONG_SIGN_PARA sSigningPolicy = {};
 
@@ -620,16 +629,24 @@ HRESULT GetPeSignature(_In_opt_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, 
                     // sSigningPolicy.cbSize = (DWORD)sizeof(sSigningPolicy);
                     // sSigningPolicy.dwInfoChoice = CERT_STRONG_SIGN_OID_INFO_CHOICE;
                     // sSigningPolicy.pszOID = szOID_CERT_STRONG_SIGN_OS_CURRENT;
-                    if (fnCryptCATAdminAcquireContext2(&hCatAdmin, &sDriverActionVerify, BCRYPT_SHA256_ALGORITHM, NULL, 0) == FALSE)
+                    if (fnCryptCATAdminAcquireContext2(&hCatAdmin, lpPolicy, BCRYPT_SHA256_ALGORITHM, NULL, 0) == FALSE)
                     {
                         hRes = MX_HRESULT_FROM_LASTERROR();
+                        if (hRes == E_ACCESSDENIED)
+                        {
+                            hRes = TRUST_E_NOSIGNATURE;
+                        }
                     }
                 }
                 else
                 {
-                    if (fnCryptCATAdminAcquireContext(&hCatAdmin, &sDriverActionVerify, 0) == FALSE)
+                    if (fnCryptCATAdminAcquireContext(&hCatAdmin, lpPolicy, 0) == FALSE)
                     {
                         hRes = MX_HRESULT_FROM_LASTERROR();
+                        if (hRes == E_ACCESSDENIED)
+                        {
+                            hRes = TRUST_E_NOSIGNATURE;
+                        }
                     }
                 }
                 if (SUCCEEDED(hRes))
@@ -725,8 +742,8 @@ HRESULT GetPeSignature(_In_opt_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, 
                                 sCatInfo.hCatAdmin = hCatAdmin;
                                 if (::SetFilePointer(hFile, 0, NULL, FILE_BEGIN) != INVALID_SET_FILE_POINTER)
                                 {
-                                    hRes = DoTrustVerification(NULL, NULL, &sDriverActionVerify, (PWINTRUST_CATALOG_INFO)&sCatInfo,
-                                                               lplpCertCtx, lpTimeStamp);
+                                    hRes = DoTrustVerification(NULL, NULL, lpPolicy, (PWINTRUST_CATALOG_INFO)&sCatInfo, bCheckRevocation,
+                                                               cCerts, lpTimeStamp);
                                 }
                                 else
                                 {
@@ -752,8 +769,8 @@ HRESULT GetPeSignature(_In_opt_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, 
                             sCatInfo.hCatAdmin = hCatAdmin;
                             if (::SetFilePointer(hFile, 0, NULL, FILE_BEGIN) != INVALID_SET_FILE_POINTER)
                             {
-                                hRes = DoTrustVerification(NULL, NULL, &sWVTPolicyGuid, (PWINTRUST_CATALOG_INFO)&sCatInfo, lplpCertCtx,
-                                                           lpTimeStamp);
+                                hRes = DoTrustVerification(NULL, NULL, &sWVTPolicyGuid, (PWINTRUST_CATALOG_INFO)&sCatInfo,
+                                                           bCheckRevocation, cCerts, lpTimeStamp);
                             }
                             else
                             {
@@ -773,7 +790,7 @@ HRESULT GetPeSignature(_In_opt_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, 
                 }
 
                 // break only if a certificate is found or a hard error
-                if (hRes != TRUST_E_NOSIGNATURE)
+                if (SUCCEEDED(hRes) || hRes == E_OUTOFMEMORY)
                 {
                     break;
                 }
@@ -783,100 +800,15 @@ HRESULT GetPeSignature(_In_opt_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, 
 
     // done
 done:
-    return hRes;
-}
-
-VOID FreeCertificate(_In_opt_ PCCERT_CONTEXT lpCertCtx)
-{
-    if (lpCertCtx != NULL && fnCertFreeCertificateContext != NULL)
+    if (FAILED(hRes))
     {
-        fnCertFreeCertificateContext(lpCertCtx);
-    }
-    return;
-}
-
-PCCERT_CONTEXT DuplicateCertificate(_In_ PCCERT_CONTEXT lpCertCtx)
-{
-    return (lpCertCtx != NULL && fnCertDuplicateCertificateContext != NULL)
-        ? fnCertDuplicateCertificateContext(lpCertCtx)
-        : NULL;
-}
-
-HRESULT GetCertificateName(_In_ PCCERT_CONTEXT lpCertCtx, DWORD dwType, _Inout_ CStringW &cStrNameW, _In_opt_ BOOL bFromIssuer)
-{
-    DWORD dwFlags;
-    SIZE_T i, nLen;
-    LPWSTR sW;
-
-    cStrNameW.Empty();
-    if (lpCertCtx == NULL)
-    {
-        return E_POINTER;
-    }
-    dwFlags = (bFromIssuer != FALSE) ? CERT_NAME_ISSUER_FLAG : 0;
-#pragma warning(suppress : 6387)
-    nLen = (SIZE_T)fnCertGetNameStringW(lpCertCtx, dwType, dwFlags, NULL, NULL, 0);
-    if (cStrNameW.EnsureBuffer(nLen + 4) == FALSE)
-    {
-        return E_OUTOFMEMORY;
-    }
-    nLen = (SIZE_T)fnCertGetNameStringW(lpCertCtx, dwType, dwFlags, NULL, (LPWSTR)cStrNameW, (DWORD)nLen + 2);
-    ((LPWSTR)cStrNameW)[nLen] = 0;
-    cStrNameW.Refresh();
-
-    sW = (LPWSTR)cStrNameW;
-    for (i = 0; i < nLen; i++)
-    {
-        if (sW[i] < 32)
+        cCerts.RemoveAllElements();
+        if (lpTimeStamp != NULL)
         {
-            sW[i] = 32;
+            lpTimeStamp->dwLowDateTime = lpTimeStamp->dwHighDateTime = 0;
         }
     }
-    for (i = 0; i < nLen && sW[i] == 32; i++)
-    {
-        ;
-    }
-    if (i > 0)
-    {
-        cStrNameW.Delete(0, i);
-        sW = (LPWSTR)cStrNameW;
-        nLen = cStrNameW.GetLength();
-    }
-    i = nLen;
-    while (i > 0 && sW[i - 1] == 32)
-    {
-        i--;
-    }
-    if (i < nLen)
-    {
-        cStrNameW.Delete(i, nLen - i);
-    }
-    // done
-    return S_OK;
-}
-
-HRESULT GetCertificateSerialNumber(_In_ PCCERT_CONTEXT lpCertCtx, _Out_ LPBYTE *lplpSerialNumber, _Out_ PSIZE_T lpnSerialNumberLength)
-{
-    if (lplpSerialNumber != NULL)
-    {
-        *lplpSerialNumber = NULL;
-    }
-    if (lpnSerialNumberLength != NULL)
-    {
-        *lpnSerialNumberLength = 0;
-    }
-    if (lpCertCtx == NULL || lplpSerialNumber == NULL || lpnSerialNumberLength == NULL)
-    {
-        return E_POINTER;
-    }
-    *lplpSerialNumber = (LPBYTE)MX_MALLOC((SIZE_T)(lpCertCtx->pCertInfo->SerialNumber.cbData));
-    if ((*lplpSerialNumber) == NULL)
-    {
-        return E_OUTOFMEMORY;
-    }
-    ::MxMemCopy(*lplpSerialNumber, lpCertCtx->pCertInfo->SerialNumber.pbData, (SIZE_T)(lpCertCtx->pCertInfo->SerialNumber.cbData));
-    *lpnSerialNumberLength = (SIZE_T)(lpCertCtx->pCertInfo->SerialNumber.cbData);
-    return S_OK;
+    return hRes;
 }
 
 HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _In_opt_ HANDLE hFile, _In_opt_ HANDLE hCancelEvent, _Out_ LPHASHES lpHashes)
@@ -951,8 +883,8 @@ HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _In_opt_ HANDLE hFile, _In_o
             }
 
             ::MxMemSet(&sIoStatus, 0, sizeof(sIoStatus));
-            nNtStatus = ::MxNtReadFile(hFile, hEvents[0], NULL, NULL, &sIoStatus, aBlock, (ULONG)sizeof(aBlock), (PLARGE_INTEGER)&uliOffset,
-                                       NULL);
+            nNtStatus = ::MxNtReadFile(hFile, hEvents[0], NULL, NULL, &sIoStatus, aBlock, (ULONG)sizeof(aBlock),
+                                       (PLARGE_INTEGER)&uliOffset, NULL);
             if (nNtStatus == STATUS_PENDING)
             {
                 if (hCancelEvent != NULL)
@@ -1044,6 +976,103 @@ HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _In_opt_ HANDLE hFile, _In_o
     return hRes;
 }
 
+//-----------------------------------------------------------
+
+Certificate::Certificate() : TRefCounted<CBaseMemObj>(), CNonCopyableObj()
+{
+    lpCertCtx = NULL;
+    bCommercial = FALSE;
+    bTrustedRoot = FALSE;
+    bSelfSigned = FALSE;
+    return;
+}
+
+Certificate::~Certificate()
+{
+    if (lpCertCtx != NULL)
+        fnCertFreeCertificateContext(lpCertCtx);
+    return;
+}
+
+HRESULT Certificate::InitFromProviderCertificate(_In_ PCRYPT_PROVIDER_CERT lpProvCert)
+{
+    if (lpProvCert == NULL)
+    {
+        return E_POINTER;
+    }
+    lpCertCtx = (PCERT_CONTEXT)fnCertDuplicateCertificateContext(lpProvCert->pCert);
+    if (lpCertCtx == NULL)
+    {
+        return MX_HRESULT_FROM_LASTERROR();
+    }
+    bCommercial = lpProvCert->fCommercial;
+    bTrustedRoot = lpProvCert->fTrustedRoot;
+    bSelfSigned = lpProvCert->fSelfSigned;
+
+    //done
+    return S_OK;
+}
+
+HRESULT Certificate::GetName(DWORD dwType, _Inout_ CStringW &cStrNameW, _In_opt_ BOOL bFromIssuer)
+{
+    DWORD dwFlags;
+    SIZE_T i, nLen;
+    LPWSTR sW;
+
+    cStrNameW.Empty();
+    if (lpCertCtx == NULL)
+    {
+        return MX_E_NotReady;
+    }
+
+    dwFlags = (bFromIssuer != FALSE) ? CERT_NAME_ISSUER_FLAG : 0;
+#pragma warning(suppress : 6387)
+    nLen = (SIZE_T)fnCertGetNameStringW(lpCertCtx, dwType, dwFlags, NULL, NULL, 0);
+    if (cStrNameW.EnsureBuffer(nLen + 4) == FALSE)
+    {
+        return E_OUTOFMEMORY;
+    }
+    nLen = (SIZE_T)fnCertGetNameStringW(lpCertCtx, dwType, dwFlags, NULL, (LPWSTR)cStrNameW, (DWORD)nLen + 2);
+    ((LPWSTR)cStrNameW)[nLen] = 0;
+    cStrNameW.Refresh();
+
+    sW = (LPWSTR)cStrNameW;
+    for (i = 0; i < nLen && sW[i] <= 32; i++);
+    if (i > 0)
+    {
+        cStrNameW.Delete(0, i);
+
+        sW = (LPWSTR)cStrNameW;
+        nLen = cStrNameW.GetLength();
+    }
+    for (i = nLen; i > 0 && sW[i - 1] <= 32; i--);
+    if (i < nLen)
+    {
+        cStrNameW.Delete(i, nLen - i);
+    }
+
+    // done
+    return S_OK;
+}
+
+LPBYTE Certificate::GetSerialNumber() const
+{
+    if (lpCertCtx == NULL || lpCertCtx->pCertInfo->SerialNumber.cbData == 0)
+    {
+        return NULL;
+    }
+    return lpCertCtx->pCertInfo->SerialNumber.pbData;
+}
+
+SIZE_T Certificate::GetSerialNumberLength() const
+{
+    if (lpCertCtx == NULL)
+    {
+        return 0;
+    }
+    return lpCertCtx->pCertInfo->SerialNumber.cbData;
+}
+
 }; // namespace Signatures
 
 }; // namespace MX
@@ -1079,6 +1108,7 @@ static VOID EndSignaturesAndInfo()
     fnWinVerifyTrustEx = NULL;
     fnWTHelperProvDataFromStateData = NULL;
     fnWTHelperGetProvSignerFromChain = NULL;
+    fnWTHelperGetProvCertFromChain = NULL;
     fnCertGetNameStringW = NULL;
     fnCertDuplicateCertificateContext = NULL;
     fnCertFreeCertificateContext = NULL;
@@ -1097,25 +1127,29 @@ static VOID EndSignaturesAndInfo()
     return;
 }
 
-static HRESULT DoTrustVerification(_In_opt_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_ LPGUID lpActionId,
-                                   _In_opt_ PWINTRUST_CATALOG_INFO lpCatalogInfo, _Out_ PCERT_CONTEXT *lplpCertCtx,
-                                   _Out_ PFILETIME lpTimeStamp)
+static HRESULT DoTrustVerification(_In_opt_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_ LPCGUID lpActionId,
+                                   _In_opt_ PWINTRUST_CATALOG_INFO lpCatalogInfo, _In_ BOOL bCheckRevocation,
+                                   _Out_ MX::Signatures::CertificateArray &cCerts, _Out_opt_ PFILETIME lpTimeStamp)
 {
     WINTRUST_DATA sWtData;
     WINTRUST_FILE_INFO sWtFileInfo;
+    // WINTRUST_SIGNATURE_SETTINGS sWtSigSettings;
     DWORD dwRetryCount = 0;
     HRESULT hRes;
 
-    *lplpCertCtx = NULL;
-    lpTimeStamp->dwLowDateTime = lpTimeStamp->dwHighDateTime = 0;
-
 restart:
+    cCerts.RemoveAllElements();
+    if (lpTimeStamp != NULL)
+    {
+        lpTimeStamp->dwLowDateTime = lpTimeStamp->dwHighDateTime = 0;
+    }
+
     // verify PE's signature
     ::MxMemSet(&sWtData, 0, sizeof(sWtData));
     sWtData.cbStruct = (DWORD)sizeof(sWtData);
     sWtData.dwUIContext = WTD_UICONTEXT_EXECUTE;
     sWtData.dwUIChoice = WTD_UI_NONE;
-    sWtData.fdwRevocationChecks = WTD_REVOKE_NONE;  // no revocation checking.
+    sWtData.fdwRevocationChecks = (bCheckRevocation != FALSE) ? WTD_REVOKE_WHOLECHAIN : WTD_REVOKE_NONE;
     sWtData.dwStateAction = WTD_STATEACTION_VERIFY; // verify action
     sWtData.hWVTStateData = NULL;                   // verification sets this value
     sWtData.dwProvFlags = (IsWinVistaPlus() != FALSE) ? WTD_CACHE_ONLY_URL_RETRIEVAL : WTD_REVOCATION_CHECK_NONE;
@@ -1126,16 +1160,22 @@ restart:
     }
     else
     {
-        sWtData.dwUnionChoice = WTD_CHOICE_FILE;
-        sWtData.pFile = &sWtFileInfo;
-
         ::MxMemSet(&sWtFileInfo, 0, sizeof(sWtFileInfo));
         sWtFileInfo.cbStruct = (DWORD)sizeof(sWtFileInfo);
         sWtFileInfo.pcwszFilePath = szPeFileNameW;
         sWtFileInfo.hFile = hFile;
+
+        sWtData.dwUnionChoice = WTD_CHOICE_FILE;
+        sWtData.pFile = &sWtFileInfo;
     }
 
-    hRes = MX_HRESULT_FROM_WIN32(fnWinVerifyTrustEx((HWND)INVALID_HANDLE_VALUE, lpActionId, &sWtData));
+    // ::MxMemSet(&sWtSigSettings, 0, sizeof(sWtSigSettings));
+    // sWtSigSettings.cbStruct = sizeof(sWtSigSettings);
+    // sWtSigSettings.dwFlags = WSS_GET_SECONDARY_SIG_COUNT;
+
+    // sWtData.pSignatureSettings = &sWtSigSettings;
+
+    hRes = MX_HRESULT_FROM_WIN32(fnWinVerifyTrustEx((HWND)INVALID_HANDLE_VALUE, const_cast<LPGUID>(lpActionId), &sWtData));
     if (hRes == E_OUTOFMEMORY)
     {
         goto done;
@@ -1144,34 +1184,63 @@ restart:
     {
         PCRYPT_PROVIDER_DATA lpProvData = NULL;
         PCRYPT_PROVIDER_SGNR lpProvSigner = NULL;
-        DWORD dw;
+        PCRYPT_PROVIDER_CERT lpProvCert;
+        DWORD dwSignerIndex;
 
         lpProvData = fnWTHelperProvDataFromStateData(sWtData.hWVTStateData);
         if (lpProvData != NULL)
         {
-            for (dw = 0;; dw++)
+            for (dwSignerIndex = 0;; dwSignerIndex++)
             {
-                lpProvSigner = fnWTHelperGetProvSignerFromChain(lpProvData, dw, FALSE, 0);
+                lpProvSigner = fnWTHelperGetProvSignerFromChain(lpProvData, dwSignerIndex, FALSE, 0);
                 if (lpProvSigner == NULL)
                 {
                     break;
                 }
-                if (lpProvSigner->pasCertChain != NULL && lpProvSigner->pasCertChain->pCert != NULL)
+
+                if (lpProvSigner->pasCertChain != NULL && lpProvSigner->csCertChain > 0)
                 {
-                    *lplpCertCtx = (PCERT_CONTEXT)fnCertDuplicateCertificateContext(lpProvSigner->pasCertChain->pCert);
-                    if ((*lplpCertCtx) == NULL)
+                    MX::TAutoRefCounted<MX::Signatures::Certificate> cCert;
+                    DWORD dwCertIndex;
+
+                    for (dwCertIndex = 0; dwCertIndex < lpProvSigner->csCertChain; dwCertIndex++)
                     {
-                        hRes = E_OUTOFMEMORY;
-                        goto done;
+                        lpProvCert = fnWTHelperGetProvCertFromChain(lpProvSigner, dwCertIndex);
+                        if (lpProvCert == NULL)
+                        {
+                            break;
+                        }
+
+                        cCert.Attach(MX_DEBUG_NEW MX::Signatures::Certificate());
+                        if (!cCert)
+                        {
+                            hRes = E_OUTOFMEMORY;
+                            goto done;
+                        }
+                        hRes = cCert->InitFromProviderCertificate(lpProvCert);
+                        if (FAILED(hRes))
+                        {
+                            goto done;
+                        }
+
+                        if (cCerts.AddElement(cCert.Get()) == FALSE)
+                        {
+                            hRes = E_OUTOFMEMORY;
+                            goto done;
+                        }
+                        cCert.Detach();
                     }
 
-                    if (lpProvSigner->sftVerifyAsOf.dwHighDateTime != 0 || lpProvSigner->sftVerifyAsOf.dwLowDateTime != 0)
+                    if (lpTimeStamp != NULL)
                     {
-                        *lpTimeStamp = lpProvSigner->sftVerifyAsOf;
-                    }
-                    else
-                    {
-                        ::GetSystemTimeAsFileTime(lpTimeStamp);
+                        if (lpProvSigner->sftVerifyAsOf.dwHighDateTime != 0 || lpProvSigner->sftVerifyAsOf.dwLowDateTime != 0)
+                        {
+                            *lpTimeStamp = lpProvSigner->sftVerifyAsOf;
+                        }
+                        else
+                        {
+                            ::GetSystemTimeAsFileTime(lpTimeStamp);
+                        }
                     }
                     break;
                 }
@@ -1179,7 +1248,7 @@ restart:
         }
     }
 
-    if ((*lplpCertCtx) == NULL)
+    if (cCerts.GetCount() == 0)
     {
         hRes = TRUST_E_NOSIGNATURE;
     }
@@ -1187,15 +1256,10 @@ restart:
 done:
     // close the verifier
     sWtData.dwStateAction = WTD_STATEACTION_CLOSE;
-    fnWinVerifyTrustEx((HWND)INVALID_HANDLE_VALUE, lpActionId, &sWtData);
+    fnWinVerifyTrustEx((HWND)INVALID_HANDLE_VALUE, const_cast<LPGUID>(lpActionId), &sWtData);
 
     if (hRes == HRESULT_FROM_WIN32(ERROR_LOCK_VIOLATION) && dwRetryCount < READ_RETRIES_COUNT)
     {
-        if ((*lplpCertCtx) != NULL)
-        {
-            fnCertFreeCertificateContext(*lplpCertCtx);
-            *lplpCertCtx = NULL;
-        }
         dwRetryCount++;
         ::Sleep(READ_RETRIES_DELAY_MS);
         goto restart;

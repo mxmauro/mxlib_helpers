@@ -21,6 +21,8 @@
 #define _MXLIBHLP_PE_SIGNATURE_AND_INFO_H
 
 #include <Defines.h>
+#include <ArrayList.h>
+#include <RefCounted.h>
 #include <Strings\Strings.h>
 #include <SoftPub.h>
 
@@ -30,12 +32,58 @@ namespace MX {
 
 namespace Signatures {
 
-typedef struct tagHASHES
-{
+typedef struct tagHASHES {
     BYTE aSha256[32];
     BYTE aSha1[20];
     BYTE aMd5[16];
 } HASHES, *LPHASHES;
+
+class Certificate : public TRefCounted<CBaseMemObj>, public CNonCopyableObj
+{
+public:
+    Certificate();
+    ~Certificate();
+
+    HRESULT InitFromProviderCertificate(_In_ PCRYPT_PROVIDER_CERT lpProvCert);
+
+    HRESULT GetName(DWORD dwType, _Inout_ CStringW &cStrNameW, _In_opt_ BOOL bFromIssuer = FALSE);
+
+    LPBYTE GetSerialNumber() const;
+    SIZE_T GetSerialNumberLength() const;
+
+    BOOL IsCommercial() const
+    {
+        return bCommercial;
+    };
+
+    BOOL IsTrustedRoot() const
+    {
+        return bTrustedRoot;
+    };
+
+    BOOL IsSelfSigned() const
+    {
+        return bSelfSigned;
+    };
+
+    operator PCERT_CONTEXT() const
+    {
+        return lpCertCtx;
+    };
+
+    PCERT_CONTEXT GetContext() const
+    {
+        return lpCertCtx;
+    };
+
+private:
+    PCERT_CONTEXT lpCertCtx;
+    BOOL bCommercial;
+    BOOL bTrustedRoot;
+    BOOL bSelfSigned;
+};
+
+typedef MX::TArrayListWithRelease<Certificate*> CertificateArray;
 
 } // namespace Signatures
 
@@ -52,13 +100,9 @@ HRESULT Initialize();
 // NOTE: Returns TRUST_E_NOSIGNATURE if no certificates are found.
 //       If an error is returned, check 'lplpCertCtx' and 'lpTimeStamp' might contain valid data. In this
 //       scenario, the file contains a certificate but it is untrusted for some reason.
-HRESULT GetPeSignature(_In_opt_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_opt_ HANDLE hProcess, _In_opt_ HANDLE hCancelEvent,
-                       _Out_ PCERT_CONTEXT *lplpCertCtx, _Out_ PFILETIME lpTimeStamp);
-VOID FreeCertificate(_In_opt_ PCCERT_CONTEXT lpCertCtx);
-PCCERT_CONTEXT DuplicateCertificate(_In_ PCCERT_CONTEXT lpCertCtx);
 
-HRESULT GetCertificateName(_In_ PCCERT_CONTEXT lpCertCtx, DWORD dwType, _Inout_ CStringW &cStrNameW, _In_opt_ BOOL bFromIssuer = FALSE);
-HRESULT GetCertificateSerialNumber(_In_ PCCERT_CONTEXT lpCertCtx, _Out_ LPBYTE *lplpSerialNumber, _Out_ PSIZE_T lpnSerialNumberLength);
+HRESULT GetPeSignature(_In_opt_z_ LPCWSTR szPeFileNameW, _In_opt_ HANDLE hFile, _In_opt_ HANDLE hProcess, _In_opt_ HANDLE hCancelEvent,
+                       _In_ BOOL bCheckRevocation, _Out_ CertificateArray &cCerts, _Out_opt_ PFILETIME lpTimeStamp = NULL);
 
 HRESULT CalculateHashes(_In_z_ LPCWSTR szFileNameW, _In_opt_ HANDLE hFile, _In_opt_ HANDLE hCancelEvent, _Out_ LPHASHES lpHashes);
 
